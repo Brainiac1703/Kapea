@@ -72,7 +72,7 @@
 - [x] 9.1 Implementar la detección de formato por cabeceras con fallo total explícito que enumere columnas esperadas y encontradas; verificar con tests de cabeceras desconocidas, columna opcional ausente y columnas adicionales
 - [x] 9.2 Implementar el parser de Excel y CSV con las convenciones locales (separador decimal, separador de columnas, formato de fecha, divisa); verificar con test que la convención decimal europea se interpreta sin pérdida de precisión
 - [x] 9.3 Implementar el mapeo de conceptos de XTB a los tipos de movimiento normalizados, con `Unknown` para lo no reconocido y descarte de apuntes informativos sin efecto financiero; verificar con tests
-- [ ] 9.4 Implementar el endpoint de subida y el flujo de vista previa y confirmación, incluida la validación de que la cuenta destino es de plataforma `XTB` y el rechazo de tipos de fichero no admitidos; verificar con tests de integración de la API
+- [x] 9.4 Implementar el endpoint de subida y el flujo de vista previa y confirmación, incluida la validación de que la cuenta destino es de plataforma `XTB` y el rechazo de tipos de fichero no admitidos; verificar con tests de integración de la API
 - [ ] 9.5 Incorporar ficheros de exportación reales como casos de test de extremo a extremo con cifras esperadas; verificar que la importación completa produce los movimientos esperados
 
 ## 10. Adaptadores de API (Kraken y Bit2Me)
@@ -98,7 +98,7 @@
 
 ## 13. API y cliente
 
-- [ ] 13.1 Configurar la autenticación con Entra External ID en la API y la extracción del `UserId` del token, sin aceptarlo nunca como parámetro de entrada; verificar con tests que una petición sin token o con token de otro usuario no accede a los datos
+- [x] 13.1 Configurar la autenticación con Entra External ID en la API y la extracción del `UserId` del token, sin aceptarlo nunca como parámetro de entrada; verificar con tests que una petición sin token o con token de otro usuario no accede a los datos
 - [ ] 13.2 Implementar los endpoints de cuentas, credenciales, importaciones, movimientos, posiciones y resultados con sus comandos y consultas MediatR y su validación FluentValidation; verificar con tests de integración de la API
 - [ ] 13.3 Implementar en el cliente Blazor WebAssembly las pantallas de cuentas y credenciales; verificar manualmente el alta, la rotación y la revocación contra la API
 - [ ] 13.4 Implementar en el cliente la subida de fichero XTB con vista previa y confirmación, y el historial de importaciones con el detalle de rechazados; verificar manualmente el flujo completo con un fichero real

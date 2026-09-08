@@ -10,7 +10,10 @@ builder.Services.Configure<SynchronizationOptions>(
 
 // Observabilidad: la sincronización habla con terceros y falla de formas que solo se
 // entienden mirando las trazas de una ejecución concreta.
-builder.Services.AddApplicationInsightsTelemetryWorkerService();
+if (!string.IsNullOrWhiteSpace(builder.Configuration["ApplicationInsights:ConnectionString"]))
+{
+    builder.Services.AddApplicationInsightsTelemetryWorkerService();
+}
 
 builder.Services.AddHostedService<SynchronizationWorker>();
 

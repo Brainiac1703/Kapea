@@ -9,7 +9,9 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
@@ -20,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Kapea.Api\Kapea.Api.csproj" />
+    <ProjectReference Include="..\..\src\Kapea.Shared\Kapea.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Kapea.Infrastructure\Kapea.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,6 +4,7 @@ using Azure.Security.KeyVault.Secrets;
 using Kapea.Application.Abstractions;
 using Kapea.Application.Credentials;
 using Kapea.Application.Import;
+using Kapea.Application.Portfolio;
 using Kapea.Application.Synchronization;
 using Kapea.Infrastructure.ExchangeRates;
 using Kapea.Infrastructure.Import.Bit2Me;
@@ -46,6 +47,9 @@ public static class DependencyInjection
         services.AddScoped<IAssetCatalog, AssetCatalog>();
         services.AddScoped<ISynchronizationRepository, SynchronizationRepository>();
         services.AddScoped<IAccountSyncLock, AccountSyncLock>();
+        services.AddScoped<IPortfolioCalculationRepository, PortfolioCalculationRepository>();
+        services.AddScoped<PortfolioCalculationService>();
+        services.AddScoped<IPortfolioQueries, PortfolioQueries>();
         services.AddScoped<ImportPipeline>();
         services.AddScoped<BrokerCredentialService>();
         services.AddScoped<SynchronizationService>();
