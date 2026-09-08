@@ -6,7 +6,10 @@ context: |
   Stack (mismo que el proyecto legacy-lens del mismo equipo):
   - .NET 10 (SDK 10.0.300, rollForward latestFeature; fijado en global.json).
   - C#, con constructores primarios para la inyección por constructor.
-  - Blazor Web App (InteractiveServer).
+  - Frontend Blazor WebAssembly (decidido en la propuesta inicial): el cliente
+    corre en el navegador y no puede custodiar secretos, por lo que existe
+    siempre una Web API ASP.NET Core intermedia que guarda y usa las API keys
+    de los brokers y expone los endpoints que consume el cliente.
   - Solución en formato .slnx; gestión centralizada de versiones de paquetes
     (Directory.Packages.props, ManagePackageVersionsCentrally + pinning
     transitivo).
