@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Kapea.Infrastructure\Kapea.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Kapea.Domain\Kapea.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Kapea.Shared\Kapea.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

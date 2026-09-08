@@ -36,6 +36,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<CapitalIncome> CapitalIncomes => Set<CapitalIncome>();
 
+    public DbSet<Domain.Credentials.BrokerCredential> BrokerCredentials => Set<Domain.Credentials.BrokerCredential>();
+
     public DbSet<DailyRate> DailyRates => Set<DailyRate>();
 
     internal UserId CurrentUserId => currentUser.Id;
@@ -55,6 +57,7 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
         modelBuilder.Entity<Lot>().HasQueryFilter(lot => lot.UserId == CurrentUserId);
         modelBuilder.Entity<RealizedResult>().HasQueryFilter(result => result.UserId == CurrentUserId);
         modelBuilder.Entity<CapitalIncome>().HasQueryFilter(income => income.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Credentials.BrokerCredential>().HasQueryFilter(credential => credential.UserId == CurrentUserId);
 
         base.OnModelCreating(modelBuilder);
     }

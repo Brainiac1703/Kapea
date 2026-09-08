@@ -42,12 +42,12 @@
 
 ## 6. Credenciales de broker
 
-- [ ] 6.1 Definir el puerto `ISecretStore` y sus implementaciones para Key Vault y para desarrollo local con User Secrets; verificar con tests de integración de alta, lectura y borrado
-- [ ] 6.2 Implementar la entidad de credencial con metadatos y referencia al secreto, y los DTOs del contrato API sin ningún campo capaz de transportar el secreto; verificar con test que la serialización de la respuesta no contiene el secreto
-- [ ] 6.3 Implementar el alta con verificación contra la plataforma y el rechazo de credenciales con permisos de trading o retirada; verificar con tests sobre respuestas grabadas de credencial válida, rechazada y con permisos excesivos
-- [ ] 6.4 Implementar rotación y revocación conservando el histórico y los movimientos importados; verificar con tests que una credencial revocada queda excluida de las sincronizaciones
+- [x] 6.1 Definir el puerto `ISecretStore` y sus implementaciones para Key Vault y para desarrollo local con User Secrets; verificar con tests de integración de alta, lectura y borrado
+- [x] 6.2 Implementar la entidad de credencial con metadatos y referencia al secreto, y los DTOs del contrato API sin ningún campo capaz de transportar el secreto; verificar con test que la serialización de la respuesta no contiene el secreto
+- [x] 6.3 Implementar el alta con verificación contra la plataforma y el rechazo de credenciales con permisos de trading o retirada; verificar con tests sobre respuestas grabadas de credencial válida, rechazada y con permisos excesivos
+- [x] 6.4 Implementar rotación y revocación conservando el histórico y los movimientos importados; verificar con tests que una credencial revocada queda excluida de las sincronizaciones
 - [ ] 6.5 Implementar el marcado automático como inválida ante un rechazo durante la sincronización, sin afectar a otras plataformas; verificar con test que las demás cuentas siguen sincronizando
-- [ ] 6.6 Añadir un test que recorra los mensajes de log emitidos en los flujos de credenciales y falle si alguno contiene el secreto, entero o truncado
+- [x] 6.6 Añadir un test que recorra los mensajes de log emitidos en los flujos de credenciales y falle si alguno contiene el secreto, entero o truncado
 
 ## 7. Motor de importación
 
