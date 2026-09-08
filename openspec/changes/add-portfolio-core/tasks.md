@@ -28,17 +28,17 @@
 
 ## 4. Tipos de cambio
 
-- [ ] 4.1 Definir el puerto `IExchangeRateProvider` en `Application` y su tabla de tipos diarios en `Infrastructure`; verificar con test de integración sobre base de datos que la consulta por fecha y divisa devuelve el tipo esperado
-- [ ] 4.2 Implementar la descarga e ingesta de los tipos de referencia del BCE con reintentos; verificar contra una respuesta grabada que un rango de fechas se ingesta completo y que reingestar no duplica
+- [x] 4.1 Definir el puerto `IExchangeRateProvider` en `Application` y su tabla de tipos diarios en `Infrastructure`; verificar con test de integración sobre base de datos que la consulta por fecha y divisa devuelve el tipo esperado
+- [x] 4.2 Implementar la descarga e ingesta de los tipos de referencia del BCE con reintentos; verificar contra una respuesta grabada que un rango de fechas se ingesta completo y que reingestar no duplica
 - [x] 4.3 Implementar la sustitución por el último tipo publicado anterior cuando no hay publicación, dejando constancia en el movimiento; verificar con test sobre un fin de semana y un festivo
 - [x] 4.4 Implementar la congelación del tipo aplicado, su fecha y su fuente junto al movimiento, y que el recálculo use el tipo guardado; verificar con test que alterar la tabla de tipos no cambia un resultado ya calculado
 
 ## 5. Persistencia
 
-- [ ] 5.1 Crear el `DbContext` con las configuraciones de EF Core: precisión decimal por columna (18 para cantidades, 8 para importes), `UserId` en toda entidad de cartera e índices por cuenta, activo y fecha; verificar con test que ninguna columna monetaria o de cantidad usa coma flotante
-- [ ] 5.2 Implementar el filtro global de consulta por `UserId` tomado del token; verificar con test que una consulta olvidando el filtro explícito no devuelve datos de otro usuario y que la búsqueda por identificador ajeno se comporta como inexistente
-- [ ] 5.3 Generar la migración inicial y aplicarla; verificar que la base de datos se crea desde cero y que el esquema coincide con el modelo
-- [ ] 5.4 Implementar la persistencia de lotes y resultados como proyección reemplazable por activo dentro de una transacción; verificar con test de integración que un recálculo sustituye la proyección completa sin dejar restos
+- [x] 5.1 Crear el `DbContext` con las configuraciones de EF Core: precisión decimal por columna (18 para cantidades, 8 para importes), `UserId` en toda entidad de cartera e índices por cuenta, activo y fecha; verificar con test que ninguna columna monetaria o de cantidad usa coma flotante
+- [x] 5.2 Implementar el filtro global de consulta por `UserId` tomado del token; verificar con test que una consulta olvidando el filtro explícito no devuelve datos de otro usuario y que la búsqueda por identificador ajeno se comporta como inexistente
+- [x] 5.3 Generar la migración inicial y aplicarla; verificar que la base de datos se crea desde cero y que el esquema coincide con el modelo
+- [x] 5.4 Implementar la persistencia de lotes y resultados como proyección reemplazable por activo dentro de una transacción; verificar con test de integración que un recálculo sustituye la proyección completa sin dejar restos
 
 ## 6. Credenciales de broker
 

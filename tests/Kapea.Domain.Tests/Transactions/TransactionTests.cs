@@ -15,8 +15,9 @@ public class TransactionTests
     [Fact]
     public void Financial_data_of_a_transaction_has_no_public_setters()
     {
-        // La inmutabilidad no se puede probar intentando mutar: no compilaría.
-        // Lo que se comprueba es que el tipo no ofrece ninguna vía para hacerlo.
+        // La inmutabilidad no se puede probar intentando mutar: no compilaría. Lo que se
+        // comprueba es que ningún llamante tiene vía para hacerlo. Los mutadores privados
+        // existen solo porque EF Core no sabe enlazar tipos complejos por constructor.
         var financialProperties = new[]
         {
             nameof(Transaction.Quantity), nameof(Transaction.UnitPrice), nameof(Transaction.GrossAmount),
@@ -30,7 +31,9 @@ public class TransactionTests
             var property = typeof(Transaction).GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
 
             Assert.NotNull(property);
-            Assert.Null(property!.SetMethod);
+            Assert.True(
+                property!.SetMethod is null or { IsPublic: false },
+                $"La propiedad {name} expone un mutador público.");
         }
     }
 

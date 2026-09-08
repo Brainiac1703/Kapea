@@ -9,11 +9,13 @@ namespace Kapea.Domain.Assets;
 /// </summary>
 public sealed class Asset
 {
-    private Asset(Guid id, string canonicalSymbol, AssetClass assetClass, string? isin, string displayName, bool isVerified)
+    // El parámetro se llama @class para que coincida con la propiedad Class: EF enlaza
+    // el constructor por nombre y, sin esa correspondencia, no puede materializar el activo.
+    private Asset(Guid id, string canonicalSymbol, AssetClass @class, string? isin, string displayName, bool isVerified)
     {
         Id = id;
         CanonicalSymbol = canonicalSymbol;
-        Class = assetClass;
+        Class = @class;
         Isin = isin;
         DisplayName = displayName;
         IsVerified = isVerified;

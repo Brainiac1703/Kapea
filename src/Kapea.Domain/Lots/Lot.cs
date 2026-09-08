@@ -15,6 +15,11 @@ namespace Kapea.Domain.Lots;
 /// </remarks>
 public sealed class Lot
 {
+    /// <summary>Constructor para el materializador de EF Core; ver la nota en Transaction.</summary>
+    private Lot()
+    {
+    }
+
     private Lot(
         Guid id,
         UserId userId,
@@ -56,7 +61,7 @@ public sealed class Lot
     /// <summary>Coste total de la adquisición en euros, comisiones de compra incluidas.</summary>
     public Money AcquisitionCost { get; private set; }
 
-    public Occurrence AcquiredAt { get; }
+    public Occurrence AcquiredAt { get; private set; }
 
     /// <summary>
     /// Desempate entre lotes adquiridos en el mismo instante. Sin él, el orden de

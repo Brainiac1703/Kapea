@@ -18,6 +18,17 @@ namespace Kapea.Domain.Transactions;
 /// </remarks>
 public sealed class Transaction
 {
+    /// <summary>
+    /// Constructor sin parámetros para el materializador de EF Core: no sabe enlazar
+    /// tipos complejos —importes y fechas— a parámetros de constructor, así que los
+    /// asigna por propiedad. No amplía la superficie pública: sigue sin haber forma de
+    /// construir ni mutar un movimiento desde fuera.
+    /// </summary>
+    private Transaction()
+    {
+        Source = null!;
+    }
+
     private Transaction(
         Guid id,
         UserId userId,
@@ -63,26 +74,26 @@ public sealed class Transaction
     /// <summary>Activo operado. Nulo en movimientos puramente dinerarios (una comisión de cuenta, un ingreso).</summary>
     public Guid? AssetId { get; }
 
-    public Quantity Quantity { get; }
+    public Quantity Quantity { get; private set; }
 
     /// <summary>Precio por unidad en la divisa de la operación. Nulo cuando el origen no lo aporta.</summary>
-    public Money? UnitPrice { get; }
+    public Money? UnitPrice { get; private set; }
 
     /// <summary>Importe bruto de la operación en su divisa, antes de comisiones y retenciones.</summary>
-    public Money GrossAmount { get; }
+    public Money GrossAmount { get; private set; }
 
-    public Money Fee { get; }
+    public Money Fee { get; private set; }
 
     /// <summary>Retención practicada en origen. Solo la aportan algunos dividendos.</summary>
-    public Money? WithholdingTax { get; }
+    public Money? WithholdingTax { get; private set; }
 
-    public Occurrence OccurredAt { get; }
+    public Occurrence OccurredAt { get; private set; }
 
     public Currency Currency => GrossAmount.Currency;
 
     public TransactionOrigin Origin { get; }
 
-    public TransactionSource Source { get; }
+    public TransactionSource Source { get; private set; }
 
     /// <summary>Motivo del ajuste. Obligatorio en un ajuste manual, siempre nulo en un importado.</summary>
     public string? AdjustmentReason { get; }

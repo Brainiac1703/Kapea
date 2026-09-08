@@ -64,7 +64,7 @@ public static class FifoCalculator
                     break;
 
                 case TransactionType.Sell:
-                    Dispose(assetId, valued, openLots, realized, inconsistencies);
+                    Dispose(userId, assetId, valued, openLots, realized, inconsistencies);
                     break;
 
                 case TransactionType.Withdrawal when valued.IsInternalTransferOut:
@@ -80,6 +80,7 @@ public static class FifoCalculator
                 case TransactionType.Interest:
                 case TransactionType.Reward:
                     incomes.Add(new CapitalIncome(
+                        userId,
                         valued.AssetId,
                         valued.Transaction.Id,
                         valued.Transaction.AccountId,
@@ -114,6 +115,7 @@ public static class FifoCalculator
             sequence);
 
     private static void Dispose(
+        UserId userId,
         Guid assetId,
         ValuedTransaction valued,
         List<Lot> openLots,
@@ -165,10 +167,11 @@ public static class FifoCalculator
         if (consumed.Count > 0 && allocatedProceeds != netProceeds)
         {
             var last = consumed[^1];
-            consumed[^1] = last with { ProceedsInEuros = last.ProceedsInEuros + (netProceeds - allocatedProceeds) };
+            consumed[^1] = last.WithProceeds(last.ProceedsInEuros + (netProceeds - allocatedProceeds));
         }
 
         realized.Add(new RealizedResult(
+            userId,
             assetId,
             valued.Transaction.Id,
             valued.Transaction.AccountId,

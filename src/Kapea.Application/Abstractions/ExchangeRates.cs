@@ -57,3 +57,16 @@ public interface IMarketPriceProvider
         IReadOnlyCollection<string> canonicalSymbols,
         CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Almacena la proyección de un activo: sus lotes, sus resultados y sus rendimientos.
+/// Se reemplaza entera en cada recálculo, porque la fuente de verdad son los
+/// movimientos y estas tablas son un derivado.
+/// </summary>
+public interface IPortfolioProjectionStore
+{
+    Task ReplaceAsync(
+        Guid assetId,
+        Domain.Calculation.AssetCalculationResult result,
+        CancellationToken cancellationToken = default);
+}
