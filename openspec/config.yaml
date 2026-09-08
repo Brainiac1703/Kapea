@@ -1,13 +1,55 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  Proyecto: Kapea. Repositorio nuevo, aún sin código.
+
+  Stack (mismo que el proyecto legacy-lens del mismo equipo):
+  - .NET 10 (SDK 10.0.300, rollForward latestFeature; fijado en global.json).
+  - C#, con constructores primarios para la inyección por constructor.
+  - Blazor Web App (InteractiveServer).
+  - Solución en formato .slnx; gestión centralizada de versiones de paquetes
+    (Directory.Packages.props, ManagePackageVersionsCentrally + pinning
+    transitivo).
+  - Arquitectura por capas con las dependencias apuntando hacia dentro:
+    Domain sin dependencias, Application con CQRS (MediatR) + FluentValidation,
+    adaptador de persistencia con EF Core + SQL Server, Web solo conoce ISender.
+    Ajustar a lo que Kapea necesite, pero mantener la dirección de dependencias.
+
+  Convenciones de idioma:
+  - Identificadores, nombres de fichero, rutas y URLs de páginas: en inglés.
+  - Comentarios y documentación: en español. Un comentario en español que cita
+    un identificador lo escribe con su nombre real en inglés.
+  - Texto que ve el usuario: en ficheros de recursos, nunca literal en el
+    código. es-ES por omisión, en como alternativo.
+  - Mensajes de log: en español y sin localizar.
+  - Nombres de tests y sus variables locales: en inglés, aunque se lean como
+    frase.
+  - En los YAML de pipeline: nombres de job/step/output/input/env/variable en
+    inglés (incluido el name: visible en Actions); comentarios y echo en
+    español.
+
+  Convenciones de código:
+  - PascalCase en lo público, camelCase en locales y parámetros, _camelCase en
+    campos privados.
+  - Inyección por constructor; nada de localizador de servicios ni estado
+    estático (GetRequiredService solo en la raíz de composición, seeders y
+    registro de endpoints).
+  - async/await para toda E/S; nunca .Result ni .Wait().
+  - Estilos en app.css (globales) o en el .razor.css del componente; nunca en el
+    atributo style.
+  - Comentarios: el "qué" sobra; se documenta el "por qué" (decisiones con
+    alternativas, trampas, límites de bibliotecas). Nada de resúmenes de cambios
+    en el código: eso es del historial de git.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
 # Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
