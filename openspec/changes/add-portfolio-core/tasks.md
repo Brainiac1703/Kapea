@@ -52,13 +52,13 @@
 ## 7. Motor de importación
 
 - [x] 7.1 Definir los puertos `IFileImportAdapter` e `IApiImportAdapter`, el tipo de registro normalizado común y el registro con clave por plataforma en el contenedor; verificar con test que una plataforma sin adaptador registrado se rechaza indicando las soportadas
-- [ ] 7.2 Implementar `ImportRun` con su ciclo de vida, recuentos (leídos, importados, duplicados, rechazados) y consulta de historial y detalle; verificar con tests de integración
-- [ ] 7.3 Implementar la fase de staging: normalización y clasificación en importable, duplicado y rechazado, sin escribir en las tablas de dominio; verificar con test que abandonar el staging no deja nada persistido
-- [ ] 7.4 Implementar la huella de deduplicación en dos niveles (identificador natural del origen, o datos financieros más número de fila) y su índice único por cuenta; verificar con tests de reimportación del mismo fichero, periodos solapados y dos operaciones legítimamente idénticas
-- [ ] 7.5 Implementar la atomicidad de la confirmación y el registro de rechazados con su contenido original y motivo; verificar con test que un fallo a mitad no deja movimientos persistidos y que los rechazados no abortan la ejecución
-- [ ] 7.6 Implementar el reproceso de registros rechazados de una ejecución; verificar con test que los normalizables se importan y los que siguen fallando conservan el rechazo con motivo actualizado
-- [ ] 7.7 Implementar la conservación íntegra del registro de origen junto al movimiento y la consulta de trazabilidad movimiento → ejecución → registro original; verificar con test de integración
-- [ ] 7.8 Implementar la eliminación de una ejecución con recálculo posterior y su bloqueo cuando hay dependencias; verificar con tests de ambos casos
+- [x] 7.2 Implementar `ImportRun` con su ciclo de vida, recuentos (leídos, importados, duplicados, rechazados) y consulta de historial y detalle; verificar con tests de integración
+- [x] 7.3 Implementar la fase de staging: normalización y clasificación en importable, duplicado y rechazado, sin escribir en las tablas de dominio; verificar con test que abandonar el staging no deja nada persistido
+- [x] 7.4 Implementar la huella de deduplicación en dos niveles (identificador natural del origen, o datos financieros más número de fila) y su índice único por cuenta; verificar con tests de reimportación del mismo fichero, periodos solapados y dos operaciones legítimamente idénticas
+- [x] 7.5 Implementar la atomicidad de la confirmación y el registro de rechazados con su contenido original y motivo; verificar con test que un fallo a mitad no deja movimientos persistidos y que los rechazados no abortan la ejecución
+- [x] 7.6 Implementar el reproceso de registros rechazados de una ejecución; verificar con test que los normalizables se importan y los que siguen fallando conservan el rechazo con motivo actualizado
+- [x] 7.7 Implementar la conservación íntegra del registro de origen junto al movimiento y la consulta de trazabilidad movimiento → ejecución → registro original; verificar con test de integración
+- [x] 7.8 Implementar la eliminación de una ejecución con recálculo posterior y su bloqueo cuando hay dependencias; verificar con tests de ambos casos
 
 ## 8. Detección de traspasos internos
 

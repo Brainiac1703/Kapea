@@ -12,18 +12,24 @@ namespace Kapea.Domain.Transactions;
 /// <param name="NaturalId">Identificador que aporta el origen (txid de Kraken, id de operación). Nulo en ficheros.</param>
 /// <param name="RowNumber">Fila dentro del fichero. Nulo en orígenes de API.</param>
 /// <param name="Fingerprint">Huella de deduplicación, estable para el mismo registro de origen.</param>
-public sealed record TransactionSource(Guid? ImportRunId, string? NaturalId, int? RowNumber, string Fingerprint)
+/// <param name="RawContent">Contenido original íntegro del registro. Ocupa poco a esta escala y es lo que sostiene la trazabilidad.</param>
+public sealed record TransactionSource(Guid? ImportRunId, string? NaturalId, int? RowNumber, string Fingerprint, string? RawContent = null)
 {
-    public static TransactionSource FromImport(Guid importRunId, string? naturalId, int? rowNumber, string fingerprint)
+    public static TransactionSource FromImport(
+        Guid importRunId,
+        string? naturalId,
+        int? rowNumber,
+        string fingerprint,
+        string? rawContent = null)
     {
         if (string.IsNullOrWhiteSpace(fingerprint))
         {
             throw new DomainException("Un movimiento importado necesita huella de deduplicación.");
         }
 
-        return new TransactionSource(importRunId, naturalId, rowNumber, fingerprint);
+        return new TransactionSource(importRunId, naturalId, rowNumber, fingerprint, rawContent);
     }
 
     public static TransactionSource ForManualAdjustment(Guid adjustmentId) =>
-        new(ImportRunId: null, NaturalId: null, RowNumber: null, Fingerprint: $"manual:{adjustmentId:N}");
+        new(ImportRunId: null, NaturalId: null, RowNumber: null, Fingerprint: $"manual:{adjustmentId:N}", RawContent: null);
 }
