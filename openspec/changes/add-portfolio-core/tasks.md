@@ -1,19 +1,19 @@
 ## 1. Andamiaje de la solución
 
-- [ ] 1.1 Crear `global.json` (SDK 10.0.300, rollForward latestFeature), `Directory.Build.props` y `Directory.Packages.props` con `ManagePackageVersionsCentrally` y pinning transitivo; verificar que `dotnet --version` resuelve el SDK fijado
-- [ ] 1.2 Crear la solución `Kapea.slnx` con los proyectos `Domain`, `Application`, `Infrastructure`, `Api`, `Client`, `Shared` y `Sync` según design.md; verificar que `dotnet build` compila en limpio
-- [ ] 1.3 Crear un proyecto de test por capa (`Domain.Tests`, `Application.Tests`, `Infrastructure.Tests`, `Api.Tests`) con xUnit; verificar que `dotnet test` se ejecuta sin tests fallidos
-- [ ] 1.4 Añadir una prueba de arquitectura que falle si `Domain` referencia cualquier otro proyecto o si `Application` referencia `Infrastructure`; verificar que la prueba falla al introducir una referencia prohibida y pasa al quitarla
-- [ ] 1.5 Configurar los ficheros de recursos de localización (`es-ES` por omisión, `en` alternativo) y añadir un analizador o test que detecte literales de UI en el código; verificar con un literal de prueba
+- [x] 1.1 Crear `global.json` (SDK 10.0.300, rollForward latestFeature), `Directory.Build.props` y `Directory.Packages.props` con `ManagePackageVersionsCentrally` y pinning transitivo; verificar que `dotnet --version` resuelve el SDK fijado
+- [x] 1.2 Crear la solución `Kapea.slnx` con los proyectos `Domain`, `Application`, `Infrastructure`, `Api`, `Client`, `Shared` y `Sync` según design.md; verificar que `dotnet build` compila en limpio
+- [x] 1.3 Crear un proyecto de test por capa (`Domain.Tests`, `Application.Tests`, `Infrastructure.Tests`, `Api.Tests`) con xUnit; verificar que `dotnet test` se ejecuta sin tests fallidos
+- [x] 1.4 Añadir una prueba de arquitectura que falle si `Domain` referencia cualquier otro proyecto o si `Application` referencia `Infrastructure`; verificar que la prueba falla al introducir una referencia prohibida y pasa al quitarla
+- [x] 1.5 Configurar los ficheros de recursos de localización (`es-ES` por omisión, `en` alternativo) y añadir un analizador o test que detecte literales de UI en el código; verificar con un literal de prueba
 
 ## 2. Modelo de dominio
 
-- [ ] 2.1 Implementar los tipos de valor `Money` (importe + divisa) y `Quantity` con aritmética `decimal`; verificar con tests que sumar dos `Money` de divisas distintas falla y que no hay pérdida de precisión en cripto (8+ decimales)
-- [ ] 2.2 Implementar `Asset` con clase (`Equity`/`Crypto`), símbolo canónico, ISIN opcional y marca de no verificado; verificar con tests de las invariantes del catálogo
-- [ ] 2.3 Implementar `PlatformAccount` (plataforma, alias, divisa base, `UserId`); verificar con test que rechaza el borrado cuando tiene movimientos
-- [ ] 2.4 Implementar `Transaction` con todos los campos de la spec, los tipos de movimiento soportados y la inmutabilidad de sus datos financieros; verificar con tests que un intento de mutación falla y que una fecha sin zona se almacena en UTC junto con la zona de origen
-- [ ] 2.5 Implementar `Lot` con cantidad original, cantidad restante, coste en EUR y fecha de adquisición; verificar con test que la cantidad restante nunca queda negativa
-- [ ] 2.6 Implementar `ManualAdjustment` como movimiento propio con motivo obligatorio; verificar con test que aparece en la trazabilidad diferenciado de los importados
+- [x] 2.1 Implementar los tipos de valor `Money` (importe + divisa) y `Quantity` con aritmética `decimal`; verificar con tests que sumar dos `Money` de divisas distintas falla y que no hay pérdida de precisión en cripto (8+ decimales)
+- [x] 2.2 Implementar `Asset` con clase (`Equity`/`Crypto`), símbolo canónico, ISIN opcional y marca de no verificado; verificar con tests de las invariantes del catálogo
+- [x] 2.3 Implementar `PlatformAccount` (plataforma, alias, divisa base, `UserId`); verificar con test que rechaza el borrado cuando tiene movimientos
+- [x] 2.4 Implementar `Transaction` con todos los campos de la spec, los tipos de movimiento soportados y la inmutabilidad de sus datos financieros; verificar con tests que un intento de mutación falla y que una fecha sin zona se almacena en UTC junto con la zona de origen
+- [x] 2.5 Implementar `Lot` con cantidad original, cantidad restante, coste en EUR y fecha de adquisición; verificar con test que la cantidad restante nunca queda negativa
+- [x] 2.6 Implementar `ManualAdjustment` como movimiento propio con motivo obligatorio; verificar con test que aparece en la trazabilidad diferenciado de los importados
 
 ## 3. Motor FIFO
 

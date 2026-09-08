@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Kapea.Sync-bbe7e3e3-611a-4fd5-b782-a6bca16b4d25</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kapea.Application\Kapea.Application.csproj" />
+    <ProjectReference Include="..\Kapea.Infrastructure\Kapea.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
