@@ -237,7 +237,8 @@ public sealed class KrakenApiClient(HttpClient httpClient, ILogger<KrakenApiClie
 
 /// <summary>Kraken ha devuelto errores propios en el cuerpo, aunque el código HTTP fuera 200.</summary>
 public sealed class KrakenApiException(IReadOnlyList<string> errors)
-    : InvalidOperationException($"Kraken ha rechazado la petición: {string.Join("; ", errors)}.")
+    : InvalidOperationException($"Kraken ha rechazado la petición: {string.Join("; ", errors)}."),
+    Kapea.Application.Synchronization.IInvalidCredentialSignal
 {
     public IReadOnlyList<string> Errors { get; } = errors;
 

@@ -234,7 +234,8 @@ public sealed class Bit2MeApiClient(HttpClient httpClient, ILogger<Bit2MeApiClie
 
 /// <summary>La credencial no puede leer ese recurso: o está revocada, o le falta el ámbito.</summary>
 public sealed class Bit2MeAccessDeniedException(string url, HttpStatusCode status)
-    : InvalidOperationException($"Bit2Me ha denegado el acceso a {url} ({(int)status}).")
+    : InvalidOperationException($"Bit2Me ha denegado el acceso a {url} ({(int)status})."),
+    Kapea.Application.Synchronization.IInvalidCredentialSignal
 {
     public string Url { get; } = url;
 

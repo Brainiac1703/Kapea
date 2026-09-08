@@ -42,6 +42,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<Domain.Transfers.InternalTransfer> InternalTransfers => Set<Domain.Transfers.InternalTransfer>();
 
+    public DbSet<AccountSyncLockRow> AccountSyncLocks => Set<AccountSyncLockRow>();
+
     public DbSet<DailyRate> DailyRates => Set<DailyRate>();
 
     internal UserId CurrentUserId => currentUser.Id;

@@ -46,7 +46,7 @@
 - [x] 6.2 Implementar la entidad de credencial con metadatos y referencia al secreto, y los DTOs del contrato API sin ningún campo capaz de transportar el secreto; verificar con test que la serialización de la respuesta no contiene el secreto
 - [x] 6.3 Implementar el alta con verificación contra la plataforma y el rechazo de credenciales con permisos de trading o retirada; verificar con tests sobre respuestas grabadas de credencial válida, rechazada y con permisos excesivos
 - [x] 6.4 Implementar rotación y revocación conservando el histórico y los movimientos importados; verificar con tests que una credencial revocada queda excluida de las sincronizaciones
-- [ ] 6.5 Implementar el marcado automático como inválida ante un rechazo durante la sincronización, sin afectar a otras plataformas; verificar con test que las demás cuentas siguen sincronizando
+- [x] 6.5 Implementar el marcado automático como inválida ante un rechazo durante la sincronización, sin afectar a otras plataformas; verificar con test que las demás cuentas siguen sincronizando
 - [x] 6.6 Añadir un test que recorra los mensajes de log emitidos en los flujos de credenciales y falle si alguno contiene el secreto, entero o truncado
 
 ## 7. Motor de importación
@@ -82,14 +82,14 @@
 - [x] 10.3 Implementar el cliente de Bit2Me con paginación, espera creciente y cobertura de todos los productos legibles, dejando constancia de los omitidos; verificar contra respuestas grabadas
 - [x] 10.4 Implementar las conversiones directas de Bit2Me como venta y compra enlazadas con valoración en EUR en la fecha; verificar con test que el FIFO trata la permuta como hecho imponible
 - [x] 10.5 Implementar la normalización de rendimientos y recompensas a `Reward`/`Interest`; verificar con tests
-- [ ] 10.6 Implementar el fallo de la carga inicial ante interrupción de la paginación, sin persistir nada y sin avanzar el instante de última importación correcta; verificar con test para ambos adaptadores
+- [x] 10.6 Implementar el fallo de la carga inicial ante interrupción de la paginación, sin persistir nada y sin avanzar el instante de última importación correcta; verificar con test para ambos adaptadores
 
 ## 11. Sincronización programada
 
-- [ ] 11.1 Implementar el proceso temporizado de `Kapea.Sync` que recorre las cuentas con credencial activa e importa desde el instante de la última importación correcta; verificar con test de integración que la segunda ejecución solicita solo el periodo posterior
-- [ ] 11.2 Implementar el bloqueo de ejecuciones solapadas por cuenta, dejando constancia de la omisión; verificar con test que una segunda ejecución concurrente no se ejecuta
-- [ ] 11.3 Implementar el aislamiento de fallos entre plataformas: una que falla no impide sincronizar el resto; verificar con test
-- [ ] 11.4 Configurar Application Insights y las trazas en español de inicio, fin y resultado de cada sincronización; verificar que una ejecución local emite las trazas esperadas
+- [x] 11.1 Implementar el proceso temporizado de `Kapea.Sync` que recorre las cuentas con credencial activa e importa desde el instante de la última importación correcta; verificar con test de integración que la segunda ejecución solicita solo el periodo posterior
+- [x] 11.2 Implementar el bloqueo de ejecuciones solapadas por cuenta, dejando constancia de la omisión; verificar con test que una segunda ejecución concurrente no se ejecuta
+- [x] 11.3 Implementar el aislamiento de fallos entre plataformas: una que falla no impide sincronizar el resto; verificar con test
+- [x] 11.4 Configurar Application Insights y las trazas en español de inicio, fin y resultado de cada sincronización; verificar que una ejecución local emite las trazas esperadas
 
 ## 12. Precios de mercado y posiciones
 
