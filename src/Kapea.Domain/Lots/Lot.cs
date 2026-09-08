@@ -112,9 +112,11 @@ public sealed class Lot
             throw new LotOverconsumptionException(Id, RemainingQuantity, quantity);
         }
 
+        // Se multiplica antes de dividir: dividir primero introduce un decimal periódico
+        // que no cuadra al volver a sumar los trozos.
         var consumedCost = OriginalQuantity.IsZero
             ? Money.Euros(0m)
-            : AcquisitionCost * (quantity.Value / OriginalQuantity.Value);
+            : AcquisitionCost * quantity.Value / OriginalQuantity.Value;
 
         RemainingQuantity -= quantity;
 
@@ -147,6 +149,43 @@ public sealed class Lot
 
         AccountId = accountId;
     }
+
+    /// <summary>
+    /// Parte el lote en dos: este se queda con el resto y se devuelve uno nuevo con la
+    /// cantidad indicada y su coste proporcional. Hace falta cuando un traspaso interno
+    /// se lleva parte de un lote, porque las dos mitades acaban en cuentas distintas.
+    /// </summary>
+    public Lot SplitOff(Quantity quantity)
+    {
+        if (quantity.IsZero)
+        {
+            throw new DomainException("Partir un lote por una cantidad nula no tiene sentido.");
+        }
+
+        if (quantity >= RemainingQuantity)
+        {
+            throw new DomainException(
+                $"No se puede partir el lote {Id} por {quantity}: solo le restan {RemainingQuantity}.");
+        }
+
+        // Se reparte por coste unitario, no por proporción del resto: así las dos
+        // mitades conservan exactamente el mismo coste unitario que el lote original.
+        var movedCost = UnitCost * quantity.Value;
+
+        var moved = new Lot(Guid.NewGuid(), UserId, AssetId, AccountId, AcquisitionTransactionId,
+            quantity, movedCost, AcquiredAt, SequenceNumber);
+
+        AcquisitionCost -= movedCost;
+        OriginalQuantity -= quantity;
+        RemainingQuantity -= quantity;
+
+        return moved;
+    }
+
+    /// <summary>Coste que queda por consumir, proporcional a la cantidad restante.</summary>
+    public Money RemainingCost => OriginalQuantity.IsZero
+        ? Money.Zero(AcquisitionCost.Currency)
+        : AcquisitionCost * RemainingQuantity.Value / OriginalQuantity.Value;
 
     /// <summary>Suma al coste la comisión de un traspaso interno, que no genera resultado pero sí encarece el lote.</summary>
     public void AddTransferFee(Money fee)

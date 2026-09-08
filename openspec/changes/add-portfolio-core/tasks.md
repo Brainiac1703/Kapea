@@ -17,14 +17,14 @@
 
 ## 3. Motor FIFO
 
-- [ ] 3.1 Implementar la función pura de cálculo (movimientos ordenados de un activo → lotes + resultados realizados) con desglose por lote consumido; verificar con tests de consumo parcial, consumo de varios lotes y agotamiento exacto
-- [ ] 3.2 Implementar el orden global por activo con desempate estable entre lotes de igual instante; verificar con test que dos ejecuciones sobre los mismos datos producen idéntico resultado y que lotes en cuentas distintas se consumen por fecha global
-- [ ] 3.3 Implementar el reparto proporcional de comisiones: las de adquisición al coste del lote, las de transmisión al importe repartidas entre lotes consumidos; verificar con tests de ambos casos
-- [ ] 3.4 Implementar los splits (ajuste de cantidad y coste unitario de lotes anteriores a la fecha efectiva, coste total y fecha de adquisición intactos); verificar con tests, incluido el split posterior a una venta ya calculada
-- [ ] 3.5 Implementar el tratamiento de dividendos como rendimiento del capital sin tocar lotes, con bruto y retención separados; verificar con tests
-- [ ] 3.6 Implementar la detección de venta sin lotes suficientes como inconsistencia explícita (activo, fecha, cantidad faltante); verificar con test que no se produce ningún resultado parcial silencioso
-- [ ] 3.7 Implementar la exclusión de movimientos `Unknown` y de traspasos pendientes de confirmar, con el recuento de pendientes en el resultado; verificar con test
-- [ ] 3.8 Añadir una batería de casos fiscales de referencia como tabla de datos (permuta cripto-cripto, compra en USD, venta que barre tres lotes con comisión, split retroactivo, dividendo con retención), con cifras esperadas calculadas a mano; verificar que todos pasan
+- [x] 3.1 Implementar la función pura de cálculo (movimientos ordenados de un activo → lotes + resultados realizados) con desglose por lote consumido; verificar con tests de consumo parcial, consumo de varios lotes y agotamiento exacto
+- [x] 3.2 Implementar el orden global por activo con desempate estable entre lotes de igual instante; verificar con test que dos ejecuciones sobre los mismos datos producen idéntico resultado y que lotes en cuentas distintas se consumen por fecha global
+- [x] 3.3 Implementar el reparto proporcional de comisiones: las de adquisición al coste del lote, las de transmisión al importe repartidas entre lotes consumidos; verificar con tests de ambos casos
+- [x] 3.4 Implementar los splits (ajuste de cantidad y coste unitario de lotes anteriores a la fecha efectiva, coste total y fecha de adquisición intactos); verificar con tests, incluido el split posterior a una venta ya calculada
+- [x] 3.5 Implementar el tratamiento de dividendos como rendimiento del capital sin tocar lotes, con bruto y retención separados; verificar con tests
+- [x] 3.6 Implementar la detección de venta sin lotes suficientes como inconsistencia explícita (activo, fecha, cantidad faltante); verificar con test que no se produce ningún resultado parcial silencioso
+- [x] 3.7 Implementar la exclusión de movimientos `Unknown` y de traspasos pendientes de confirmar, con el recuento de pendientes en el resultado; verificar con test
+- [x] 3.8 Añadir una batería de casos fiscales de referencia como tabla de datos (permuta cripto-cripto, compra en USD, venta que barre tres lotes con comisión, split retroactivo, dividendo con retención), con cifras esperadas calculadas a mano; verificar que todos pasan
 
 ## 4. Tipos de cambio
 
