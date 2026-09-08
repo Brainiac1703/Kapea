@@ -37,3 +37,23 @@ public interface IExchangeRateStore
     /// <summary>Inserta o actualiza tipos. Reingestar el mismo rango no crea duplicados.</summary>
     Task<int> UpsertAsync(IReadOnlyList<DailyRate> rates, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Precio de mercado de un activo en euros, con el instante al que corresponde.</summary>
+public sealed record MarketPrice(string CanonicalSymbol, decimal PriceInEuros, DateTimeOffset AsOf);
+
+/// <summary>
+/// Precios de mercado para valorar las posiciones abiertas.
+/// </summary>
+/// <remarks>
+/// Es un puerto y no una dependencia directa porque la elección del proveedor sigue
+/// abierta para renta variable. Las posiciones están especificadas para funcionar sin
+/// precio, así que un proveedor que no cubra un activo no rompe nada: la posición
+/// aparece con cantidad y coste medio, y sin valor actual.
+/// </remarks>
+public interface IMarketPriceProvider
+{
+    /// <summary>Precios de los símbolos que este proveedor cubra. Los que no cubra, simplemente no vienen.</summary>
+    Task<IReadOnlyDictionary<string, MarketPrice>> GetPricesAsync(
+        IReadOnlyCollection<string> canonicalSymbols,
+        CancellationToken cancellationToken = default);
+}

@@ -93,8 +93,8 @@
 
 ## 12. Precios de mercado y posiciones
 
-- [ ] 12.1 Definir el puerto `IMarketPriceProvider` e implementarlo contra CoinGecko para cripto, con caché y degradación ante indisponibilidad; verificar contra respuestas grabadas
-- [ ] 12.2 Implementar el cálculo de posiciones abiertas (cantidad y coste medio siempre; valor actual, resultado latente e instante del precio solo si hay precio); verificar con tests de posición con precio, sin precio y activo totalmente vendido
+- [x] 12.1 Definir el puerto `IMarketPriceProvider` e implementarlo contra CoinGecko para cripto, con caché y degradación ante indisponibilidad; verificar contra respuestas grabadas
+- [x] 12.2 Implementar el cálculo de posiciones abiertas (cantidad y coste medio siempre; valor actual, resultado latente e instante del precio solo si hay precio); verificar con tests de posición con precio, sin precio y activo totalmente vendido
 
 ## 13. API y cliente
 
