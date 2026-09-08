@@ -1,4 +1,5 @@
 using Kapea.Domain.Common;
+using Kapea.Domain.Exchange;
 using Kapea.Domain.ValueObjects;
 
 namespace Kapea.Domain.Transactions;
@@ -31,7 +32,8 @@ public sealed class Transaction
         Occurrence occurredAt,
         TransactionOrigin origin,
         TransactionSource source,
-        string? adjustmentReason)
+        string? adjustmentReason,
+        ExchangeRate? appliedExchangeRate)
     {
         Id = id;
         UserId = userId;
@@ -47,6 +49,7 @@ public sealed class Transaction
         Origin = origin;
         Source = source;
         AdjustmentReason = adjustmentReason;
+        AppliedExchangeRate = appliedExchangeRate;
     }
 
     public Guid Id { get; }
@@ -84,6 +87,13 @@ public sealed class Transaction
     /// <summary>Motivo del ajuste. Obligatorio en un ajuste manual, siempre nulo en un importado.</summary>
     public string? AdjustmentReason { get; }
 
+    /// <summary>
+    /// Tipo de cambio congelado en el momento de importar. Nulo cuando la operación ya
+    /// estaba en euros. Es el que usa cualquier recálculo posterior: la fuente de tipos
+    /// no se vuelve a consultar.
+    /// </summary>
+    public ExchangeRate? AppliedExchangeRate { get; }
+
     /// <summary>Un movimiento sin clasificar no participa en el cálculo hasta que una persona lo resuelve.</summary>
     public bool RequiresReview => Type == TransactionType.Unknown;
 
@@ -102,9 +112,11 @@ public sealed class Transaction
         Money fee,
         Occurrence occurredAt,
         TransactionSource source,
-        Money? withholdingTax = null)
+        Money? withholdingTax = null,
+        ExchangeRate? appliedExchangeRate = null)
     {
         EnsureConsistent(type, assetId, quantity, unitPrice, grossAmount, fee, withholdingTax);
+        EnsureRateMatchesCurrency(grossAmount, appliedExchangeRate);
 
         if (source.ImportRunId is null)
         {
@@ -112,7 +124,8 @@ public sealed class Transaction
         }
 
         return new Transaction(Guid.NewGuid(), userId, accountId, type, assetId, quantity, unitPrice, grossAmount,
-            fee, withholdingTax, occurredAt, TransactionOrigin.Imported, source, adjustmentReason: null);
+            fee, withholdingTax, occurredAt, TransactionOrigin.Imported, source, adjustmentReason: null,
+            appliedExchangeRate);
     }
 
     public static Transaction FromManualAdjustment(
@@ -126,9 +139,11 @@ public sealed class Transaction
         Money fee,
         Occurrence occurredAt,
         Guid adjustmentId,
-        string reason)
+        string reason,
+        ExchangeRate? appliedExchangeRate = null)
     {
         EnsureConsistent(type, assetId, quantity, unitPrice, grossAmount, fee, withholdingTax: null);
+        EnsureRateMatchesCurrency(grossAmount, appliedExchangeRate);
 
         if (string.IsNullOrWhiteSpace(reason))
         {
@@ -137,7 +152,45 @@ public sealed class Transaction
 
         return new Transaction(Guid.NewGuid(), userId, accountId, type, assetId, quantity, unitPrice, grossAmount,
             fee, withholdingTax: null, occurredAt, TransactionOrigin.ManualAdjustment,
-            TransactionSource.ForManualAdjustment(adjustmentId), reason.Trim());
+            TransactionSource.ForManualAdjustment(adjustmentId), reason.Trim(), appliedExchangeRate);
+    }
+
+    /// <summary>Convierte a euros un importe de este movimiento con el tipo congelado.</summary>
+    public Money ToEuros(Money amount) =>
+        amount.Currency.IsEuro
+            ? amount
+            : (AppliedExchangeRate ?? throw new DomainException(
+                "El movimiento está en divisa y no tiene tipo de cambio congelado."))
+                .ToEuros(amount);
+
+    public Money GrossAmountInEuros => ToEuros(GrossAmount);
+
+    public Money FeeInEuros => ToEuros(Fee);
+
+    public Money? WithholdingTaxInEuros => WithholdingTax is { } withholding ? ToEuros(withholding) : null;
+
+    private static void EnsureRateMatchesCurrency(Money grossAmount, ExchangeRate? rate)
+    {
+        if (grossAmount.Currency.IsEuro)
+        {
+            if (rate is not null)
+            {
+                throw new DomainException("Una operación en euros no lleva tipo de cambio.");
+            }
+
+            return;
+        }
+
+        if (rate is null)
+        {
+            throw new DomainException(
+                $"Una operación en {grossAmount.Currency.Code} necesita el tipo de cambio aplicado, congelado en el movimiento.");
+        }
+
+        if (rate.Currency != grossAmount.Currency)
+        {
+            throw new CurrencyMismatchException(rate.Currency, grossAmount.Currency, "combinar");
+        }
     }
 
     private static void EnsureConsistent(

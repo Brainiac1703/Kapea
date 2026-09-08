@@ -27,6 +27,31 @@ public sealed record ValuedTransaction(
     Guid? TransferDestinationAccountId = null,
     bool IsPendingTransferReview = false)
 {
+    /// <summary>
+    /// Valora el movimiento con el tipo de cambio que lleva congelado. Es la única vía
+    /// prevista para entrar al motor: garantiza que un recálculo use el mismo tipo que
+    /// el cálculo original, aunque la fuente haya cambiado sus datos desde entonces.
+    /// </summary>
+    public static ValuedTransaction From(
+        Transaction transaction,
+        decimal? splitRatio = null,
+        Guid? internalTransferId = null,
+        Guid? transferDestinationAccountId = null,
+        bool isPendingTransferReview = false)
+    {
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        return new ValuedTransaction(
+            transaction,
+            transaction.GrossAmountInEuros,
+            transaction.FeeInEuros,
+            transaction.WithholdingTaxInEuros,
+            splitRatio,
+            internalTransferId,
+            transferDestinationAccountId,
+            isPendingTransferReview);
+    }
+
     public Guid? AssetId => Transaction.AssetId;
 
     public TransactionType Type => Transaction.Type;

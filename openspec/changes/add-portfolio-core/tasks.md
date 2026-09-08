@@ -30,8 +30,8 @@
 
 - [ ] 4.1 Definir el puerto `IExchangeRateProvider` en `Application` y su tabla de tipos diarios en `Infrastructure`; verificar con test de integración sobre base de datos que la consulta por fecha y divisa devuelve el tipo esperado
 - [ ] 4.2 Implementar la descarga e ingesta de los tipos de referencia del BCE con reintentos; verificar contra una respuesta grabada que un rango de fechas se ingesta completo y que reingestar no duplica
-- [ ] 4.3 Implementar la sustitución por el último tipo publicado anterior cuando no hay publicación, dejando constancia en el movimiento; verificar con test sobre un fin de semana y un festivo
-- [ ] 4.4 Implementar la congelación del tipo aplicado, su fecha y su fuente junto al movimiento, y que el recálculo use el tipo guardado; verificar con test que alterar la tabla de tipos no cambia un resultado ya calculado
+- [x] 4.3 Implementar la sustitución por el último tipo publicado anterior cuando no hay publicación, dejando constancia en el movimiento; verificar con test sobre un fin de semana y un festivo
+- [x] 4.4 Implementar la congelación del tipo aplicado, su fecha y su fuente junto al movimiento, y que el recálculo use el tipo guardado; verificar con test que alterar la tabla de tipos no cambia un resultado ya calculado
 
 ## 5. Persistencia
 

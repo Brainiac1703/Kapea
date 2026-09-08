@@ -23,4 +23,10 @@
     <ProjectReference Include="..\..\src\Kapea.Domain\Kapea.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Respuestas grabadas de las APIs externas: se copian para poder leerlas como
+         ficheros, igual que llegan de la red. -->
+    <None Include="**\Recorded\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
