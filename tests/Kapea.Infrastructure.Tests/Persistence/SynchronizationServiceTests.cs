@@ -30,7 +30,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
 
         var report = await RunAsync(world, adapter);
 
-        var result = Assert.Single(report.Results);
+        var result = Assert.Single(world.Mine(report));
 
         Assert.Equal(SynchronizationOutcome.Imported, result.Outcome);
         Assert.Equal(1, result.ImportedRecords);
@@ -76,7 +76,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         var adapter = new RecordingAdapter(Platform.Kraken, [Buy("TX-1")]);
         var report = await RunAsync(world, adapter);
 
-        Assert.Equal(SynchronizationOutcome.SkippedOverlapping, Assert.Single(report.Results).Outcome);
+        Assert.Equal(SynchronizationOutcome.SkippedOverlapping, Assert.Single(world.Mine(report)).Outcome);
         Assert.Empty(adapter.RequestedRanges);
     }
 
@@ -97,7 +97,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
 
         var report = await RunAsync(world, new RecordingAdapter(Platform.Kraken, [Buy("TX-1")]));
 
-        Assert.Equal(SynchronizationOutcome.Imported, Assert.Single(report.Results).Outcome);
+        Assert.Equal(SynchronizationOutcome.Imported, Assert.Single(world.Mine(report)).Outcome);
     }
 
     [Fact]
@@ -110,9 +110,11 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
             new FailingAdapter(Platform.Kraken, new InvalidOperationException("Kraken no responde")),
             new RecordingAdapter(Platform.Bit2Me, [Buy("TX-B")]));
 
-        Assert.Equal(2, report.Results.Count);
-        Assert.Equal(SynchronizationOutcome.Failed, report.Results.Single(r => r.Platform == Platform.Kraken).Outcome);
-        Assert.Equal(SynchronizationOutcome.Imported, report.Results.Single(r => r.Platform == Platform.Bit2Me).Outcome);
+        var mine = world.Mine(report);
+
+        Assert.Equal(2, mine.Count);
+        Assert.Equal(SynchronizationOutcome.Failed, mine.Single(r => r.Platform == Platform.Kraken).Outcome);
+        Assert.Equal(SynchronizationOutcome.Imported, mine.Single(r => r.Platform == Platform.Bit2Me).Outcome);
     }
 
     [Fact]
@@ -125,12 +127,12 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
             new FailingAdapter(Platform.Kraken, new Kapea.Infrastructure.Import.Kraken.KrakenApiException(["EAPI:Invalid key"])),
             new RecordingAdapter(Platform.Bit2Me, [Buy("TX-B")]));
 
+        var mine = world.Mine(report);
+
         Assert.Equal(
             SynchronizationOutcome.CredentialInvalid,
-            report.Results.Single(r => r.Platform == Platform.Kraken).Outcome);
-        Assert.Equal(
-            SynchronizationOutcome.Imported,
-            report.Results.Single(r => r.Platform == Platform.Bit2Me).Outcome);
+            mine.Single(r => r.Platform == Platform.Kraken).Outcome);
+        Assert.Equal(SynchronizationOutcome.Imported, mine.Single(r => r.Platform == Platform.Bit2Me).Outcome);
 
         await using var context = fixture.CreateContext(world.Owner);
         var credential = await context.BrokerCredentials
@@ -142,7 +144,31 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         var next = new RecordingAdapter(Platform.Kraken, []);
         var second = await RunAsync(world, next, new RecordingAdapter(Platform.Bit2Me, []));
 
-        Assert.DoesNotContain(second.Results, result => result.Platform == Platform.Kraken);
+        Assert.DoesNotContain(world.Mine(second), result => result.Platform == Platform.Kraken);
+    }
+
+    [Fact]
+    public async Task What_the_sync_imports_belongs_to_the_owner_of_the_account()
+    {
+        // El proceso no atiende ninguna petición, así que no hay token del que sacar el
+        // usuario. Si no lo declarara cuenta a cuenta, los movimientos quedarían sin
+        // dueño y el filtro global dejaría de aislar nada.
+        var world = await NewWorldAsync();
+
+        await RunAsync(world, new RecordingAdapter(Platform.Kraken, [Buy("TX-1")]));
+
+        await using var context = fixture.CreateContext(world.Owner);
+        var transaction = await context.Transactions.SingleAsync();
+
+        Assert.Equal(world.Owner, transaction.UserId);
+    }
+
+    [Fact]
+    public void The_ambient_user_refuses_to_answer_before_being_declared()
+    {
+        var ambient = new AmbientCurrentUser();
+
+        Assert.Throws<InvalidOperationException>(() => ambient.Id);
     }
 
     [Fact]
@@ -168,7 +194,10 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
     {
         await using var context = fixture.CreateContext(world.Owner);
         var time = new FakeTimeProvider(Now);
-        var user = new FixedUser(world.Owner);
+
+        // El usuario ambiental empieza sin declarar: es el propio servicio quien dice a
+        // quién pertenece cada cuenta antes de tocarla, y así se ejercita ese paso.
+        var user = new AmbientCurrentUser();
 
         var pipeline = new ImportPipeline(
             new ImportRepository(context),
@@ -188,6 +217,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
             pipeline,
             credentialService,
             new AccountSyncLock(context, time, NullLogger<AccountSyncLock>.Instance),
+            user,
             time,
             new CapturingLogger<SynchronizationService>(messages));
 
@@ -208,16 +238,18 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         context.Accounts.Add(account);
         context.BrokerCredentials.Add(Credential(owner, account, secrets));
 
+        PlatformAccount? second = null;
+
         if (withSecondPlatform)
         {
-            var second = PlatformAccount.Create(owner, Platform.Bit2Me, "Bit2Me", Currency.Euro);
+            second = PlatformAccount.Create(owner, Platform.Bit2Me, "Bit2Me", Currency.Euro);
             context.Accounts.Add(second);
             context.BrokerCredentials.Add(Credential(owner, second, secrets));
         }
 
         await context.SaveChangesAsync();
 
-        return new World(owner, account.Id, secrets);
+        return new World(owner, account.Id, second?.Id, secrets);
     }
 
     private static BrokerCredential Credential(UserId owner, PlatformAccount account, InMemorySecrets secrets)
@@ -235,7 +267,18 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
             Currency.Euro, 0m, null, new DateTimeOffset(2024, 1, 10, 10, 0, 0, TimeSpan.Zero), null, "UTC", null,
             $"raw:{naturalId}");
 
-    private sealed record World(UserId Owner, Guid AccountId, InMemorySecrets Secrets);
+    private sealed record World(UserId Owner, Guid AccountId, Guid? SecondAccountId, InMemorySecrets Secrets)
+    {
+        /// <summary>
+        /// El barrido recorre las cuentas de todos los usuarios, y la base de datos la
+        /// comparten los tests de la colección. Cada uno mira solo lo suyo.
+        /// </summary>
+        internal IReadOnlyList<AccountSynchronizationResult> Mine(SynchronizationReport report) =>
+        [
+            .. report.Results.Where(result =>
+                result.AccountId == AccountId || result.AccountId == SecondAccountId),
+        ];
+    }
 
     private sealed class RecordingAdapter(Platform platform, IReadOnlyList<ImportRecord> records) : IApiImportAdapter
     {
@@ -292,11 +335,6 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         public Task<ExchangeRate?> ResolveAsync(
             Currency currency, DateOnly date, CancellationToken cancellationToken = default) =>
             Task.FromResult<ExchangeRate?>(null);
-    }
-
-    private sealed class FixedUser(UserId id) : ICurrentUser
-    {
-        public UserId Id => id;
     }
 
     private sealed class CapturingLogger<T>(List<string> messages) : ILogger<T>

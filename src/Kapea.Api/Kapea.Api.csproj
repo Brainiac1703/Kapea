@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>
 
@@ -16,6 +17,7 @@
     <ProjectReference Include="..\Kapea.Application\Kapea.Application.csproj" />
     <ProjectReference Include="..\Kapea.Infrastructure\Kapea.Infrastructure.csproj" />
     <ProjectReference Include="..\Kapea.Shared\Kapea.Shared.csproj" />
+    <ProjectReference Include="..\Kapea.Client\Kapea.Client.csproj" />
   </ItemGroup>
 
 </Project>

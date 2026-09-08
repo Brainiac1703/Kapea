@@ -40,6 +40,12 @@ public static class DependencyInjection
 
         services.TryAddTimeProvider();
 
+        // Usuario ambiental por omisión. La API lo sustituye por el que sale del token;
+        // los procesos sin petición lo declaran cuenta a cuenta.
+        services.AddScoped<AmbientCurrentUser>();
+        services.AddScoped<ICurrentUser>(provider => provider.GetRequiredService<AmbientCurrentUser>());
+        services.AddScoped<ICurrentUserScope>(provider => provider.GetRequiredService<AmbientCurrentUser>());
+
         services.AddScoped<IExchangeRateStore, ExchangeRateStore>();
         services.AddScoped<IExchangeRateProvider, StoredExchangeRateProvider>();
         services.AddScoped<IPortfolioProjectionStore, PortfolioProjectionStore>();

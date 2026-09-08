@@ -12,7 +12,10 @@ public sealed class SynchronizationRepository(KapeaDbContext context) : ISynchro
     {
         // Solo las cuentas con credencial activa: una revocada o marcada como inválida
         // queda fuera hasta que el usuario la rote.
+        // IgnoreQueryFilters a propósito: este barrido recorre las cuentas de todos los
+        // usuarios, y a partir de aquí cada una se procesa declarando su propio dueño.
         var credentials = await context.BrokerCredentials
+            .IgnoreQueryFilters()
             .Where(credential => credential.Status == CredentialStatus.Active)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -20,6 +23,7 @@ public sealed class SynchronizationRepository(KapeaDbContext context) : ISynchro
         var accountIds = credentials.Select(credential => credential.AccountId).ToList();
 
         var accounts = await context.Accounts
+            .IgnoreQueryFilters()
             .Where(account => accountIds.Contains(account.Id))
             .ToDictionaryAsync(account => account.Id, cancellationToken)
             .ConfigureAwait(false);

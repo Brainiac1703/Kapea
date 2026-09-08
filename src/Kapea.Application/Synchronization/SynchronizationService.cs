@@ -51,6 +51,7 @@ public sealed class SynchronizationService(
     ImportPipeline pipeline,
     BrokerCredentialService credentials,
     IAccountSyncLock accountLock,
+    ICurrentUserScope currentUserScope,
     TimeProvider timeProvider,
     ILogger<SynchronizationService> logger)
 {
@@ -93,6 +94,11 @@ public sealed class SynchronizationService(
         CancellationToken cancellationToken)
     {
         var account = target.Account;
+
+        // Se declara el dueño de la cuenta antes de tocar nada suyo: lo que se importe
+        // tiene que quedar a su nombre, y el filtro global de la base de datos se apoya
+        // en esto para no mezclar los datos de dos usuarios.
+        currentUserScope.ActAs(account.UserId);
 
         await using var lease = await accountLock
             .TryAcquireAsync(account.Id, LockLease, cancellationToken).ConfigureAwait(false);
