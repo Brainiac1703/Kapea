@@ -51,7 +51,7 @@
 
 ## 7. Motor de importación
 
-- [ ] 7.1 Definir los puertos `IFileImportAdapter` e `IApiImportAdapter`, el tipo de registro normalizado común y el registro con clave por plataforma en el contenedor; verificar con test que una plataforma sin adaptador registrado se rechaza indicando las soportadas
+- [x] 7.1 Definir los puertos `IFileImportAdapter` e `IApiImportAdapter`, el tipo de registro normalizado común y el registro con clave por plataforma en el contenedor; verificar con test que una plataforma sin adaptador registrado se rechaza indicando las soportadas
 - [ ] 7.2 Implementar `ImportRun` con su ciclo de vida, recuentos (leídos, importados, duplicados, rechazados) y consulta de historial y detalle; verificar con tests de integración
 - [ ] 7.3 Implementar la fase de staging: normalización y clasificación en importable, duplicado y rechazado, sin escribir en las tablas de dominio; verificar con test que abandonar el staging no deja nada persistido
 - [ ] 7.4 Implementar la huella de deduplicación en dos niveles (identificador natural del origen, o datos financieros más número de fila) y su índice único por cuenta; verificar con tests de reimportación del mismo fichero, periodos solapados y dos operaciones legítimamente idénticas
@@ -69,9 +69,9 @@
 
 ## 9. Adaptador XTB (fichero)
 
-- [ ] 9.1 Implementar la detección de formato por cabeceras con fallo total explícito que enumere columnas esperadas y encontradas; verificar con tests de cabeceras desconocidas, columna opcional ausente y columnas adicionales
-- [ ] 9.2 Implementar el parser de Excel y CSV con las convenciones locales (separador decimal, separador de columnas, formato de fecha, divisa); verificar con test que la convención decimal europea se interpreta sin pérdida de precisión
-- [ ] 9.3 Implementar el mapeo de conceptos de XTB a los tipos de movimiento normalizados, con `Unknown` para lo no reconocido y descarte de apuntes informativos sin efecto financiero; verificar con tests
+- [x] 9.1 Implementar la detección de formato por cabeceras con fallo total explícito que enumere columnas esperadas y encontradas; verificar con tests de cabeceras desconocidas, columna opcional ausente y columnas adicionales
+- [x] 9.2 Implementar el parser de Excel y CSV con las convenciones locales (separador decimal, separador de columnas, formato de fecha, divisa); verificar con test que la convención decimal europea se interpreta sin pérdida de precisión
+- [x] 9.3 Implementar el mapeo de conceptos de XTB a los tipos de movimiento normalizados, con `Unknown` para lo no reconocido y descarte de apuntes informativos sin efecto financiero; verificar con tests
 - [ ] 9.4 Implementar el endpoint de subida y el flujo de vista previa y confirmación, incluida la validación de que la cuenta destino es de plataforma `XTB` y el rechazo de tipos de fichero no admitidos; verificar con tests de integración de la API
 - [ ] 9.5 Incorporar ficheros de exportación reales como casos de test de extremo a extremo con cifras esperadas; verificar que la importación completa produce los movimientos esperados
 
