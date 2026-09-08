@@ -1,0 +1,4 @@
+{"count":3,"data":[
+{"id":"a1b2c3d4-0001-4000-8000-000000000001","orderId":"o-1","symbol":"BTC/EUR","side":"buy","orderType":"limit","price":"38000.00","amount":"0.10000000","priceCurrency":"EUR","amountCurrency":"BTC","isMaker":true,"createdAt":"2024-01-10T10:50:00.123Z","cost":3800.00,"costEuro":3800.00,"feeAmount":6.08,"feePercentage":0.16,"feeCurrency":"EUR"},
+{"id":"a1b2c3d4-0001-4000-8000-000000000002","orderId":"o-2","symbol":"ETH/BTC","side":"sell","orderType":"market","price":"0.05300","amount":"2.00000000","priceCurrency":"BTC","amountCurrency":"ETH","isMaker":false,"createdAt":"2024-01-11T10:50:00.000Z","cost":0.10600,"costEuro":4200.00,"feeAmount":0.00021,"feePercentage":0.2,"feeCurrency":"BTC"}
+]}

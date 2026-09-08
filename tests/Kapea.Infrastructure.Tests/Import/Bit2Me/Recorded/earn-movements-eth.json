@@ -1,0 +1,4 @@
+{"total":2,"data":[
+{"movementId":"em-0001","userId":"u-1","type":"reward","createdAt":"2024-05-01T00:00:00.000Z","walletId":"earn-eth-1","amount":{"value":"0.00420000","currency":"ETH"},"source":{"walletId":"w-eth","currency":"ETH"},"issuer":{"service":"earn","id":"e-1"}},
+{"movementId":"em-0002","userId":"u-1","type":"deposit","createdAt":"2024-04-01T00:00:00.000Z","walletId":"earn-eth-1","amount":{"value":"1.00000000","currency":"ETH"},"source":{"walletId":"w-eth","currency":"ETH"},"issuer":{"service":"earn","id":"e-2"}}
+]}
