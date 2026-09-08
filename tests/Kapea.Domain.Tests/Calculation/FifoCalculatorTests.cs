@@ -272,6 +272,33 @@ public class FifoCalculatorTests
     }
 
     [Fact]
+    public void Confirming_a_transfer_leaves_the_result_of_a_later_sale_unchanged()
+    {
+        // Un traspaso interno no puede alterar ninguna cifra fiscal: vender después de
+        // mover el activo tiene que dar exactamente lo mismo que venderlo sin moverlo.
+        var withTransfer = new Ledger()
+            .Buy("2024-01-10", quantity: 10m, grossEuros: 1000m)
+            .TransferOut("2024-06-01", quantity: 10m)
+            .SellFromOtherAccount("2025-02-01", quantity: 10m, grossEuros: 1400m)
+            .Calculate();
+
+        var withoutTransfer = new Ledger()
+            .Buy("2024-01-10", quantity: 10m, grossEuros: 1000m)
+            .Sell("2025-02-01", quantity: 10m, grossEuros: 1400m)
+            .Calculate();
+
+        var moved = Assert.Single(withTransfer.RealizedResults);
+        var direct = Assert.Single(withoutTransfer.RealizedResults);
+
+        Assert.Equal(direct.ProceedsInEuros, moved.ProceedsInEuros);
+        Assert.Equal(direct.AcquisitionCostInEuros, moved.AcquisitionCostInEuros);
+        Assert.Equal(direct.ResultInEuros, moved.ResultInEuros);
+        Assert.Equal(
+            direct.ConsumedLots.Single().AcquiredAt.Instant,
+            moved.ConsumedLots.Single().AcquiredAt.Instant);
+    }
+
+    [Fact]
     public void A_transfer_network_fee_increases_the_cost_of_the_moved_lots()
     {
         var ledger = new Ledger();

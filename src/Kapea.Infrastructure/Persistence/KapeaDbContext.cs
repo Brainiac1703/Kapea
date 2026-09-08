@@ -40,6 +40,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<Domain.Import.ImportRun> ImportRuns => Set<Domain.Import.ImportRun>();
 
+    public DbSet<Domain.Transfers.InternalTransfer> InternalTransfers => Set<Domain.Transfers.InternalTransfer>();
+
     public DbSet<DailyRate> DailyRates => Set<DailyRate>();
 
     internal UserId CurrentUserId => currentUser.Id;
@@ -61,6 +63,7 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
         modelBuilder.Entity<CapitalIncome>().HasQueryFilter(income => income.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Credentials.BrokerCredential>().HasQueryFilter(credential => credential.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Import.ImportRun>().HasQueryFilter(run => run.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Transfers.InternalTransfer>().HasQueryFilter(transfer => transfer.UserId == CurrentUserId);
 
         base.OnModelCreating(modelBuilder);
     }

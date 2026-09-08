@@ -29,7 +29,9 @@
   <ItemGroup>
     <!-- Respuestas grabadas de las APIs externas: se copian para poder leerlas como
          ficheros, igual que llegan de la red. -->
-    <None Include="**\Recorded\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- La exclusión no es opcional: sin ella el glob recoge lo ya copiado en bin y
+         cada compilación lo vuelve a anidar un nivel más. -->
+    <None Include="**\Recorded\**\*" Exclude="bin\**;obj\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

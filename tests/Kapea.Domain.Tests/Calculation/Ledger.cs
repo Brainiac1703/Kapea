@@ -30,6 +30,10 @@ internal sealed class Ledger
     internal Ledger Sell(string date, decimal quantity, decimal grossEuros, decimal feeEuros = 0m, Guid? accountId = null) =>
         Add(TransactionType.Sell, date, quantity, grossEuros, feeEuros, accountId);
 
+    /// <summary>Venta ejecutada desde la cuenta de destino, tras un traspaso.</summary>
+    internal Ledger SellFromOtherAccount(string date, decimal quantity, decimal grossEuros) =>
+        Add(TransactionType.Sell, date, quantity, grossEuros, 0m, OtherAccountId);
+
     internal Ledger Split(string date, decimal ratio) =>
         Add(TransactionType.Split, date, 0m, 0m, 0m, splitRatio: ratio);
 

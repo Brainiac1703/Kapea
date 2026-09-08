@@ -62,10 +62,10 @@
 
 ## 8. Detección de traspasos internos
 
-- [ ] 8.1 Implementar el emparejamiento candidato entre salida y entrada del mismo activo en cuentas del usuario, con ventana temporal y tolerancia configurables (72 h y 2 % por defecto); verificar con tests dentro y fuera de ventana y de tolerancia
-- [ ] 8.2 Implementar la confirmación: traslado de lotes a la cuenta de destino conservando coste y fecha de adquisición, sin generar resultado realizado; verificar con test que el P&L no cambia tras confirmar un traspaso
-- [ ] 8.3 Implementar el rechazo persistente de una propuesta para que no se vuelva a ofrecer; verificar con test
-- [ ] 8.4 Implementar el registro de la diferencia por comisión de red como comisión del traspaso; verificar con test de cantidad recibida inferior a la enviada
+- [x] 8.1 Implementar el emparejamiento candidato entre salida y entrada del mismo activo en cuentas del usuario, con ventana temporal y tolerancia configurables (72 h y 2 % por defecto); verificar con tests dentro y fuera de ventana y de tolerancia
+- [x] 8.2 Implementar la confirmación: traslado de lotes a la cuenta de destino conservando coste y fecha de adquisición, sin generar resultado realizado; verificar con test que el P&L no cambia tras confirmar un traspaso
+- [x] 8.3 Implementar el rechazo persistente de una propuesta para que no se vuelva a ofrecer; verificar con test
+- [x] 8.4 Implementar el registro de la diferencia por comisión de red como comisión del traspaso; verificar con test de cantidad recibida inferior a la enviada
 
 ## 9. Adaptador XTB (fichero)
 
