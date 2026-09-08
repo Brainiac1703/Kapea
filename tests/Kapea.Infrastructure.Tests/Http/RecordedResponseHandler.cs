@@ -13,6 +13,12 @@ internal sealed class RecordedResponseHandler : HttpMessageHandler
 
     internal List<HttpRequestMessage> Requests { get; } = [];
 
+    /// <summary>
+    /// Cuerpos ya leídos. El HttpRequestMessage se desecha al terminar la llamada, así
+    /// que el contenido hay que capturarlo aquí o deja de estar disponible en el test.
+    /// </summary>
+    internal List<string> RequestBodies { get; } = [];
+
     internal RecordedResponseHandler RespondWithFile(string relativePath)
     {
         var path = Path.Combine(AppContext.BaseDirectory, relativePath);
@@ -39,6 +45,7 @@ internal sealed class RecordedResponseHandler : HttpMessageHandler
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Requests.Add(request);
+        RequestBodies.Add(request.Content?.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult() ?? string.Empty);
 
         if (_responses.Count == 0)
         {

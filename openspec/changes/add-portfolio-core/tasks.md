@@ -77,8 +77,8 @@
 
 ## 10. Adaptadores de API (Kraken y Bit2Me)
 
-- [ ] 10.1 Implementar el cliente de Kraken con firma de peticiones, paginación y espera creciente ante límite de frecuencia; verificar contra respuestas grabadas que un histórico paginado se recorre completo y que el límite de frecuencia se reintenta
-- [ ] 10.2 Implementar la normalización de símbolos, alias históricos y pares de negociación de Kraken; verificar con tests, incluido el símbolo no traducible que crea el activo como no verificado
+- [x] 10.1 Implementar el cliente de Kraken con firma de peticiones, paginación y espera creciente ante límite de frecuencia; verificar contra respuestas grabadas que un histórico paginado se recorre completo y que el límite de frecuencia se reintenta
+- [x] 10.2 Implementar la normalización de símbolos, alias históricos y pares de negociación de Kraken; verificar con tests, incluido el símbolo no traducible que crea el activo como no verificado
 - [ ] 10.3 Implementar el cliente de Bit2Me con paginación, espera creciente y cobertura de todos los productos legibles, dejando constancia de los omitidos; verificar contra respuestas grabadas
 - [ ] 10.4 Implementar las conversiones directas de Bit2Me como venta y compra enlazadas con valoración en EUR en la fecha; verificar con test que el FIFO trata la permuta como hecho imponible
 - [ ] 10.5 Implementar la normalización de rendimientos y recompensas a `Reward`/`Interest`; verificar con tests
