@@ -112,6 +112,17 @@ public static class KapeaAuthentication
                 options.ClientSecret = google["ClientSecret"] ?? string.Empty;
                 options.SignInScheme = SessionScheme;
                 options.SaveTokens = false;
+
+                // Cancelar en la pantalla de Google es una decisión, no una avería. Sin
+                // esto sale como error del servidor, y quien solo ha cambiado de idea se
+                // encuentra un fallo técnico en lugar de la pantalla de la que venía.
+                options.Events.OnRemoteFailure = context =>
+                {
+                    context.Response.Redirect("/signin?error=proveedor");
+                    context.HandleResponse();
+
+                    return Task.CompletedTask;
+                };
             });
         }
 
@@ -120,6 +131,34 @@ public static class KapeaAuthentication
             : [new AuthProvider(IdentityProviders.Development, "usuario de desarrollo")]));
 
         return builder;
+    }
+
+    /// <summary>Marca dónde viaja el nombre del proveedor mientras dura el intercambio.</summary>
+    public const string ProviderMarker = "kapea:provider";
+
+    /// <summary>
+    /// Con qué proveedor se ha entrado.
+    /// </summary>
+    /// <remarks>
+    /// Sale del marcador que se guardó al salir y no del principal: cuando el proveedor
+    /// firma en la cookie, el tipo de autenticación que queda es el del esquema de
+    /// sesión. Fiarse de ahí guardaría la identidad a nombre del esquema, y el siguiente
+    /// acceso del mismo proveedor no reconocería a nadie.
+    /// </remarks>
+    public static string ResolveProvider(AuthenticationProperties? properties, ClaimsPrincipal? principal)
+    {
+        if (properties is not null
+            && properties.Items.TryGetValue(ProviderMarker, out var marked)
+            && !string.IsNullOrWhiteSpace(marked))
+        {
+            return marked;
+        }
+
+        var declared = principal?.Identity?.AuthenticationType;
+
+        return string.IsNullOrWhiteSpace(declared) || declared == SessionScheme
+            ? IdentityProviders.Google
+            : declared;
     }
 
     /// <summary>Traduce lo que devuelve el proveedor al contrato que entiende la capa de aplicación.</summary>

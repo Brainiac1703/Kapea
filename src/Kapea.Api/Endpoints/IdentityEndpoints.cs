@@ -65,6 +65,7 @@ public static class IdentityEndpoints
             }
 
             var properties = new AuthenticationProperties { RedirectUri = $"/auth/callback?returnUrl={Uri.EscapeDataString(returnUrl ?? "/")}" };
+            properties.Items[KapeaAuthentication.ProviderMarker] = provider;
 
             return Results.Challenge(properties, [provider]);
         });
@@ -75,6 +76,7 @@ public static class IdentityEndpoints
         {
             var properties = new AuthenticationProperties { RedirectUri = "/auth/callback?returnUrl=/identities" };
             properties.Items[LinkMarker] = "1";
+            properties.Items[KapeaAuthentication.ProviderMarker] = provider;
 
             return Results.Challenge(properties, [provider]);
         }).RequireAuthorization();
@@ -97,7 +99,7 @@ public static class IdentityEndpoints
                     statusCode: StatusCodes.Status401Unauthorized);
             }
 
-            var provider = result.Principal.Identity?.AuthenticationType ?? IdentityProviders.Google;
+            var provider = KapeaAuthentication.ResolveProvider(result.Properties, result.Principal);
             var principal = result.Principal.ToExternalPrincipal(provider);
 
             if (result.Properties?.Items.ContainsKey(LinkMarker) == true)

@@ -178,6 +178,36 @@ public class IdentityEndpointsTests(KapeaApiFactory factory)
 }
 
 /// <summary>
+/// Comprueba de qué se deduce el proveedor al volver del intercambio.
+/// </summary>
+public class ProviderResolutionTests
+{
+    [Fact]
+    public void The_provider_is_the_one_we_left_with_and_not_the_scheme_that_signed_the_cookie()
+    {
+        // Al firmar en la cookie el tipo de autenticación pasa a ser el del esquema de
+        // sesión. Si se leyera de ahí, la identidad quedaría a nombre de «Kapea» y el
+        // siguiente acceso del mismo proveedor no reconocería a nadie.
+        var properties = new Microsoft.AspNetCore.Authentication.AuthenticationProperties();
+        properties.Items[KapeaAuthentication.ProviderMarker] = "Apple";
+
+        var principal = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity([], KapeaAuthentication.SessionScheme));
+
+        Assert.Equal("Apple", KapeaAuthentication.ResolveProvider(properties, principal));
+    }
+
+    [Fact]
+    public void Without_a_marker_the_scheme_that_signed_the_cookie_is_not_taken_for_a_provider()
+    {
+        var principal = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity([], KapeaAuthentication.SessionScheme));
+
+        Assert.NotEqual(KapeaAuthentication.SessionScheme, KapeaAuthentication.ResolveProvider(null, principal));
+    }
+}
+
+/// <summary>
 /// Comprueba el guardarraíl de arranque sin levantar la API completa: es una regla de
 /// composición, y la forma barata de probarla es la que decide si la aplicación
 /// arranca o no.
