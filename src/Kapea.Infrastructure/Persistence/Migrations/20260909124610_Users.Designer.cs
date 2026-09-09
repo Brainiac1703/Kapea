@@ -5,6 +5,7 @@ using Kapea.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -12,9 +13,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kapea.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(KapeaDbContext))]
-    partial class KapeaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909124610_Users")]
+    partial class Users
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -26,6 +29,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Accounts.PlatformAccount", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Alias")
@@ -56,6 +60,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Assets.Asset", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CanonicalSymbol")
@@ -91,6 +96,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Calculation.CapitalIncome", b =>
                 {
                     b.Property<Guid>("TransactionId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -231,6 +237,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Calculation.RealizedResult", b =>
                 {
                     b.Property<Guid>("DisposalTransactionId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -303,6 +310,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Credentials.BrokerCredential", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -377,6 +385,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Identity.ExternalIdentity", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset?>("LastSignedInAt")
@@ -436,6 +445,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Import.ImportRun", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -484,6 +494,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Import.StagedRecord", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Fingerprint")
@@ -528,6 +539,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Lots.Lot", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -588,6 +600,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Transactions.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -704,6 +717,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Transfers.InternalTransfer", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AssetId")
@@ -756,6 +770,7 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Infrastructure.Persistence.AccountSyncLockRow", b =>
                 {
                     b.Property<Guid>("AccountId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset>("AcquiredAt")

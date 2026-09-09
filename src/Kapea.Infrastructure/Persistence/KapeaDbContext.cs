@@ -24,6 +24,8 @@ namespace Kapea.Infrastructure.Persistence;
 public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICurrentUser currentUser)
     : DbContext(options)
 {
+    public DbSet<Domain.Identity.User> Users => Set<Domain.Identity.User>();
+
     public DbSet<Asset> Assets => Set<Asset>();
 
     public DbSet<PlatformAccount> Accounts => Set<PlatformAccount>();
@@ -53,6 +55,19 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(KapeaDbContext).Assembly);
+
+        // Todas las claves las asigna el dominio en sus fábricas, nunca la base de datos.
+        // Declararlo importa: con la convención por omisión, EF interpreta que una
+        // entidad descubierta por navegación con la clave ya puesta es una que ya existe,
+        // y genera un UPDATE de una fila que no está en lugar de insertarla.
+        foreach (var key in modelBuilder.Model.GetEntityTypes()
+            .Select(entity => entity.FindPrimaryKey())
+            .Where(key => key is not null)
+            .SelectMany(key => key!.Properties)
+            .Where(property => property.ClrType == typeof(Guid)))
+        {
+            key.ValueGenerated = Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never;
+        }
 
         // Filtro global de propiedad. Es una red de seguridad, no la única defensa: aun
         // así toda consulta debería filtrar, pero una que se olvide no devuelve datos

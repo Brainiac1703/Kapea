@@ -1,10 +1,10 @@
 ## 1. Registro de usuarios
 
-- [ ] 1.1 Implementar la entidad de usuario con su identificador interno, su nombre para mostrar y su correo; verificar con tests que el identificador no procede del proveedor
-- [ ] 1.2 Implementar la entidad de identidad externa —proveedor y sujeto— asociada a un usuario, con unicidad por proveedor y sujeto; verificar con test de integración que la misma identidad no puede pertenecer a dos usuarios
-- [ ] 1.3 Implementar el enlace de una identidad adicional a un usuario existente; verificar con test que ambas identidades resuelven al mismo usuario
-- [ ] 1.4 Impedir desenlazar la última identidad de un usuario; verificar con test que la operación se rechaza explicando el motivo
-- [ ] 1.5 Persistir usuarios e identidades con su configuración de EF Core y su migración; verificar sobre la base de datos que el esquema se crea y que la unicidad se aplica
+- [x] 1.1 Implementar la entidad de usuario con su identificador interno, su nombre para mostrar y su correo; verificar con tests que el identificador no procede del proveedor
+- [x] 1.2 Implementar la entidad de identidad externa —proveedor y sujeto— asociada a un usuario, con unicidad por proveedor y sujeto; verificar con test de integración que la misma identidad no puede pertenecer a dos usuarios
+- [x] 1.3 Implementar el enlace de una identidad adicional a un usuario existente; verificar con test que ambas identidades resuelven al mismo usuario
+- [x] 1.4 Impedir desenlazar la última identidad de un usuario; verificar con test que la operación se rechaza explicando el motivo
+- [x] 1.5 Persistir usuarios e identidades con su configuración de EF Core y su migración; verificar sobre la base de datos que el esquema se crea y que la unicidad se aplica
 
 ## 2. Inicio de sesión con Google
 

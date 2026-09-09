@@ -3,6 +3,7 @@ extern alias AzureIdentity;
 using Azure.Security.KeyVault.Secrets;
 using Kapea.Application.Abstractions;
 using Kapea.Application.Credentials;
+using Kapea.Application.Identity;
 using Kapea.Application.Import;
 using Kapea.Application.Portfolio;
 using Kapea.Application.Synchronization;
@@ -56,6 +57,8 @@ public static class DependencyInjection
         services.AddScoped<IPortfolioCalculationRepository, PortfolioCalculationRepository>();
         services.AddScoped<PortfolioCalculationService>();
         services.AddScoped<IPortfolioQueries, PortfolioQueries>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<UserSignInService>();
         services.AddScoped<IInternalTransferRepository, InternalTransferRepository>();
         services.AddScoped<InternalTransferService>();
         services.AddScoped<ImportPipeline>();
