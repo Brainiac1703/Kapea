@@ -3,6 +3,7 @@ using ClosedXML.Excel;
 using Kapea.Application.Import;
 using Kapea.Domain.Transactions;
 using Kapea.Domain.ValueObjects;
+using Kapea.Infrastructure.Import.Tabular;
 using Kapea.Infrastructure.Import.Xtb;
 using Microsoft.Extensions.Logging.Abstractions;
 

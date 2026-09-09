@@ -4,7 +4,7 @@ using ClosedXML.Excel;
 using CsvHelper;
 using CsvHelper.Configuration;
 
-namespace Kapea.Infrastructure.Import.Xtb;
+namespace Kapea.Infrastructure.Import.Tabular;
 
 /// <summary>Contenido tabular de un fichero subido: cabeceras y filas, ya como texto.</summary>
 public sealed record TabularContent(IReadOnlyList<string> Headers, IReadOnlyList<TabularRow> Rows);
@@ -26,14 +26,18 @@ public static class TabularReader
     public static bool IsSupported(string fileName) =>
         Extension(fileName) is ".csv" or ".xlsx" or ".xlsm" or ".txt";
 
-    public static TabularContent Read(Stream content, string fileName)
+    /// <param name="delimiter">
+    /// Separador que declara el perfil. Nulo para deducirlo del propio fichero, que es
+    /// lo que hay que hacer cuando todavía no se sabe con qué perfil se va a leer.
+    /// </param>
+    public static TabularContent Read(Stream content, string fileName, char? delimiter = null)
     {
         ArgumentNullException.ThrowIfNull(content);
 
         return Extension(fileName) switch
         {
             ".xlsx" or ".xlsm" => ReadExcel(content),
-            ".csv" or ".txt" => ReadCsv(content),
+            ".csv" or ".txt" => ReadCsv(content, delimiter),
             var extension => throw new UnsupportedImportFileException(extension),
         };
     }
@@ -64,17 +68,18 @@ public static class TabularReader
         return new TabularContent(headers, data);
     }
 
-    private static TabularContent ReadCsv(Stream content)
+    private static TabularContent ReadCsv(Stream content, char? declared)
     {
-        // XTB exporta CSV con punto y coma cuando la cuenta está en convención europea,
-        // porque la coma ya está ocupada como separador decimal. Se detecta en lugar de
-        // asumirlo: la misma cuenta puede exportar de las dos formas.
+        // Un extracto europeo suele venir con punto y coma, porque la coma ya está
+        // ocupada como separador decimal. Se deduce solo cuando nadie lo ha declarado:
+        // la misma cuenta puede exportar de las dos formas.
         using var reader = new StreamReader(content, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         var text = reader.ReadToEnd();
         var firstLine = text.Split('\n').FirstOrDefault() ?? string.Empty;
-        var delimiter = firstLine.Count(character => character == ';') > firstLine.Count(character => character == ',')
-            ? ";"
-            : ",";
+        var delimiter = declared?.ToString()
+            ?? (firstLine.Count(character => character == ';') > firstLine.Count(character => character == ',')
+                ? ";"
+                : ",");
 
         var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
         {

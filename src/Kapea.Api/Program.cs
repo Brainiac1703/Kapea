@@ -6,6 +6,7 @@ using Kapea.Application.Identity;
 using Kapea.Application.Import;
 using Kapea.Domain.Common;
 using Kapea.Infrastructure;
+using Kapea.Infrastructure.Import.Tabular;
 using Kapea.Infrastructure.Import.Xtb;
 using Kapea.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics;

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Kapea.Application.Import;
+using Kapea.Infrastructure.Import.Tabular;
 using Kapea.Domain.Accounts;
 using Kapea.Domain.Assets;
 using Kapea.Domain.Transactions;

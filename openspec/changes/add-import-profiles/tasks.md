@@ -15,9 +15,9 @@
 
 ## 3. Adaptador genérico de fichero
 
-- [ ] 3.1 Implementar el adaptador genérico que lee un fichero aplicando un perfil y produce registros normalizados; verificar con tests de convención decimal europea e invariante, y de formatos de fecha distintos
-- [ ] 3.2 Implementar la traducción de conceptos según el perfil, con `Unknown` para lo que no traduzca; verificar con test que un concepto sin traducción no bloquea el resto del fichero
-- [ ] 3.3 Implementar el descarte contado de apuntes sin efecto financiero según lo que declare el perfil; verificar con test que se cuentan y no se rechazan
+- [x] 3.1 Implementar el adaptador genérico que lee un fichero aplicando un perfil y produce registros normalizados; verificar con tests de convención decimal europea e invariante, y de formatos de fecha distintos
+- [x] 3.2 Implementar la traducción de conceptos según el perfil, con `Unknown` para lo que no traduzca; verificar con test que un concepto sin traducción no bloquea el resto del fichero
+- [x] 3.3 Implementar el descarte contado de apuntes sin efecto financiero según lo que declare el perfil; verificar con test que se cuentan y no se rechazan
 - [ ] 3.4 Comprobar que la huella de deduplicación no cambia de forma respecto al adaptador anterior; verificar con test que reimportar un fichero ya importado con la versión previa descarta todos sus registros como duplicados
 
 ## 4. Perfiles de XTB de serie
