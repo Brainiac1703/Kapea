@@ -62,9 +62,20 @@ else
 
     private async Task OpenNewAccountAsync()
     {
-        var dialog = await Dialogs.ShowDialogAsync<NewAccountDialog>(
-            new NewAccountModel(),
-            new DialogParameters { Title = Ui["Accounts_New"], PreventDismissOnOverlayClick = true });
+        var nueva = new NewAccountModel();
+
+        // Los textos de los botones se pasan aquí: sin PrimaryAction y SecondaryAction,
+        // Fluent UI pinta el diálogo sin ninguna forma de confirmarlo.
+        var dialog = await Dialogs.ShowDialogAsync<NewAccountDialog, NewAccountModel>(
+            nueva,
+            new DialogParameters<NewAccountModel>
+            {
+                Content = nueva,
+                Title = Ui["Accounts_New"],
+                PrimaryAction = Ui["Common_Add"],
+                SecondaryAction = Ui["Common_Cancel"],
+                PreventDismissOnOverlayClick = true,
+            });
 
         var result = await dialog.Result;
 

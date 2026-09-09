@@ -1,3 +1,5 @@
+using Kapea.Shared.Contracts;
+
 namespace Kapea.Client.Models;
 
 /// <summary>
@@ -23,6 +25,16 @@ public sealed class NewAccountModel
 /// <summary>Alta o rotación de una credencial. El secreto vive solo mientras dura el envío.</summary>
 public sealed class BrokerCredentialModel
 {
+    /// <summary>
+    /// Cuentas entre las que elegir.
+    /// </summary>
+    /// <remarks>
+    /// Viajan dentro del modelo y no como parámetro del componente porque el diálogo de
+    /// Fluent UI solo recibe su Content: cualquier otro parámetro se queda sin asignar y
+    /// el desplegable aparece vacío sin que nada falle.
+    /// </remarks>
+    public IReadOnlyList<AccountResponse> AvailableAccounts { get; init; } = [];
+
     public Guid AccountId { get; set; }
 
     public string Platform { get; set; } = string.Empty;
