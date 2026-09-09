@@ -1,7 +1,14 @@
 schema: spec-driven
 
 context: |
-  Proyecto: Kapea. Repositorio nuevo, aún sin código.
+  Proyecto: Kapea, plataforma personal de gestión de inversiones.
+
+  Kapea es multiplataforma por diseño: no soporta una lista cerrada de brókeres.
+  Las plataformas con API llevan su adaptador (Kraken y Bit2Me); cualquiera que
+  exporte una tabla de movimientos se da de alta desde la aplicación con un
+  perfil de importación, sin escribir código. XTB viene de serie por esa vía.
+  Al escribir documentación, no presentar XTB, Kraken y Bit2Me como "las
+  plataformas soportadas", sino como las que vienen configuradas.
 
   Stack (mismo que el proyecto legacy-lens del mismo equipo):
   - .NET 10 (SDK 10.0.300, rollForward latestFeature; fijado en global.json).
