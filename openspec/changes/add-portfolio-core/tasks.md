@@ -100,10 +100,10 @@
 
 - [x] 13.1 Configurar la autenticación con Entra External ID en la API y la extracción del `UserId` del token, sin aceptarlo nunca como parámetro de entrada; verificar con tests que una petición sin token o con token de otro usuario no accede a los datos
 - [x] 13.2 Implementar los endpoints de cuentas, credenciales, importaciones, movimientos, posiciones y resultados como minimal APIs sobre los servicios de aplicación; verificar con tests de integración de la API
-- [ ] 13.3 Implementar en el cliente Blazor WebAssembly las pantallas de cuentas y credenciales; verificar manualmente el alta, la rotación y la revocación contra la API
-- [ ] 13.4 Implementar en el cliente la subida de fichero XTB con vista previa y confirmación, y el historial de importaciones con el detalle de rechazados; verificar manualmente el flujo completo con un fichero real
-- [ ] 13.5 Implementar en el cliente la revisión de traspasos propuestos y de movimientos sin clasificar; verificar manualmente confirmación y rechazo
-- [ ] 13.6 Implementar en el cliente las vistas de posiciones abiertas y de resultados realizados por ejercicio, con la advertencia visible cuando haya movimientos sin clasificar y el desglose de un resultado hasta sus lotes y movimientos; verificar manualmente la trazabilidad de una cifra hasta la fila de origen
+- [x] 13.3 Implementar en el cliente Blazor WebAssembly las pantallas de cuentas y credenciales; verificar manualmente el alta, la rotación y la revocación contra la API
+- [x] 13.4 Implementar en el cliente la subida de fichero XTB con vista previa y confirmación, y el historial de importaciones con el detalle de rechazados; verificar manualmente el flujo completo con un fichero real
+- [x] 13.5 Implementar en el cliente la revisión de traspasos propuestos y de movimientos sin clasificar; verificar manualmente confirmación y rechazo
+- [x] 13.6 Implementar en el cliente las vistas de posiciones abiertas y de resultados realizados por ejercicio, con la advertencia visible cuando haya movimientos sin clasificar y el desglose de un resultado hasta sus lotes y movimientos; verificar manualmente la trazabilidad de una cifra hasta la fila de origen
 
 ## 14. Validación del núcleo
 
