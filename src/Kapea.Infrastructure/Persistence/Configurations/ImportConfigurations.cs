@@ -12,6 +12,8 @@ internal sealed class ImportRunConfiguration : IEntityTypeConfiguration<ImportRu
         builder.HasKey(run => run.Id);
 
         builder.Property(run => run.UserId).IsRequired();
+        builder.Property(run => run.ProfileId);
+        builder.Property(run => run.ProfileVersion);
         builder.Property(run => run.Platform).HasConversion<Converters.ValueObjectConverters.PlatformCodeConverter>().HasMaxLength(Kapea.Domain.Accounts.PlatformCode.MaxLength).IsRequired();
         builder.Property(run => run.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(run => run.FileName).HasMaxLength(260);

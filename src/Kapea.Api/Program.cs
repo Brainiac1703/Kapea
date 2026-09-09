@@ -7,7 +7,6 @@ using Kapea.Application.Import;
 using Kapea.Domain.Common;
 using Kapea.Infrastructure;
 using Kapea.Infrastructure.Import.Tabular;
-using Kapea.Infrastructure.Import.Xtb;
 using Kapea.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
@@ -73,7 +72,7 @@ app.UseExceptionHandler(handler => handler.Run(async context =>
         CredentialRejectedException => (StatusCodes.Status400BadRequest, "La plataforma ha rechazado la credencial."),
         UnsupportedPlatformException => (StatusCodes.Status400BadRequest, "Plataforma no soportada."),
         UnsupportedImportFileException => (StatusCodes.Status400BadRequest, "Tipo de fichero no admitido."),
-        UnknownXtbFormatException => (StatusCodes.Status422UnprocessableEntity, "El formato del fichero no se reconoce."),
+        UnknownFileFormatException => (StatusCodes.Status422UnprocessableEntity, "Ningún perfil reconoce el formato del fichero."),
         ImportTargetException => (StatusCodes.Status404NotFound, "No se encuentra el destino de la importación."),
         UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "No autenticado."),
         _ => (StatusCodes.Status500InternalServerError, "Error inesperado."),

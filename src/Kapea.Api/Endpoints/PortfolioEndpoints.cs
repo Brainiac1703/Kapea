@@ -6,7 +6,6 @@ using Kapea.Domain.Accounts;
 using Kapea.Domain.Common;
 using Kapea.Domain.Transfers;
 using Kapea.Domain.ValueObjects;
-using Kapea.Infrastructure.Import.Xtb;
 using Kapea.Infrastructure.Persistence;
 using Kapea.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -262,7 +261,7 @@ public static class PortfolioEndpoints
             Guid accountId,
             IFormFile file,
             KapeaDbContext context,
-            IImportAdapterRegistry adapters,
+            IFileImporter importer,
             ImportPipeline pipeline,
             IPortfolioQueries queries,
             CancellationToken token) =>
@@ -281,14 +280,36 @@ public static class PortfolioEndpoints
                 return Results.NotFound();
             }
 
-            var adapter = adapters.GetFileAdapter(account.Platform);
+            // Subir un fichero a una plataforma que se lee por API no es un formato
+            // desconocido, es una operación que no tiene sentido. Decirlo así evita que
+            // el usuario se ponga a buscar el perfil que le falta.
+            var platform = await context.Platforms
+                .SingleOrDefaultAsync(entity => entity.Code == account.Platform, token);
 
-            await using var content = file.OpenReadStream();
-            var read = await adapter.ReadAsync(content, file.FileName, token);
-            var run = await pipeline.StageAsync(accountId, read, file.FileName, token);
+            if (platform is not null && platform.ImportKind != PlatformImportKind.File)
+            {
+                return Results.Problem(
+                    $"Los movimientos de {platform.Name} llegan por su API, no por fichero. Registra su credencial en Credenciales.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            // El fichero se copia a memoria porque hay que leerlo dos veces: una para
+            // ver sus cabeceras y elegir el perfil, otra con el delimitador que ese
+            // perfil declara. El flujo de la petición no se puede rebobinar.
+            using var content = new MemoryStream();
+            await using (var upload = file.OpenReadStream())
+            {
+                await upload.CopyToAsync(content, token);
+            }
+
+            content.Position = 0;
+
+            var imported = await importer.ReadAsync(account.Platform, content, file.FileName, token);
+            var run = await pipeline.StageAsync(
+                accountId, imported.Read, file.FileName, token, imported.ProfileId, imported.ProfileVersion);
 
             return Results.Ok(new ImportPreviewResponse(
-                (await queries.FindImportRunAsync(run.Id, token))!, read.Warnings));
+                (await queries.FindImportRunAsync(run.Id, token))!, imported.Read.Warnings));
         }).DisableAntiforgery();
 
         imports.MapPost("/{runId:guid}/confirm", async (

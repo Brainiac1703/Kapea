@@ -2,20 +2,23 @@ using System.Text;
 using Kapea.Application.Import;
 using Kapea.Domain.Accounts;
 using Kapea.Domain.ImportProfiles;
+using Kapea.Domain.Transactions;
 using Kapea.Infrastructure.Import.Tabular;
-using Kapea.Infrastructure.Import.Xtb;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Kapea.Infrastructure.Tests.Import.Tabular;
 
 /// <summary>
-/// Comprueba que los perfiles de serie leen los ficheros de XTB exactamente igual que
-/// el adaptador escrito a mano.
+/// Fija lo que los perfiles de serie tienen que producir a partir de cada informe de
+/// xStation5.
 /// </summary>
 /// <remarks>
-/// No basta con que produzcan movimientos parecidos. La huella de deduplicación se
-/// calcula sobre estos campos, así que cualquier diferencia haría que el histórico ya
-/// importado dejara de reconocerse y entrara por segunda vez.
+/// Los valores están escritos a mano y no calculados: son los mismos que producía el
+/// adaptador que estos perfiles sustituyen, y se comprobaron uno a uno antes de
+/// retirarlo. Escribirlos aquí es lo que impide que una corrección posterior del perfil
+/// cambie en silencio la interpretación del histórico.
+///
+/// La huella de deduplicación se calcula sobre estos campos. Cualquier diferencia haría
+/// que lo ya importado dejara de reconocerse y entrara por segunda vez.
 /// </remarks>
 public class BuiltInProfileEquivalenceTests
 {
@@ -36,99 +39,109 @@ public class BuiltInProfileEquivalenceTests
         77003;SAN.ES;BUY;50;01.04.2025 09:00:00;4,10;4,55;-1,00;EUR
         """;
 
-    [Theory]
-    [InlineData(CashOperations)]
-    [InlineData(ClosedPositions)]
-    [InlineData(OpenPositions)]
-    public async Task The_built_in_profiles_read_the_same_records_as_the_hand_written_adapter(string csv)
+    [Fact]
+    public void A_cash_operations_export_is_normalised()
     {
-        var expected = await ReadWithAdapter(csv);
-        var actual = ReadWithProfile(csv);
+        var records = Read(CashOperations).Records;
 
-        Assert.Equal(expected.Records.Count, actual.Records.Count);
+        Assert.Equal(3, records.Count);
 
-        foreach (var (left, right) in expected.Records.Zip(actual.Records))
-        {
-            Assert.Equal(left.Type, right.Type);
-            Assert.Equal(left.AssetSymbol, right.AssetSymbol);
-            Assert.Equal(left.Quantity, right.Quantity);
-            Assert.Equal(left.UnitPrice, right.UnitPrice);
-            Assert.Equal(left.GrossAmount, right.GrossAmount);
-            Assert.Equal(left.Currency, right.Currency);
-            Assert.Equal(left.Fee, right.Fee);
-            Assert.Equal(left.NaiveOccurredAt, right.NaiveOccurredAt);
-            Assert.Equal(left.RowNumber, right.RowNumber);
-            Assert.Equal(left.SourceTimeZoneId, right.SourceTimeZoneId);
-        }
-    }
+        // Sin volumen no puede ser una compra: la operación entera la trae el informe de
+        // posiciones, y clasificarla aquí la duplicaría con un lote de cero unidades. El
+        // perfil no traduce ese concepto, así que entra sin clasificar.
+        Assert.Equal(TransactionType.Unknown, records[0].Type);
+        Assert.Equal(1234.56m, records[0].GrossAmount);
+        Assert.Equal("SAN.ES", records[0].AssetSymbol);
+        Assert.Equal(new DateTime(2024, 1, 10, 9, 30, 0), records[0].NaiveOccurredAt);
 
-    [Theory]
-    [InlineData(CashOperations)]
-    [InlineData(ClosedPositions)]
-    [InlineData(OpenPositions)]
-    public async Task Reimporting_with_a_profile_discards_everything_imported_before_as_duplicate(string csv)
-    {
-        // Es la condición que impide que este cambio duplique el histórico: las huellas
-        // que produce el perfil tienen que ser las mismas que las ya guardadas.
-        var accountId = Guid.NewGuid();
-        var before = await ReadWithAdapter(csv);
-        var after = ReadWithProfile(csv);
+        Assert.Equal(TransactionType.Dividend, records[1].Type);
+        Assert.Equal(45.20m, records[1].GrossAmount);
 
-        var stored = before.Records
-            .Select(record => ImportFingerprint.For(accountId, PlatformCode.Xtb, record))
-            .ToHashSet(StringComparer.Ordinal);
-
-        Assert.All(
-            after.Records,
-            record => Assert.Contains(ImportFingerprint.For(accountId, PlatformCode.Xtb, record), stored));
+        Assert.Equal(TransactionType.Interest, records[2].Type);
+        Assert.Equal(1.15m, records[2].GrossAmount);
     }
 
     [Fact]
-    public void A_closed_positions_file_matches_the_closed_positions_profile_and_not_the_open_one()
+    public void A_closed_position_becomes_a_buy_and_a_sell_with_their_own_dates()
+    {
+        var records = Read(ClosedPositions).Records;
+
+        Assert.Equal(2, records.Count);
+
+        var buy = records[0];
+        var sell = records[1];
+
+        Assert.Equal(TransactionType.Buy, buy.Type);
+        Assert.Equal("AAPL.US", buy.AssetSymbol);
+        Assert.Equal(10m, buy.Quantity);
+        Assert.Equal(180.50m, buy.UnitPrice);
+        Assert.Equal(1805m, buy.GrossAmount);
+        Assert.Equal(2.50m, buy.Fee);
+        Assert.Equal(new DateTime(2024, 2, 5, 15, 30, 0), buy.NaiveOccurredAt);
+
+        Assert.Equal(TransactionType.Sell, sell.Type);
+        Assert.Equal(2257.5m, sell.GrossAmount);
+        Assert.Equal(0m, sell.Fee);
+        Assert.Equal(new DateTime(2025, 9, 20, 16, 0, 0), sell.NaiveOccurredAt);
+        Assert.Equal("USD", sell.Currency.Code);
+
+        // Con el mismo identificador, la venta se descartaría como duplicado de la compra.
+        Assert.NotEqual(buy.NaturalId, sell.NaturalId);
+    }
+
+    [Fact]
+    public void An_open_position_becomes_only_its_acquisition()
+    {
+        // El informe de cerradas nunca deja nada abierto, así que sin este formato un
+        // usuario de XTB no tendría ninguna posición en la cartera.
+        var buy = Assert.Single(Read(OpenPositions).Records);
+
+        Assert.Equal(TransactionType.Buy, buy.Type);
+        Assert.Equal("SAN.ES", buy.AssetSymbol);
+        Assert.Equal(50m, buy.Quantity);
+        Assert.Equal(4.10m, buy.UnitPrice);
+        Assert.Equal(205m, buy.GrossAmount);
+        Assert.Equal(1m, buy.Fee);
+        Assert.Equal(new DateTime(2025, 4, 1, 9, 0, 0), buy.NaiveOccurredAt);
+    }
+
+    [Fact]
+    public void The_market_price_of_an_open_position_is_not_imported()
+    {
+        // Es el precio del momento en que se exportó el informe. El valor de hoy lo
+        // resuelve el proveedor de precios, y guardar aquel lo dejaría congelado.
+        var buy = Assert.Single(Read(OpenPositions).Records);
+
+        Assert.NotEqual(4.55m, buy.UnitPrice);
+    }
+
+    [Theory]
+    [InlineData(CashOperations, "XTB · Operaciones de efectivo", false)]
+    [InlineData(ClosedPositions, "XTB · Posiciones cerradas", true)]
+    [InlineData(OpenPositions, "XTB · Posiciones abiertas", false)]
+    public void Each_report_finds_its_profile(string csv, string expected, bool ambiguous)
     {
         // Las cabeceras de posiciones abiertas son un subconjunto de las de cerradas, así
-        // que ambos perfiles encajan. Gana el más específico, que es el correcto.
-        var headers = Headers(ClosedPositions);
-
+        // que con un fichero de cerradas encajan las dos. Gana el más específico.
         var match = ProfileMatching.Match(
-            BuiltInProfiles.All(DateTimeOffset.UnixEpoch), PlatformCode.Xtb, headers);
+            BuiltInProfiles.All(DateTimeOffset.UnixEpoch), PlatformCode.Xtb, Headers(csv));
 
-        Assert.Equal("XTB · Posiciones cerradas", match.Profile!.Name);
-        Assert.True(match.Ambiguous);
+        Assert.Equal(expected, match.Profile!.Name);
+        Assert.Equal(ambiguous, match.Ambiguous);
     }
 
     [Fact]
-    public void An_open_positions_file_matches_only_the_open_positions_profile()
+    public void A_file_no_profile_recognises_finds_nothing()
     {
         var match = ProfileMatching.Match(
-            BuiltInProfiles.All(DateTimeOffset.UnixEpoch), PlatformCode.Xtb, Headers(OpenPositions));
+            BuiltInProfiles.All(DateTimeOffset.UnixEpoch), PlatformCode.Xtb, ["Fecha", "Concepto", "Saldo"]);
 
-        Assert.Equal("XTB · Posiciones abiertas", match.Profile!.Name);
-        Assert.False(match.Ambiguous);
+        Assert.False(match.Found);
     }
 
-    [Fact]
-    public void A_cash_operations_file_matches_its_profile()
-    {
-        var match = ProfileMatching.Match(
-            BuiltInProfiles.All(DateTimeOffset.UnixEpoch), PlatformCode.Xtb, Headers(CashOperations));
+    private static string[] Headers(string csv) => csv.Split('\n')[0].Trim().Split(';');
 
-        Assert.Equal("XTB · Operaciones de efectivo", match.Profile!.Name);
-        Assert.False(match.Ambiguous);
-    }
-
-    private static string[] Headers(string csv) =>
-        csv.Split('\n')[0].Trim().Split(';');
-
-    private static Task<ImportReadResult> ReadWithAdapter(string csv)
-    {
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
-
-        return new XtbFileImportAdapter(NullLogger<XtbFileImportAdapter>.Instance)
-            .ReadAsync(stream, "extracto.csv");
-    }
-
-    private static ImportReadResult ReadWithProfile(string csv)
+    private static ImportReadResult Read(string csv)
     {
         var profiles = BuiltInProfiles.All(DateTimeOffset.UnixEpoch);
         var match = ProfileMatching.Match(profiles, PlatformCode.Xtb, Headers(csv));

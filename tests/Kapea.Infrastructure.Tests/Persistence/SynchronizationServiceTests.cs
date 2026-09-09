@@ -213,7 +213,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         var service = new SynchronizationService(
             new SynchronizationRepository(context),
             new ImportRepository(context),
-            new ImportAdapterRegistry([], adapters),
+            new ImportAdapterRegistry(adapters),
             pipeline,
             credentialService,
             new AccountSyncLock(context, time, NullLogger<AccountSyncLock>.Instance),

@@ -8,23 +8,12 @@ public class ImportAdapterRegistryTests
     [Fact]
     public void A_platform_without_adapter_is_rejected_listing_the_supported_ones()
     {
-        var registry = new ImportAdapterRegistry([new FakeFileAdapter(PlatformCode.Xtb)], [new FakeApiAdapter(PlatformCode.Kraken)]);
+        var registry = new ImportAdapterRegistry([new FakeApiAdapter(PlatformCode.Kraken)]);
 
         var exception = Assert.Throws<UnsupportedPlatformException>(() => registry.GetApiAdapter(PlatformCode.Bit2Me));
 
-        Assert.Contains("Xtb", exception.Message, StringComparison.Ordinal);
         Assert.Contains("Kraken", exception.Message, StringComparison.Ordinal);
         Assert.Equal(PlatformCode.Bit2Me, exception.Platform);
-    }
-
-    [Fact]
-    public void Asking_for_a_file_adapter_of_an_api_only_platform_is_rejected()
-    {
-        var registry = new ImportAdapterRegistry([], [new FakeApiAdapter(PlatformCode.Kraken)]);
-
-        var exception = Assert.Throws<UnsupportedPlatformException>(() => registry.GetFileAdapter(PlatformCode.Kraken));
-
-        Assert.Equal(ImportSourceKind.UploadedFile, exception.SourceKind);
     }
 
     [Fact]
@@ -32,7 +21,7 @@ public class ImportAdapterRegistryTests
     {
         // Añadir una plataforma es registrar su adaptador: ni el registro ni nada
         // aguas abajo necesita conocerla de antemano.
-        var registry = new ImportAdapterRegistry([], [new FakeApiAdapter(PlatformCode.Bit2Me)]);
+        var registry = new ImportAdapterRegistry([new FakeApiAdapter(PlatformCode.Bit2Me)]);
 
         Assert.True(registry.Supports(PlatformCode.Bit2Me));
         Assert.Equal(PlatformCode.Bit2Me, registry.GetApiAdapter(PlatformCode.Bit2Me).Platform);
@@ -41,17 +30,8 @@ public class ImportAdapterRegistryTests
 
     [Fact]
     public void An_empty_registry_supports_nothing() =>
-        Assert.Empty(new ImportAdapterRegistry([], []).SupportedPlatforms);
+        Assert.Empty(new ImportAdapterRegistry([]).SupportedPlatforms);
 
-    private sealed class FakeFileAdapter(PlatformCode platform) : IFileImportAdapter
-    {
-        public PlatformCode Platform => platform;
-
-        public ImportSourceKind SourceKind => ImportSourceKind.UploadedFile;
-
-        public Task<ImportReadResult> ReadAsync(Stream content, string fileName, CancellationToken cancellationToken = default) =>
-            Task.FromResult(ImportReadResult.Empty);
-    }
 
     private sealed class FakeApiAdapter(PlatformCode platform) : IApiImportAdapter
     {

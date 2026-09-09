@@ -3,15 +3,16 @@ using Kapea.Domain.Accounts;
 namespace Kapea.Application.Import;
 
 /// <summary>
-/// Selecciona el adaptador por la plataforma de la cuenta destino. Es el punto de
-/// extensión del módulo de importación: dar de alta una plataforma nueva es registrar
-/// su adaptador, sin tocar el motor, el dominio ni el cálculo.
+/// Selecciona el adaptador de API por la plataforma de la cuenta destino.
 /// </summary>
+/// <remarks>
+/// Solo quedan aquí las plataformas que se leen por API: su firma, su paginación y sus
+/// alias son código y no se deducen. Los ficheros ya no pasan por aquí, porque su
+/// formato lo describe un perfil y no hace falta un adaptador por bróker.
+/// </remarks>
 public interface IImportAdapterRegistry
 {
     IReadOnlyCollection<PlatformCode> SupportedPlatforms { get; }
-
-    IFileImportAdapter GetFileAdapter(PlatformCode platform);
 
     IApiImportAdapter GetApiAdapter(PlatformCode platform);
 
@@ -20,28 +21,18 @@ public interface IImportAdapterRegistry
 
 public sealed class ImportAdapterRegistry : IImportAdapterRegistry
 {
-    private readonly Dictionary<PlatformCode, IFileImportAdapter> _fileAdapters;
     private readonly Dictionary<PlatformCode, IApiImportAdapter> _apiAdapters;
 
-    public ImportAdapterRegistry(IEnumerable<IFileImportAdapter> fileAdapters, IEnumerable<IApiImportAdapter> apiAdapters)
+    public ImportAdapterRegistry(IEnumerable<IApiImportAdapter> apiAdapters)
     {
-        ArgumentNullException.ThrowIfNull(fileAdapters);
         ArgumentNullException.ThrowIfNull(apiAdapters);
 
-        _fileAdapters = fileAdapters.ToDictionary(adapter => adapter.Platform);
         _apiAdapters = apiAdapters.ToDictionary(adapter => adapter.Platform);
     }
 
-    public IReadOnlyCollection<PlatformCode> SupportedPlatforms =>
-        [.. _fileAdapters.Keys.Concat(_apiAdapters.Keys).Distinct().Order()];
+    public IReadOnlyCollection<PlatformCode> SupportedPlatforms => [.. _apiAdapters.Keys.Order()];
 
-    public bool Supports(PlatformCode platform) =>
-        _fileAdapters.ContainsKey(platform) || _apiAdapters.ContainsKey(platform);
-
-    public IFileImportAdapter GetFileAdapter(PlatformCode platform) =>
-        _fileAdapters.TryGetValue(platform, out var adapter)
-            ? adapter
-            : throw new UnsupportedPlatformException(platform, ImportSourceKind.UploadedFile, SupportedPlatforms);
+    public bool Supports(PlatformCode platform) => _apiAdapters.ContainsKey(platform);
 
     public IApiImportAdapter GetApiAdapter(PlatformCode platform) =>
         _apiAdapters.TryGetValue(platform, out var adapter)

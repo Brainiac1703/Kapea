@@ -142,6 +142,18 @@ public sealed class ImportRun
     /// <summary>Nombre del fichero subido. Nulo en importaciones de API.</summary>
     public string? FileName { get; private set; }
 
+    /// <summary>
+    /// Perfil con el que se leyó el fichero, y su versión.
+    /// </summary>
+    /// <remarks>
+    /// Se guardan en la ejecución y no solo en cada movimiento porque la confirmación
+    /// ocurre después: sin esto habría que volver a averiguar el perfil al confirmar, y
+    /// un perfil corregido entre medias interpretaría las filas de otra manera.
+    /// </remarks>
+    public Guid? ProfileId { get; private set; }
+
+    public int? ProfileVersion { get; private set; }
+
     public ImportRunStatus Status { get; private set; }
 
     public DateTimeOffset StartedAt { get; private set; }
@@ -175,8 +187,14 @@ public sealed class ImportRun
         Guid accountId,
         PlatformCode platform,
         DateTimeOffset startedAt,
-        string? fileName = null) =>
-        new(Guid.NewGuid(), userId, accountId, platform, fileName, startedAt);
+        string? fileName = null,
+        Guid? profileId = null,
+        int? profileVersion = null) =>
+        new(Guid.NewGuid(), userId, accountId, platform, fileName, startedAt)
+        {
+            ProfileId = profileId,
+            ProfileVersion = profileVersion,
+        };
 
     public void Stage(StagedRecord record)
     {

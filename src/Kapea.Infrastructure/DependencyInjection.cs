@@ -10,7 +10,6 @@ using Kapea.Application.Synchronization;
 using Kapea.Infrastructure.ExchangeRates;
 using Kapea.Infrastructure.Import.Bit2Me;
 using Kapea.Infrastructure.Import.Kraken;
-using Kapea.Infrastructure.Import.Xtb;
 using Kapea.Infrastructure.MarketData;
 using Kapea.Infrastructure.Persistence;
 using Kapea.Infrastructure.Persistence.Stores;
@@ -71,7 +70,9 @@ public static class DependencyInjection
 
         // Los adaptadores se registran como colección y el registro los indexa por
         // plataforma: dar de alta una nueva es añadir una línea aquí.
-        services.AddScoped<IFileImportAdapter, XtbFileImportAdapter>();
+        // Los ficheros ya no tienen un adaptador por plataforma: hay uno solo que aplica
+        // el perfil que reconoce las cabeceras.
+        services.AddScoped<IFileImporter, Import.Tabular.FileImporter>();
         services.AddScoped<IApiImportAdapter, KrakenImportAdapter>();
         services.AddScoped<IApiImportAdapter, Bit2MeImportAdapter>();
         services.AddScoped<IImportAdapterRegistry, ImportAdapterRegistry>();

@@ -73,7 +73,10 @@ public static class TabularReader
         // Un extracto europeo suele venir con punto y coma, porque la coma ya está
         // ocupada como separador decimal. Se deduce solo cuando nadie lo ha declarado:
         // la misma cuenta puede exportar de las dos formas.
-        using var reader = new StreamReader(content, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        // El flujo se deja abierto: el mismo fichero se lee dos veces, una para ver sus
+        // cabeceras y elegir el perfil y otra con el delimitador que ese perfil declara.
+        using var reader = new StreamReader(
+            content, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
         var text = reader.ReadToEnd();
         var firstLine = text.Split('\n').FirstOrDefault() ?? string.Empty;
         var delimiter = declared?.ToString()

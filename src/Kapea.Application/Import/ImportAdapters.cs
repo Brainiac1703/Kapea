@@ -19,12 +19,6 @@ public interface IImportAdapter
     ImportSourceKind SourceKind { get; }
 }
 
-/// <summary>Adaptador de fichero. Recibe el contenido subido y devuelve registros normalizados.</summary>
-public interface IFileImportAdapter : IImportAdapter
-{
-    Task<ImportReadResult> ReadAsync(Stream content, string fileName, CancellationToken cancellationToken = default);
-}
-
 /// <summary>
 /// Adaptador de API. Recibe la credencial y el rango temporal. Son dos puertos y no
 /// uno porque forzar una firma común obligaría a inventar parámetros vacíos en ambos

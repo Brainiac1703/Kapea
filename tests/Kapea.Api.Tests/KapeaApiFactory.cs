@@ -92,6 +92,10 @@ public sealed class KapeaApiFactory : WebApplicationFactory<Program>, IAsyncLife
     {
         builder.UseEnvironment("Development");
 
+        // Sin esto el 500 de una importación llega al test como un código y nada más,
+        // y averiguar la causa exige adivinar.
+        builder.ConfigureLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
+
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {

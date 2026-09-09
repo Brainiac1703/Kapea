@@ -315,7 +315,8 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Contains("Columnas esperadas", body, StringComparison.Ordinal);
+        Assert.Contains("Columnas encontradas", body, StringComparison.Ordinal);
+        Assert.Contains("Perfiles configurados", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -355,7 +356,7 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         var response = await client.PostAsync($"/api/imports/file?accountId={account!.Id}", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("Xtb", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("por su API", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -414,7 +415,12 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         };
 
         var response = await client.PostAsync($"/api/imports/file?accountId={accountId}", content);
-        response.EnsureSuccessStatusCode();
+
+        // El cuerpo lleva el detalle del problema. Perderlo dejaría el fallo en un
+        // número, y averiguar la causa exigiría adivinar.
+        Assert.True(
+            response.IsSuccessStatusCode,
+            $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
 
         return await response.Content.ReadFromJsonAsync<ImportPreviewResponse>();
     }

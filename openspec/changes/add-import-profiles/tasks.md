@@ -24,7 +24,7 @@
 
 - [x] 4.1 Convertir los tres formatos conocidos de xStation5 —efectivo, posiciones cerradas y posiciones abiertas— en perfiles sembrados; verificar que se dan de alta al crear la base de datos
 - [x] 4.2 Migrar los tests de extremo a extremo del adaptador de XTB al adaptador genérico con esos perfiles; verificar que producen exactamente los mismos movimientos que antes
-- [ ] 4.3 Retirar el adaptador de XTB codificado y sus formatos; verificar que la batería completa sigue pasando y que no queda ninguna referencia al adaptador retirado
+- [x] 4.3 Retirar el adaptador de XTB codificado y sus formatos; verificar que la batería completa sigue pasando y que no queda ninguna referencia al adaptador retirado
 - [ ] 4.4 Comprobar que un perfil de serie se puede editar desde la aplicación; verificar manualmente que corregir una cabecera permite importar un fichero que antes no encajaba
 
 ## 5. Propuesta de mapeo por IA
