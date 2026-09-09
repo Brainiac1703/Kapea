@@ -12,6 +12,8 @@ namespace Kapea.Application.Portfolio;
 /// </remarks>
 public interface IPortfolioQueries
 {
+    Task<IReadOnlyList<PlatformResponse>> ListPlatformsAsync(CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<AccountResponse>> ListAccountsAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<BrokerCredentialResponse>> ListCredentialsAsync(CancellationToken cancellationToken = default);

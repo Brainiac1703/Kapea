@@ -37,6 +37,84 @@ public static class PortfolioEndpoints
 
     private static void MapAccounts(this RouteGroupBuilder api)
     {
+        var platforms = api.MapGroup("/platforms");
+
+        platforms.MapGet("/", (IPortfolioQueries queries, CancellationToken token) =>
+            queries.ListPlatformsAsync(token));
+
+        // Alta de una plataforma que no viene de serie. Solo de fichero: una de API
+        // necesita además su adaptador, y darla de alta sin él dejaría una entrada que
+        // no se puede usar y que solo se descubre al intentar sincronizar.
+        platforms.MapPost("/", async (
+            CreatePlatformRequest request,
+            KapeaDbContext context,
+            CancellationToken token) =>
+        {
+            if (!Enum.TryParse<PlatformImportKind>(request.ImportKind, ignoreCase: true, out var importKind))
+            {
+                return Results.Problem(
+                    $"Forma de importación '{request.ImportKind}' desconocida. Admitidas: {string.Join(", ", Enum.GetNames<PlatformImportKind>())}.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            if (importKind != PlatformImportKind.File)
+            {
+                return Results.Problem(
+                    "Una plataforma de API necesita su adaptador, que es código. Desde aquí solo se dan de alta las de fichero.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var code = new PlatformCode(request.Code);
+
+            if (await context.Platforms.AnyAsync(entity => entity.Code == code, token))
+            {
+                return Results.Problem(
+                    $"Ya hay una plataforma con el código '{code}'.", statusCode: StatusCodes.Status409Conflict);
+            }
+
+            var platform = Platform.Create(code, request.Name, importKind);
+
+            context.Platforms.Add(platform);
+            await context.SaveChangesAsync(token);
+
+            return Results.Created(
+                $"/api/platforms/{platform.Code}",
+                new PlatformResponse(platform.Code.Value, platform.Name, platform.ImportKind.ToString(), platform.BuiltIn));
+        });
+
+        platforms.MapDelete("/{code}", async (
+            string code,
+            KapeaDbContext context,
+            CancellationToken token) =>
+        {
+            if (!PlatformCode.TryParse(code, out var parsed))
+            {
+                return Results.NotFound();
+            }
+
+            var platformCode = parsed.Value;
+            var platform = await context.Platforms
+                .SingleOrDefaultAsync(entity => entity.Code == platformCode, token);
+
+            if (platform is null)
+            {
+                return Results.NotFound();
+            }
+
+            // Cuenta sobre todos los usuarios, saltándose el filtro: retirar una
+            // plataforma dejaría sin origen las cuentas de otro, que no se ven desde aquí.
+            var accountsUsingIt = await context.Accounts
+                .IgnoreQueryFilters()
+                .CountAsync(account => account.Platform == platformCode, token);
+
+            platform.EnsureCanBeDeleted(accountsUsingIt);
+
+            context.Platforms.Remove(platform);
+            await context.SaveChangesAsync(token);
+
+            return Results.NoContent();
+        });
+
         var accounts = api.MapGroup("/accounts");
 
         accounts.MapGet("/", (IPortfolioQueries queries, CancellationToken token) =>
@@ -48,12 +126,20 @@ public static class PortfolioEndpoints
             ICurrentUser user,
             CancellationToken token) =>
         {
-            if (!Enum.TryParse<Platform>(request.Platform, ignoreCase: true, out var platform))
+            // La plataforma se valida contra el catálogo y no contra una lista escrita
+            // en el código: es lo que hace que dar de alta un bróker de fichero baste
+            // para poder abrirle una cuenta.
+            if (!PlatformCode.TryParse(request.Platform, out var requested)
+                || await context.Platforms.SingleOrDefaultAsync(entity => entity.Code == requested.Value, token) is not { } known)
             {
+                var catalogue = await context.Platforms.Select(entity => entity.Name).ToListAsync(token);
+
                 return Results.Problem(
-                    $"Plataforma '{request.Platform}' no soportada. Soportadas: {string.Join(", ", Enum.GetNames<Platform>())}.",
+                    $"Plataforma '{request.Platform}' no está en el catálogo. Disponibles: {string.Join(", ", catalogue)}.",
                     statusCode: StatusCodes.Status400BadRequest);
             }
+
+            var platform = known.Code;
 
             var account = PlatformAccount.Create(
                 user.Id, platform, request.Alias, Currency.FromCode(request.BaseCurrency));
@@ -101,11 +187,13 @@ public static class PortfolioEndpoints
             KapeaDbContext context,
             CancellationToken token) =>
         {
-            if (!Enum.TryParse<Platform>(request.Platform, ignoreCase: true, out var platform))
+            if (!PlatformCode.TryParse(request.Platform, out var parsed))
             {
                 return Results.Problem(
                     $"Plataforma '{request.Platform}' no soportada.", statusCode: StatusCodes.Status400BadRequest);
             }
+
+            var platform = parsed.Value;
 
             var credential = await service.RegisterAsync(
                 request.AccountId, platform, request.Alias, new ApiSecret(request.ApiKey, request.ApiSecret), token);

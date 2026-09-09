@@ -21,7 +21,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
         "EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD",
     };
 
-    public Platform Platform => Platform.Bit2Me;
+    public PlatformCode Platform => PlatformCode.Bit2Me;
 
     public ImportSourceKind SourceKind => ImportSourceKind.RemoteApi;
 

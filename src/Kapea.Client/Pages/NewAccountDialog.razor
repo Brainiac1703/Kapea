@@ -1,9 +1,11 @@
 @implements IDialogContentComponent<NewAccountModel>
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
-    <FluentSelect TOption="string"
+    <FluentSelect TOption="PlatformResponse"
                   Label="@Ui["Common_Platform"]"
-                  Items="@Platforms"
+                  Items="@Content.AvailablePlatforms"
+                  OptionValue="@(platform => platform.Code)"
+                  OptionText="@(platform => platform.Name)"
                   @bind-Value="Content.Platform"
                   Required="true" />
 
@@ -22,12 +24,6 @@
 </FluentStack>
 
 @code {
-    /// <summary>
-    /// Las plataformas se listan aquí y no se piden a la API porque el conjunto lo fija
-    /// el dominio: añadir una es dar de alta su adaptador, no un dato de configuración.
-    /// </summary>
-    private static readonly string[] Platforms = ["Xtb", "Kraken", "Bit2Me"];
-
     private static readonly string[] Currencies = ["EUR", "USD", "GBP", "CHF"];
 
     [Parameter]

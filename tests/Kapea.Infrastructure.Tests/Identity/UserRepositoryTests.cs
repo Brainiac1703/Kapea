@@ -106,7 +106,7 @@ public class UserRepositoryTests(SqlServerFixture fixture)
         // Los movimientos importados antes de haber usuarios están a nombre del usuario
         // fijo de desarrollo; la adopción los traslada sin perderlos.
         var previous = new UserId(Guid.NewGuid());
-        var account = PlatformAccount.Create(previous, Platform.Kraken, "Cuenta previa", Currency.Euro);
+        var account = PlatformAccount.Create(previous, PlatformCode.Kraken, "Cuenta previa", Currency.Euro);
 
         await using (var seed = fixture.CreateContext(previous))
         {

@@ -28,6 +28,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<Asset> Assets => Set<Asset>();
 
+    public DbSet<Platform> Platforms => Set<Platform>();
+
     public DbSet<PlatformAccount> Accounts => Set<PlatformAccount>();
 
     public DbSet<Transaction> Transactions => Set<Transaction>();

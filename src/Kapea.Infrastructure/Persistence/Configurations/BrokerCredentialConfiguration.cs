@@ -18,7 +18,7 @@ internal sealed class BrokerCredentialConfiguration : IEntityTypeConfiguration<B
         // secreto, así que filtrarlo por aquí exigiría un cambio de esquema deliberado.
         builder.Property(credential => credential.SecretName).HasMaxLength(200).IsRequired();
 
-        builder.Property(credential => credential.Platform).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Property(credential => credential.Platform).HasConversion<Converters.ValueObjectConverters.PlatformCodeConverter>().HasMaxLength(Kapea.Domain.Accounts.PlatformCode.MaxLength).IsRequired();
         builder.Property(credential => credential.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(credential => credential.Scopes).HasConversion<string>().HasMaxLength(64).IsRequired();
         builder.Property(credential => credential.InvalidReason).HasMaxLength(500);

@@ -9,19 +9,19 @@ namespace Kapea.Application.Import;
 /// </summary>
 public interface IImportAdapterRegistry
 {
-    IReadOnlyCollection<Platform> SupportedPlatforms { get; }
+    IReadOnlyCollection<PlatformCode> SupportedPlatforms { get; }
 
-    IFileImportAdapter GetFileAdapter(Platform platform);
+    IFileImportAdapter GetFileAdapter(PlatformCode platform);
 
-    IApiImportAdapter GetApiAdapter(Platform platform);
+    IApiImportAdapter GetApiAdapter(PlatformCode platform);
 
-    bool Supports(Platform platform);
+    bool Supports(PlatformCode platform);
 }
 
 public sealed class ImportAdapterRegistry : IImportAdapterRegistry
 {
-    private readonly Dictionary<Platform, IFileImportAdapter> _fileAdapters;
-    private readonly Dictionary<Platform, IApiImportAdapter> _apiAdapters;
+    private readonly Dictionary<PlatformCode, IFileImportAdapter> _fileAdapters;
+    private readonly Dictionary<PlatformCode, IApiImportAdapter> _apiAdapters;
 
     public ImportAdapterRegistry(IEnumerable<IFileImportAdapter> fileAdapters, IEnumerable<IApiImportAdapter> apiAdapters)
     {
@@ -32,18 +32,18 @@ public sealed class ImportAdapterRegistry : IImportAdapterRegistry
         _apiAdapters = apiAdapters.ToDictionary(adapter => adapter.Platform);
     }
 
-    public IReadOnlyCollection<Platform> SupportedPlatforms =>
+    public IReadOnlyCollection<PlatformCode> SupportedPlatforms =>
         [.. _fileAdapters.Keys.Concat(_apiAdapters.Keys).Distinct().Order()];
 
-    public bool Supports(Platform platform) =>
+    public bool Supports(PlatformCode platform) =>
         _fileAdapters.ContainsKey(platform) || _apiAdapters.ContainsKey(platform);
 
-    public IFileImportAdapter GetFileAdapter(Platform platform) =>
+    public IFileImportAdapter GetFileAdapter(PlatformCode platform) =>
         _fileAdapters.TryGetValue(platform, out var adapter)
             ? adapter
             : throw new UnsupportedPlatformException(platform, ImportSourceKind.UploadedFile, SupportedPlatforms);
 
-    public IApiImportAdapter GetApiAdapter(Platform platform) =>
+    public IApiImportAdapter GetApiAdapter(PlatformCode platform) =>
         _apiAdapters.TryGetValue(platform, out var adapter)
             ? adapter
             : throw new UnsupportedPlatformException(platform, ImportSourceKind.RemoteApi, SupportedPlatforms);
@@ -54,16 +54,16 @@ public sealed class ImportAdapterRegistry : IImportAdapterRegistry
 /// se equivoca de plataforma necesita saber cuáles hay, no solo que esa no vale.
 /// </summary>
 public sealed class UnsupportedPlatformException(
-    Platform platform,
+    PlatformCode platform,
     ImportSourceKind sourceKind,
-    IReadOnlyCollection<Platform> supportedPlatforms)
+    IReadOnlyCollection<PlatformCode> supportedPlatforms)
     : InvalidOperationException(
         $"No hay adaptador de {(sourceKind == ImportSourceKind.UploadedFile ? "fichero" : "API")} para {platform}. " +
         $"Plataformas soportadas: {string.Join(", ", supportedPlatforms)}.")
 {
-    public Platform Platform { get; } = platform;
+    public PlatformCode Platform { get; } = platform;
 
     public ImportSourceKind SourceKind { get; } = sourceKind;
 
-    public IReadOnlyCollection<Platform> SupportedPlatforms { get; } = supportedPlatforms;
+    public IReadOnlyCollection<PlatformCode> SupportedPlatforms { get; } = supportedPlatforms;
 }

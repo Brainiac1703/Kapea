@@ -76,8 +76,8 @@ public class CredentialVerifierTests
     [Fact]
     public void Each_verifier_declares_the_platform_it_answers_for()
     {
-        Assert.Equal(Platform.Kraken, new KrakenCredentialVerifier(KrakenClient(new RecordedResponseHandler())).Platform);
-        Assert.Equal(Platform.Bit2Me, new Bit2MeCredentialVerifier(Bit2MeClient(new RecordedResponseHandler())).Platform);
+        Assert.Equal(PlatformCode.Kraken, new KrakenCredentialVerifier(KrakenClient(new RecordedResponseHandler())).Platform);
+        Assert.Equal(PlatformCode.Bit2Me, new Bit2MeCredentialVerifier(Bit2MeClient(new RecordedResponseHandler())).Platform);
     }
 
     private static KrakenApiClient KrakenClient(RecordedResponseHandler handler) =>

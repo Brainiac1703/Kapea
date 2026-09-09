@@ -35,6 +35,60 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task A_file_platform_given_a_row_becomes_available_without_touching_code()
+    {
+        // Es lo que persigue el cambio entero: un bróker que exporta un fichero se da
+        // de alta como un dato, y desde ese momento se le puede abrir una cuenta.
+        var client = factory.CreateClientFor(Guid.NewGuid());
+        var code = $"P{Guid.NewGuid().ToString("N")[..8]}";
+
+        var created = await client.PostAsJsonAsync(
+            "/api/platforms", new CreatePlatformRequest(code, "Bróker de prueba", "File"));
+
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        var account = await client.PostAsJsonAsync(
+            "/api/accounts", new CreateAccountRequest(code, "Cuenta del bróker nuevo", "EUR"));
+
+        Assert.Equal(HttpStatusCode.Created, account.StatusCode);
+        Assert.Equal(code, (await account.Content.ReadFromJsonAsync<AccountResponse>())!.Platform);
+    }
+
+    [Fact]
+    public async Task An_api_platform_cannot_be_given_a_row_because_it_needs_an_adapter()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var response = await client.PostAsJsonAsync(
+            "/api/platforms", new CreatePlatformRequest("Binance", "Binance", "Api"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("adaptador", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_platforms_that_come_built_in_cannot_be_retired()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var response = await client.DeleteAsync("/api/platforms/Xtb");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_catalogue_says_how_each_platform_is_imported()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var platforms = await client.GetFromJsonAsync<List<PlatformResponse>>("/api/platforms") ?? [];
+
+        Assert.Equal("File", platforms.Single(platform => platform.Code == "Xtb").ImportKind);
+        Assert.Equal("Api", platforms.Single(platform => platform.Code == "Kraken").ImportKind);
+        Assert.Equal("Api", platforms.Single(platform => platform.Code == "Bit2Me").ImportKind);
+    }
+
+    [Fact]
     public async Task An_unsupported_platform_is_rejected_naming_the_supported_ones()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());

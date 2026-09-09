@@ -29,6 +29,11 @@ public static class ValueObjectConverters
     public sealed class UserIdConverter()
         : ValueConverter<UserId, Guid>(userId => userId.Value, value => new UserId(value));
 
+    public sealed class PlatformCodeConverter()
+        : ValueConverter<Kapea.Domain.Accounts.PlatformCode, string>(
+            platform => platform.Value,
+            value => new Kapea.Domain.Accounts.PlatformCode(value));
+
     public sealed class DateOnlyConverter()
         : ValueConverter<DateOnly, DateTime>(
             date => date.ToDateTime(TimeOnly.MinValue),

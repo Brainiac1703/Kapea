@@ -118,7 +118,7 @@ public sealed class ImportRun
         Guid id,
         UserId userId,
         Guid accountId,
-        Platform platform,
+        PlatformCode platform,
         string? fileName,
         DateTimeOffset startedAt)
     {
@@ -137,7 +137,7 @@ public sealed class ImportRun
 
     public Guid AccountId { get; private set; }
 
-    public Platform Platform { get; private set; }
+    public PlatformCode Platform { get; private set; }
 
     /// <summary>Nombre del fichero subido. Nulo en importaciones de API.</summary>
     public string? FileName { get; private set; }
@@ -173,7 +173,7 @@ public sealed class ImportRun
     public static ImportRun Start(
         UserId userId,
         Guid accountId,
-        Platform platform,
+        PlatformCode platform,
         DateTimeOffset startedAt,
         string? fileName = null) =>
         new(Guid.NewGuid(), userId, accountId, platform, fileName, startedAt);

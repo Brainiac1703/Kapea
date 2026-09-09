@@ -13,7 +13,17 @@ namespace Kapea.Client.Models;
 /// </remarks>
 public sealed class NewAccountModel
 {
-    public string Platform { get; set; } = "Xtb";
+    /// <summary>
+    /// Plataformas entre las que elegir.
+    /// </summary>
+    /// <remarks>
+    /// Viajan dentro del modelo por lo mismo que las cuentas de una credencial: el
+    /// diálogo de Fluent UI solo recibe su Content, y cualquier otro parámetro llegaría
+    /// sin asignar dejando el desplegable vacío sin que nada falle.
+    /// </remarks>
+    public IReadOnlyList<PlatformResponse> AvailablePlatforms { get; init; } = [];
+
+    public string Platform { get; set; } = string.Empty;
 
     public string Alias { get; set; } = string.Empty;
 

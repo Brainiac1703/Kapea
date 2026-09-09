@@ -33,8 +33,16 @@ public sealed class SessionExpiryHandler(NavigationManager navigation, SessionSt
 
         session.Clear();
 
-        var destino = Uri.EscapeDataString(navigation.ToBaseRelativePath(navigation.Uri));
-        navigation.NavigateTo($"signin?returnUrl=/{destino}", forceLoad: false);
+        var actual = navigation.ToBaseRelativePath(navigation.Uri);
+
+        // Si ya se está en el acceso, no hay a dónde volver: guardarlo como destino
+        // anidaría una pantalla de acceso dentro de otra en la dirección.
+        if (actual.StartsWith("signin", StringComparison.OrdinalIgnoreCase))
+        {
+            return response;
+        }
+
+        navigation.NavigateTo($"signin?returnUrl=/{Uri.EscapeDataString(actual)}", forceLoad: false);
 
         return response;
     }

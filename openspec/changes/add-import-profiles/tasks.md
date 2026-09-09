@@ -1,9 +1,9 @@
 ## 1. Las plataformas pasan a ser datos
 
-- [ ] 1.1 Sustituir el enumerado Platform por una entidad con nombre y forma de importación (fichero o API), con las tres actuales sembradas; verificar con test que dar de alta una plataforma de fichero la hace elegible al crear una cuenta sin tocar código
-- [ ] 1.2 Migrar el esquema y los datos existentes traduciendo los tres valores actuales a filas; verificar sobre la base de datos que las cuentas y los movimientos ya importados conservan su plataforma
-- [ ] 1.3 Adaptar el registro de adaptadores para que resuelva por plataforma sin depender del enumerado; verificar con test que una plataforma de API sin adaptador se rechaza enumerando las soportadas
-- [ ] 1.4 Actualizar los contratos y las pantallas de cuentas y credenciales para que la lista de plataformas y su forma de importación vengan del servidor; verificar manualmente que credenciales solo ofrece cuentas de plataformas de API e importar solo las de fichero
+- [x] 1.1 Sustituir el enumerado Platform por una entidad con nombre y forma de importación (fichero o API), con las tres actuales sembradas; verificar con test que dar de alta una plataforma de fichero la hace elegible al crear una cuenta sin tocar código
+- [x] 1.2 Migrar el esquema y los datos existentes traduciendo los tres valores actuales a filas; verificar sobre la base de datos que las cuentas y los movimientos ya importados conservan su plataforma
+- [x] 1.3 Adaptar el registro de adaptadores para que resuelva por plataforma sin depender del enumerado; verificar con test que una plataforma de API sin adaptador se rechaza enumerando las soportadas
+- [x] 1.4 Actualizar los contratos y las pantallas de cuentas y credenciales para que la lista de plataformas y su forma de importación vengan del servidor; verificar manualmente que credenciales solo ofrece cuentas de plataformas de API e importar solo las de fichero
 
 ## 2. Perfil de importación
 

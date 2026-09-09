@@ -229,7 +229,7 @@ public class ImportPipelineTests(SqlServerFixture fixture)
         var transaction = await context.Transactions.SingleAsync();
         var origin = await context.ImportRuns.SingleAsync(stored => stored.Id == transaction.Source.ImportRunId);
 
-        Assert.Equal(Platform.Kraken, origin.Platform);
+        Assert.Equal(PlatformCode.Kraken, origin.Platform);
         Assert.Equal("raw:TX-1", transaction.Source.RawContent);
     }
 
@@ -330,7 +330,7 @@ public class ImportPipelineTests(SqlServerFixture fixture)
     private async Task<Scenario> NewScenarioAsync()
     {
         var owner = new UserId(Guid.NewGuid());
-        var account = PlatformAccount.Create(owner, Platform.Kraken, "Kraken", Currency.Euro);
+        var account = PlatformAccount.Create(owner, PlatformCode.Kraken, "Kraken", Currency.Euro);
 
         await using var context = fixture.CreateContext(owner);
         context.Accounts.Add(account);

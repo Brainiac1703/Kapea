@@ -3,6 +3,19 @@ namespace Kapea.Shared.Contracts;
 /// <summary>Cuenta del usuario en una plataforma.</summary>
 public sealed record AccountResponse(Guid Id, string Platform, string Alias, string BaseCurrency);
 
+/// <summary>
+/// Plataforma del catálogo.
+/// </summary>
+/// <remarks>
+/// La lista la da el servidor y no la trae escrita el cliente: dar de alta un bróker
+/// que exporta un fichero es añadir una fila, y ninguna pantalla debería necesitar una
+/// versión nueva para verla.
+/// </remarks>
+public sealed record PlatformResponse(string Code, string Name, string ImportKind, bool BuiltIn);
+
+/// <summary>Alta de una plataforma que no viene de serie.</summary>
+public sealed record CreatePlatformRequest(string Code, string Name, string ImportKind);
+
 public sealed record CreateAccountRequest(string Platform, string Alias, string BaseCurrency);
 
 /// <summary>Ejecución de importación con sus recuentos, tal y como la ve el usuario.</summary>

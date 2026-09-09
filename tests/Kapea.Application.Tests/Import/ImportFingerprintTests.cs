@@ -14,8 +14,25 @@ public class ImportFingerprintTests
         var record = ImportRecords.Buy(naturalId: "TXID-1");
 
         Assert.Equal(
-            ImportFingerprint.For(Account, Platform.Kraken, record),
-            ImportFingerprint.For(Account, Platform.Kraken, record));
+            ImportFingerprint.For(Account, PlatformCode.Kraken, record),
+            ImportFingerprint.For(Account, PlatformCode.Kraken, record));
+    }
+
+    [Fact]
+    public void The_fingerprint_does_not_change_when_the_platform_stops_being_an_enum()
+    {
+        // El histórico ya importado guarda estas huellas. Cambiar su forma haría que la
+        // siguiente importación no reconociera nada como duplicado y lo entrara todo
+        // otra vez. Estos valores están calculados a mano sobre el mismo texto que
+        // producía el enumerado.
+        var record = ImportRecords.Buy(naturalId: "TXID-1");
+        var accountId = Guid.Parse("11111111-2222-3333-4444-555555555555");
+
+        var payload = $"{accountId:N}|Kraken|id|TXID-1";
+        var expected = Convert.ToHexStringLower(
+            System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload)));
+
+        Assert.Equal(expected, ImportFingerprint.For(accountId, PlatformCode.Kraken, record));
     }
 
     [Fact]
@@ -28,8 +45,8 @@ public class ImportFingerprintTests
 
         Assert.True(ImportFingerprint.UsesNaturalId(first));
         Assert.Equal(
-            ImportFingerprint.For(Account, Platform.Kraken, first),
-            ImportFingerprint.For(Account, Platform.Kraken, second));
+            ImportFingerprint.For(Account, PlatformCode.Kraken, first),
+            ImportFingerprint.For(Account, PlatformCode.Kraken, second));
     }
 
     [Fact]
@@ -39,8 +56,8 @@ public class ImportFingerprintTests
 
         Assert.False(ImportFingerprint.UsesNaturalId(record));
         Assert.NotEqual(
-            ImportFingerprint.For(Account, Platform.Xtb, record),
-            ImportFingerprint.For(Account, Platform.Xtb, ImportRecords.Buy(rowNumber: 4)));
+            ImportFingerprint.For(Account, PlatformCode.Xtb, record),
+            ImportFingerprint.For(Account, PlatformCode.Xtb, ImportRecords.Buy(rowNumber: 4)));
     }
 
     [Fact]
@@ -52,8 +69,8 @@ public class ImportFingerprintTests
         var second = ImportRecords.Buy(rowNumber: 13);
 
         Assert.NotEqual(
-            ImportFingerprint.For(Account, Platform.Xtb, first),
-            ImportFingerprint.For(Account, Platform.Xtb, second));
+            ImportFingerprint.For(Account, PlatformCode.Xtb, first),
+            ImportFingerprint.For(Account, PlatformCode.Xtb, second));
     }
 
     [Fact]
@@ -62,8 +79,8 @@ public class ImportFingerprintTests
         var record = ImportRecords.Buy(naturalId: "TXID-1");
 
         Assert.NotEqual(
-            ImportFingerprint.For(Account, Platform.Kraken, record),
-            ImportFingerprint.For(OtherAccount, Platform.Kraken, record));
+            ImportFingerprint.For(Account, PlatformCode.Kraken, record),
+            ImportFingerprint.For(OtherAccount, PlatformCode.Kraken, record));
     }
 
     [Theory]
@@ -75,10 +92,10 @@ public class ImportFingerprintTests
         var quantity = decimal.Parse(quantityText, System.Globalization.CultureInfo.InvariantCulture);
         var gross = decimal.Parse(grossText, System.Globalization.CultureInfo.InvariantCulture);
 
-        var baseline = ImportFingerprint.For(Account, Platform.Xtb, ImportRecords.Buy(rowNumber: 1));
+        var baseline = ImportFingerprint.For(Account, PlatformCode.Xtb, ImportRecords.Buy(rowNumber: 1));
 
         var changed = ImportFingerprint.For(
-            Account, Platform.Xtb, ImportRecords.Buy(rowNumber: 1, quantity: quantity, grossAmount: gross, date: date));
+            Account, PlatformCode.Xtb, ImportRecords.Buy(rowNumber: 1, quantity: quantity, grossAmount: gross, date: date));
 
         Assert.NotEqual(baseline, changed);
     }

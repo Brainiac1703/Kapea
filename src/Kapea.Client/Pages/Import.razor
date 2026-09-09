@@ -71,9 +71,6 @@ else
 }
 
 @code {
-    /// <summary>Solo XTB se importa por fichero; el resto llega por su API.</summary>
-    private const string FilePlatform = "Xtb";
-
     private IReadOnlyList<AccountResponse>? _accounts;
     private Guid? _accountId;
     private ImportPreviewResponse? _preview;
@@ -84,8 +81,17 @@ else
     {
         try
         {
+            // Qué plataformas se importan por fichero lo dice el catálogo, no una lista
+            // escrita aquí: dar de alta un bróker que exporta CSV tiene que bastar para
+            // que sus cuentas aparezcan en esta pantalla.
+            var platforms = await Api.GetPlatformsAsync();
+            var filePlatforms = platforms
+                .Where(platform => platform.ImportKind == "File")
+                .Select(platform => platform.Code)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             var accounts = await Api.GetAccountsAsync();
-            _accounts = [.. accounts.Where(account => account.Platform == FilePlatform)];
+            _accounts = [.. accounts.Where(account => filePlatforms.Contains(account.Platform))];
             _accountId = _accounts.Count == 1 ? _accounts[0].Id : null;
         }
         catch (KapeaApiException exception)

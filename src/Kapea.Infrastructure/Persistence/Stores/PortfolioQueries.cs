@@ -12,6 +12,17 @@ namespace Kapea.Infrastructure.Persistence.Stores;
 /// <summary>Lecturas de la cartera sobre EF Core, ya en la forma que consume el cliente.</summary>
 public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvider prices) : IPortfolioQueries
 {
+    // El catálogo es de la instalación, no de cada usuario, así que se salta el filtro
+    // global: sin esto no devolvería nada, porque las plataformas no tienen dueño.
+    public async Task<IReadOnlyList<PlatformResponse>> ListPlatformsAsync(
+        CancellationToken cancellationToken = default) =>
+        await context.Platforms
+            .OrderBy(platform => platform.Name)
+            .Select(platform => new PlatformResponse(
+                platform.Code.Value, platform.Name, platform.ImportKind.ToString(), platform.BuiltIn))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
     public async Task<IReadOnlyList<AccountResponse>> ListAccountsAsync(CancellationToken cancellationToken = default) =>
         await context.Accounts
             .OrderBy(account => account.Alias)

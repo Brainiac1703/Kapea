@@ -27,7 +27,9 @@ else if (_accounts.Count == 0)
 else
 {
     <FluentDataGrid Items="@_accounts.AsQueryable()" TGridItem="AccountResponse" GridTemplateColumns="1fr 2fr 1fr auto">
-        <PropertyColumn Property="@(account => account.Platform)" Title="@Ui["Common_Platform"]" />
+        @* Se enseña el nombre del catálogo y no el código: el código es la clave con la
+           que se guardan los movimientos, y no tiene por qué leerse bien. *@
+        <TemplateColumn Title="@Ui["Common_Platform"]">@PlatformName(context.Platform)</TemplateColumn>
         <PropertyColumn Property="@(account => account.Alias)" Title="@Ui["Common_Alias"]" />
         <PropertyColumn Property="@(account => account.BaseCurrency)" Title="@Ui["Accounts_BaseCurrency"]" />
         <TemplateColumn Title="@Ui["Common_Actions"]" Align="Align.End">
@@ -41,8 +43,23 @@ else
 
 @code {
     private IReadOnlyList<AccountResponse>? _accounts;
+    private IReadOnlyList<PlatformResponse> _platforms = [];
 
-    protected override Task OnInitializedAsync() => ReloadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+
+        // El catálogo se pide una vez: cambia cuando alguien da de alta un bróker, no
+        // mientras se mira la lista de cuentas.
+        try
+        {
+            _platforms = await Api.GetPlatformsAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
 
     private async Task ReloadAsync()
     {
@@ -60,9 +77,17 @@ else
         }
     }
 
+    private string PlatformName(string code) =>
+        _platforms.FirstOrDefault(platform =>
+            string.Equals(platform.Code, code, StringComparison.OrdinalIgnoreCase))?.Name ?? code;
+
     private async Task OpenNewAccountAsync()
     {
-        var nueva = new NewAccountModel();
+        var nueva = new NewAccountModel
+        {
+            AvailablePlatforms = _platforms,
+            Platform = _platforms.FirstOrDefault()?.Code ?? string.Empty,
+        };
 
         // Los textos de los botones se pasan aquí: sin PrimaryAction y SecondaryAction,
         // Fluent UI pinta el diálogo sin ninguna forma de confirmarlo.

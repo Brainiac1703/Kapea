@@ -23,7 +23,7 @@ public enum SynchronizationOutcome
 
 public sealed record AccountSynchronizationResult(
     Guid AccountId,
-    Platform Platform,
+    PlatformCode Platform,
     SynchronizationOutcome Outcome,
     int ImportedRecords,
     string? Detail);

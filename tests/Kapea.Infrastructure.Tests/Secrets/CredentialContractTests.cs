@@ -26,7 +26,7 @@ public class CredentialContractTests
     public void Serialising_a_credential_response_never_emits_a_secret()
     {
         var credential = BrokerCredential.Register(
-            new UserId(Guid.NewGuid()), Guid.NewGuid(), Platform.Kraken, "Kraken principal",
+            new UserId(Guid.NewGuid()), Guid.NewGuid(), PlatformCode.Kraken, "Kraken principal",
             "broker-kraken-abc", CredentialScopes.Read, DateTimeOffset.UtcNow);
 
         var response = new BrokerCredentialResponse(
@@ -45,7 +45,7 @@ public class CredentialContractTests
     public void The_credential_entity_only_keeps_the_name_of_its_secret()
     {
         var credential = BrokerCredential.Register(
-            new UserId(Guid.NewGuid()), Guid.NewGuid(), Platform.Bit2Me, "Bit2Me",
+            new UserId(Guid.NewGuid()), Guid.NewGuid(), PlatformCode.Bit2Me, "Bit2Me",
             "broker-bit2me-abc", CredentialScopes.Read, DateTimeOffset.UtcNow);
 
         Assert.Equal("broker-bit2me-abc", credential.SecretName);

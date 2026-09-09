@@ -20,7 +20,7 @@ public sealed class XtbFileImportAdapter(ILogger<XtbFileImportAdapter> logger) :
 {
     internal const string PlatformTimeZoneId = "Europe/Madrid";
 
-    public Platform Platform => Platform.Xtb;
+    public PlatformCode Platform => PlatformCode.Xtb;
 
     public ImportSourceKind SourceKind => ImportSourceKind.UploadedFile;
 

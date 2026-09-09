@@ -14,6 +14,9 @@ public sealed class KapeaApiClient(HttpClient http)
         CancellationToken cancellationToken = default) =>
         GetListAsync<AuthProviderResponse>("auth/providers", cancellationToken);
 
+    public Task<IReadOnlyList<PlatformResponse>> GetPlatformsAsync(CancellationToken cancellationToken = default) =>
+        GetListAsync<PlatformResponse>("api/platforms", cancellationToken);
+
     public Task<IReadOnlyList<AccountResponse>> GetAccountsAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<AccountResponse>("api/accounts", cancellationToken);
 

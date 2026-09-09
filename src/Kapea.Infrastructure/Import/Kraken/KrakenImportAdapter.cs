@@ -20,7 +20,7 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
         "trade", "margin", "rollover", "settled",
     };
 
-    public Platform Platform => Platform.Kraken;
+    public PlatformCode Platform => PlatformCode.Kraken;
 
     public ImportSourceKind SourceKind => ImportSourceKind.RemoteApi;
 

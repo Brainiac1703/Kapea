@@ -48,7 +48,7 @@ public sealed class BrokerCredential
         Guid id,
         UserId userId,
         Guid accountId,
-        Platform platform,
+        PlatformCode platform,
         string alias,
         string secretName,
         CredentialScopes scopes,
@@ -71,7 +71,7 @@ public sealed class BrokerCredential
 
     public Guid AccountId { get; private set; }
 
-    public Platform Platform { get; private set; }
+    public PlatformCode Platform { get; private set; }
 
     public string Alias { get; private set; }
 
@@ -97,7 +97,7 @@ public sealed class BrokerCredential
     public static BrokerCredential Register(
         UserId userId,
         Guid accountId,
-        Platform platform,
+        PlatformCode platform,
         string alias,
         string secretName,
         CredentialScopes scopes,

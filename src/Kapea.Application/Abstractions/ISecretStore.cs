@@ -41,7 +41,7 @@ public sealed record CredentialVerification(bool IsValid, CredentialScopes Scope
 /// <summary>Comprueba una credencial contra la plataforma antes de darla por buena.</summary>
 public interface ICredentialVerifier
 {
-    Platform Platform { get; }
+    PlatformCode Platform { get; }
 
     Task<CredentialVerification> VerifyAsync(ApiSecret secret, CancellationToken cancellationToken = default);
 }

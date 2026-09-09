@@ -130,7 +130,7 @@ public class PortfolioProjectionStoreTests(SqlServerFixture fixture)
     private async Task<Scenario> NewScenarioAsync(Guid? assetId = null)
     {
         var owner = new UserId(Guid.NewGuid());
-        var account = PlatformAccount.Create(owner, Platform.Kraken, "Cuenta", Currency.Euro);
+        var account = PlatformAccount.Create(owner, PlatformCode.Kraken, "Cuenta", Currency.Euro);
 
         await using var context = fixture.CreateContext(owner);
         context.Accounts.Add(account);

@@ -14,7 +14,7 @@ public enum ImportSourceKind
 
 public interface IImportAdapter
 {
-    Platform Platform { get; }
+    PlatformCode Platform { get; }
 
     ImportSourceKind SourceKind { get; }
 }

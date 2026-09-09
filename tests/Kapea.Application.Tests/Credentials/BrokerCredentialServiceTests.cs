@@ -19,7 +19,7 @@ public class BrokerCredentialServiceTests
     public async Task A_valid_read_only_credential_is_registered_and_usable()
     {
         var store = new InMemorySecretStore();
-        var credential = await Service(store).RegisterAsync(Account, Platform.Kraken, "Kraken", Secret);
+        var credential = await Service(store).RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret);
 
         Assert.True(credential.IsUsable);
         Assert.Equal(CredentialScopes.Read, credential.Scopes);
@@ -34,7 +34,7 @@ public class BrokerCredentialServiceTests
         var service = Service(store, CredentialVerification.Rejected("EAPI:Invalid key"));
 
         var exception = await Assert.ThrowsAsync<CredentialRejectedException>(
-            () => service.RegisterAsync(Account, Platform.Kraken, "Kraken", Secret));
+            () => service.RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret));
 
         Assert.Contains("EAPI:Invalid key", exception.Message, StringComparison.Ordinal);
         Assert.Empty(store.Names);
@@ -47,7 +47,7 @@ public class BrokerCredentialServiceTests
         var service = Service(store, CredentialVerification.Valid(CredentialScopes.Read | CredentialScopes.Trade));
 
         var exception = await Assert.ThrowsAsync<DomainException>(
-            () => service.RegisterAsync(Account, Platform.Kraken, "Kraken", Secret));
+            () => service.RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret));
 
         Assert.Contains("solo lectura", exception.Message, StringComparison.Ordinal);
         Assert.Empty(store.Names);
@@ -58,7 +58,7 @@ public class BrokerCredentialServiceTests
     {
         var store = new InMemorySecretStore();
         var service = Service(store);
-        var credential = await service.RegisterAsync(Account, Platform.Kraken, "Kraken", Secret);
+        var credential = await service.RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret);
         var newSecret = new ApiSecret("clave", "otro-secreto");
 
         await service.RotateAsync(credential, newSecret);
@@ -73,7 +73,7 @@ public class BrokerCredentialServiceTests
     {
         var store = new InMemorySecretStore();
         var service = Service(store);
-        var credential = await service.RegisterAsync(Account, Platform.Kraken, "Kraken", Secret);
+        var credential = await service.RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret);
 
         await service.RevokeAsync(credential);
 
@@ -86,7 +86,7 @@ public class BrokerCredentialServiceTests
     public async Task A_platform_marked_invalid_is_left_out_but_keeps_what_it_imported()
     {
         var credential = await Service(new InMemorySecretStore())
-            .RegisterAsync(Account, Platform.Kraken, "Kraken", Secret);
+            .RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret);
 
         credential.MarkSynchronized(Now);
         credential.MarkInvalid("EAPI:Invalid key");
@@ -101,7 +101,7 @@ public class BrokerCredentialServiceTests
     public async Task A_revoked_credential_is_not_reactivated_by_a_platform_rejection()
     {
         var credential = await Service(new InMemorySecretStore())
-            .RegisterAsync(Account, Platform.Kraken, "Kraken", Secret);
+            .RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret);
 
         credential.Revoke();
         credential.MarkInvalid("EAPI:Invalid key");
@@ -113,7 +113,7 @@ public class BrokerCredentialServiceTests
     public async Task A_revoked_credential_cannot_be_rotated()
     {
         var service = Service(new InMemorySecretStore());
-        var credential = await service.RegisterAsync(Account, Platform.Kraken, "Kraken", Secret);
+        var credential = await service.RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret);
 
         await service.RevokeAsync(credential);
 
@@ -129,13 +129,13 @@ public class BrokerCredentialServiceTests
         var store = new InMemorySecretStore();
         var service = Service(store, logMessages: messages);
 
-        var credential = await service.RegisterAsync(Account, Platform.Kraken, "Kraken", Secret);
+        var credential = await service.RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret);
         await service.RotateAsync(credential, new ApiSecret("clave", "otro-secreto"));
         await service.RevokeAsync(credential);
 
         var rejecting = Service(store, CredentialVerification.Rejected("EAPI:Invalid key"), messages);
         await Assert.ThrowsAsync<CredentialRejectedException>(
-            () => rejecting.RegisterAsync(Account, Platform.Kraken, "Kraken", Secret));
+            () => rejecting.RegisterAsync(Account, PlatformCode.Kraken, "Kraken", Secret));
 
         Assert.NotEmpty(messages);
 
@@ -160,7 +160,7 @@ public class BrokerCredentialServiceTests
         List<string>? logMessages = null) =>
         new(
             store,
-            [new FakeVerifier(Platform.Kraken, verification ?? CredentialVerification.Valid(CredentialScopes.Read))],
+            [new FakeVerifier(PlatformCode.Kraken, verification ?? CredentialVerification.Valid(CredentialScopes.Read))],
             new FixedUser(),
             new FakeTimeProvider(Now),
             new CapturingLogger<BrokerCredentialService>(logMessages ?? []));
@@ -189,9 +189,9 @@ public class BrokerCredentialServiceTests
         }
     }
 
-    private sealed class FakeVerifier(Platform platform, CredentialVerification verification) : ICredentialVerifier
+    private sealed class FakeVerifier(PlatformCode platform, CredentialVerification verification) : ICredentialVerifier
     {
-        public Platform Platform => platform;
+        public PlatformCode Platform => platform;
 
         public Task<CredentialVerification> VerifyAsync(ApiSecret secret, CancellationToken cancellationToken = default) =>
             Task.FromResult(verification);

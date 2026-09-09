@@ -21,12 +21,12 @@ public sealed class BrokerCredentialService(
     TimeProvider timeProvider,
     ILogger<BrokerCredentialService> logger)
 {
-    private readonly Dictionary<Platform, ICredentialVerifier> _verifiers =
+    private readonly Dictionary<PlatformCode, ICredentialVerifier> _verifiers =
         verifiers.ToDictionary(verifier => verifier.Platform);
 
     public async Task<BrokerCredential> RegisterAsync(
         Guid accountId,
-        Platform platform,
+        PlatformCode platform,
         string alias,
         ApiSecret secret,
         CancellationToken cancellationToken = default)
@@ -93,7 +93,7 @@ public sealed class BrokerCredentialService(
     }
 
     private async Task<CredentialVerification> VerifyAsync(
-        Platform platform,
+        PlatformCode platform,
         ApiSecret secret,
         CancellationToken cancellationToken)
     {
@@ -115,6 +115,6 @@ public sealed class BrokerCredentialService(
         return verification;
     }
 
-    private static string SecretNameFor(Guid accountId, Platform platform) =>
+    private static string SecretNameFor(Guid accountId, PlatformCode platform) =>
         $"broker-{platform.ToString().ToLowerInvariant()}-{accountId:N}";
 }
