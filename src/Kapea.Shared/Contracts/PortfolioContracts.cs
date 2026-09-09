@@ -33,7 +33,33 @@ public sealed record ImportRunResponse(
     int RecordsRejected,
     int NonFinancialRecords,
     string? FailureReason,
-    IReadOnlyList<RejectedRecordResponse> Rejected);
+    IReadOnlyList<RejectedRecordResponse> Rejected,
+    string? ProfileName = null,
+    int? ProfileVersion = null,
+    IReadOnlyList<InterpretedRowResponse>? Sample = null)
+{
+    /// <summary>Las primeras filas ya interpretadas. Vacía en importaciones de API.</summary>
+    public IReadOnlyList<InterpretedRowResponse> Sample { get; init; } = Sample ?? [];
+}
+
+/// <summary>
+/// Una fila del fichero ya interpretada, tal y como entraría.
+/// </summary>
+/// <remarks>
+/// Es la contrapartida de aplicar un perfil sin preguntar. Un mapeo equivocado —la
+/// columna de la comisión tomada por el importe— produce cifras plausibles, y solo se
+/// ve mirando filas concretas antes de confirmar.
+/// </remarks>
+public sealed record InterpretedRowResponse(
+    int? RowNumber,
+    DateTimeOffset OccurredAt,
+    string Type,
+    string? AssetSymbol,
+    decimal Quantity,
+    decimal GrossAmount,
+    string Currency,
+    decimal Fee,
+    string Outcome);
 
 /// <summary>Registro rechazado con su contenido original y el motivo, para poder corregirlo.</summary>
 public sealed record RejectedRecordResponse(Guid Id, int? RowNumber, string? NaturalId, string RawContent, string Reason);

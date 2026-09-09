@@ -56,6 +56,9 @@ else
         <FluentMessageBar Intent="MessageIntent.Info">@Ui["Import_NothingToImport"]</FluentMessageBar>
     }
 
+    @* Antes de los rechazos: lo que va a entrar importa más que lo que no. *@
+    <InterpretedRows Rows="@_preview.Run.Sample" />
+
     <RejectedRecords Records="@_preview.Run.Rejected" />
 
     <FluentToolbar Class="section">

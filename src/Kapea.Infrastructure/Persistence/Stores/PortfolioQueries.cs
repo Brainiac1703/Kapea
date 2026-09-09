@@ -1,4 +1,5 @@
 using Kapea.Application.Abstractions;
+using Kapea.Application.Import;
 using Kapea.Application.Portfolio;
 using Kapea.Domain.Calculation;
 using Kapea.Domain.Import;
@@ -60,7 +61,18 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return [.. runs.Select(ToResponse)];
+        // Los nombres de perfil se resuelven de una vez: son unos pocos, y consultarlos
+        // por ejecución multiplicaría las idas a la base de datos.
+        var profileNames = await context.ImportProfiles
+            .ToDictionaryAsync(profile => profile.Id, profile => profile.Name, cancellationToken)
+            .ConfigureAwait(false);
+
+        return
+        [
+            .. runs.Select(run => ToResponse(
+                run,
+                run.ProfileId is { } profileId ? profileNames.GetValueOrDefault(profileId) : null)),
+        ];
     }
 
     public async Task<ImportRunResponse?> FindImportRunAsync(Guid runId, CancellationToken cancellationToken = default)
@@ -70,7 +82,7 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
             .SingleOrDefaultAsync(stored => stored.Id == runId, cancellationToken)
             .ConfigureAwait(false);
 
-        return run is null ? null : ToResponse(run);
+        return run is null ? null : ToResponse(run, await ProfileNameAsync(run, cancellationToken).ConfigureAwait(false));
     }
 
     public async Task<IReadOnlyList<TransactionResponse>> ListTransactionsAsync(
@@ -302,7 +314,20 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
                         lot.ResultInEuros.Amount)),
             ]);
 
-    private static ImportRunResponse ToResponse(ImportRun run) =>
+    /// <summary>Cuántas filas se enseñan interpretadas. Suficientes para ver un mapeo mal puesto.</summary>
+    private const int SampleSize = 10;
+
+    /// <summary>Con qué perfil se leyó, para poder decirlo en la pantalla de la importación.</summary>
+    private async Task<string?> ProfileNameAsync(ImportRun run, CancellationToken cancellationToken) =>
+        run.ProfileId is { } profileId
+            ? await context.ImportProfiles
+                .Where(profile => profile.Id == profileId)
+                .Select(profile => profile.Name)
+                .SingleOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false)
+            : null;
+
+    private static ImportRunResponse ToResponse(ImportRun run, string? profileName = null) =>
         new(
             run.Id,
             run.AccountId,
@@ -327,5 +352,33 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
                         record.NaturalId,
                         record.RawContent,
                         record.RejectionReason ?? "Sin motivo indicado.")),
-            ]);
+            ],
+            profileName,
+            run.ProfileVersion)
+        {
+            Sample =
+            [
+                .. run.Records
+                    .Where(record => record.Outcome != StagedRecordOutcome.Rejected)
+                    .OrderBy(record => record.RowNumber ?? int.MaxValue)
+                    .Take(SampleSize)
+                    .Select(Interpreted),
+            ],
+        };
+
+    private static InterpretedRowResponse Interpreted(StagedRecord staged)
+    {
+        var record = StagedRecordReader.Read(staged.Payload, staged.RawContent);
+
+        return new InterpretedRowResponse(
+            staged.RowNumber,
+            record.ToOccurrence().Instant,
+            record.Type.ToString(),
+            record.AssetSymbol,
+            record.Quantity,
+            record.GrossAmount,
+            record.Currency.Code,
+            record.Fee,
+            staged.Outcome.ToString());
+    }
 }

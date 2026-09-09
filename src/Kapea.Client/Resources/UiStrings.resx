@@ -742,4 +742,28 @@
   <data name="Profiles_BuiltInNote" xml:space="preserve">
     <value>Viene de serie. Puedes corregirlo; no puedes borrarlo, porque se volvería a crear en el siguiente arranque.</value>
   </data>
+  <data name="Import_Sample" xml:space="preserve">
+    <value>Primeras filas, ya interpretadas</value>
+  </data>
+  <data name="Import_SampleHelp" xml:space="preserve">
+    <value>Comprueba que la fecha, el tipo y el importe son los que esperas. Un mapeo equivocado produce cifras plausibles, y aquí es donde se ve.</value>
+  </data>
+  <data name="Import_ReadWith" xml:space="preserve">
+    <value>Leído con el perfil</value>
+  </data>
+  <data name="Import_Outcome" xml:space="preserve">
+    <value>Entrará</value>
+  </data>
+  <data name="Import_Outcome_Importable" xml:space="preserve">
+    <value>Sí</value>
+  </data>
+  <data name="Import_Outcome_Duplicate" xml:space="preserve">
+    <value>Ya estaba</value>
+  </data>
+  <data name="Common_Row" xml:space="preserve">
+    <value>Fila</value>
+  </data>
+  <data name="Common_Fee" xml:space="preserve">
+    <value>Comisión</value>
+  </data>
 </root>

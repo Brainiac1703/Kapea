@@ -72,3 +72,17 @@ internal sealed record StagedPayload(
             rawContent);
     }
 }
+
+/// <summary>
+/// Recupera lo que se entendió de una fila preparada, para poder enseñarlo.
+/// </summary>
+/// <remarks>
+/// El registro preparado guarda el resultado de aplicar el perfil, así que leerlo de
+/// ahí enseña exactamente lo que se importaría. Volver a interpretar la fila para la
+/// vista previa permitiría que lo mostrado y lo guardado no coincidieran.
+/// </remarks>
+public static class StagedRecordReader
+{
+    public static ImportRecord Read(string payload, string rawContent) =>
+        StagedPayload.Deserialize(payload, rawContent);
+}

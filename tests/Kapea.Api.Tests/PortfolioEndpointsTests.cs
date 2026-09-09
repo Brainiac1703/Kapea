@@ -408,6 +408,67 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task The_preview_shows_the_first_rows_already_interpreted()
+    {
+        // Es la contrapartida de aplicar un perfil sin preguntar: un mapeo equivocado
+        // produce cifras plausibles, y solo se ve mirando filas concretas.
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB muestra", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        var preview = await UploadAsync(client, account!.Id, Sample("9001"));
+
+        var row = Assert.Single(preview!.Run.Sample);
+
+        Assert.Equal(2, row.RowNumber);
+        Assert.Equal("Dividend", row.Type);
+        Assert.Equal("SAN.ES", row.AssetSymbol);
+        Assert.Equal(45.20m, row.GrossAmount);
+        Assert.Equal("EUR", row.Currency);
+        Assert.Equal("Importable", row.Outcome);
+    }
+
+    [Fact]
+    public async Task The_import_says_which_profile_and_version_read_it()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB trazabilidad", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        var preview = await UploadAsync(client, account!.Id, Sample("9002"));
+
+        Assert.Equal("XTB · Operaciones de efectivo", preview!.Run.ProfileName);
+        Assert.NotNull(preview.Run.ProfileVersion);
+    }
+
+    [Fact]
+    public async Task A_row_already_imported_is_shown_as_such_before_confirming()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB repetido", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        var csv = Sample("9003");
+
+        var first = await UploadAsync(client, account!.Id, csv);
+        await client.PostAsync($"/api/imports/{first!.Run.Id}/confirm", null);
+
+        var second = await UploadAsync(client, account.Id, csv);
+
+        Assert.Equal("Duplicate", Assert.Single(second!.Run.Sample).Outcome);
+    }
+
+    private static string Sample(string id) =>
+        "ID;Type;Time;Symbol;Comment;Amount;Currency\n"
+        + $"{id};Dividend;15.05.2024 00:00:00;SAN.ES;DIV;45,20;EUR";
+
+    [Fact]
     public async Task Correcting_a_profile_creates_a_version_and_leaves_the_previous_one_reachable()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());

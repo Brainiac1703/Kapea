@@ -38,11 +38,11 @@
 
 ## 6. Interfaz
 
-- [ ] 6.1 Ampliar la vista previa con las primeras filas ya interpretadas —fecha, tipo, activo, cantidad e importe—; verificar manualmente que un mapeo equivocado se aprecia antes de confirmar
+- [x] 6.1 Ampliar la vista previa con las primeras filas ya interpretadas —fecha, tipo, activo, cantidad e importe—; verificar manualmente que un mapeo equivocado se aprecia antes de confirmar
 - [ ] 6.2 Implementar la pantalla de mapeo: columnas del fichero a la izquierda, campos del movimiento a la derecha, con la propuesta rellenada cuando la haya; verificar manualmente el mapeo manual completo sin IA
 - [ ] 6.3 Mostrar en esa pantalla qué se envía al servicio de IA antes de pedir una propuesta; verificar manualmente que el aviso aparece y es comprensible
 - [x] 6.4 Implementar la gestión de perfiles: listado, edición y creación de versión; verificar manualmente que editar un perfil no altera los movimientos ya importados
-- [ ] 6.5 Mostrar el perfil y la versión aplicados en el detalle de una importación y en el de un movimiento; verificar manualmente la trazabilidad de una cifra hasta el perfil que la interpretó
+- [x] 6.5 Mostrar el perfil y la versión aplicados en el detalle de una importación y en el de un movimiento; verificar manualmente la trazabilidad de una cifra hasta el perfil que la interpretó
 
 ## 7. Validación de extremo a extremo
 

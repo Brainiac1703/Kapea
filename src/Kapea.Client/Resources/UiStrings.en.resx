@@ -742,4 +742,28 @@
   <data name="Profiles_BuiltInNote" xml:space="preserve">
     <value>It is built in. You can correct it; you cannot delete it, because it would be recreated at the next start-up.</value>
   </data>
+  <data name="Import_Sample" xml:space="preserve">
+    <value>First rows, as interpreted</value>
+  </data>
+  <data name="Import_SampleHelp" xml:space="preserve">
+    <value>Check that the date, type and amount are what you expect. A wrong mapping produces plausible figures, and this is where you see it.</value>
+  </data>
+  <data name="Import_ReadWith" xml:space="preserve">
+    <value>Read with profile</value>
+  </data>
+  <data name="Import_Outcome" xml:space="preserve">
+    <value>Will enter</value>
+  </data>
+  <data name="Import_Outcome_Importable" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Import_Outcome_Duplicate" xml:space="preserve">
+    <value>Already there</value>
+  </data>
+  <data name="Common_Row" xml:space="preserve">
+    <value>Row</value>
+  </data>
+  <data name="Common_Fee" xml:space="preserve">
+    <value>Fee</value>
+  </data>
 </root>

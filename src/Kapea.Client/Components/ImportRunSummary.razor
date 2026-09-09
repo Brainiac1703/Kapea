@@ -9,6 +9,15 @@
     <Count Label="@Ui["Import_NonFinancial"]" Value="@Run.NonFinancialRecords" />
 </FluentStack>
 
+@* Con qué reglas se leyó. Es lo que permite explicar una cifra meses después, cuando
+   el perfil ya se haya corregido varias veces. *@
+@if (Run.ProfileName is { Length: > 0 } profile)
+{
+    <FluentLabel Typo="Typography.Body">
+        @Ui["Import_ReadWith"]: @profile @(Run.ProfileVersion is { } version ? $"· v{version}" : string.Empty)
+    </FluentLabel>
+}
+
 @if (!string.IsNullOrWhiteSpace(Run.FailureReason))
 {
     <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false">@Run.FailureReason</FluentMessageBar>
