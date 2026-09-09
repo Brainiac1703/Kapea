@@ -1,8 +1,13 @@
 # Kapea
 
 Plataforma personal de gestión de inversiones: consolida las operaciones repartidas
-entre XTB, Kraken y Bit2Me, calcula el resultado con criterio FIFO en euros y prepara
-la información fiscal.
+entre las plataformas que uses, calcula el resultado con criterio FIFO en euros y
+prepara la información fiscal.
+
+Kapea no está atada a un conjunto cerrado de brókeres. Las plataformas que exponen una
+API se integran con su adaptador —hoy Kraken y Bit2Me—, y cualquiera que exporte una
+tabla de movimientos se da de alta desde la propia aplicación definiendo cómo se lee su
+fichero. XTB viene configurado de serie por esa vía.
 
 ## Levantar el entorno de desarrollo
 

@@ -15,6 +15,7 @@ Restricciones que condicionan el diseño:
 
 **Goals:**
 
+- Que Kapea sea multiplataforma de verdad: cualquier bróker que exporte una tabla de movimientos, no una lista cerrada.
 - Que dar de alta un bróker que exporta CSV no requiera escribir código.
 - Que la interpretación de cada movimiento sea reconstruible: qué perfil, qué versión, qué fila.
 - Que una importación repetida no llame a la IA ni dependa de que esté disponible.

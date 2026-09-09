@@ -1,5 +1,7 @@
 ## Why
 
+Kapea nace atada a tres plataformas. XTB, Kraken y Bit2Me son las que el usuario tiene hoy, pero no hay ninguna razón de fondo para que la aplicación solo entienda esas tres: un extracto de movimientos es una tabla con fechas, cantidades e importes, y eso lo exporta cualquier bróker.
+
 Hoy cada plataforma necesita un adaptador escrito a mano. XTB tiene el suyo, con sus formatos codificados en el binario; añadir un bróker nuevo es trabajo de programación, y cada vez que uno cambia su exportación la importación se rompe hasta que alguien la arregla. Para una aplicación personal que quiere aceptar «el fichero que sea», eso no escala.
 
 La propuesta inicial ya anticipaba la salida: usar IA para normalizar formatos, sin dejar que toque el cálculo. Este change la concreta. Un modelo mira las cabeceras y dos filas de ejemplo y responde qué es cada columna y qué significa cada concepto. Esa respuesta se guarda como **perfil de importación** y, a partir de ahí, importa el motor determinista de siempre. La segunda vez que subes un extracto del mismo bróker no se llama a la IA.
@@ -15,6 +17,7 @@ La distinción es deliberada y es lo que hace el change defendible: **la IA dedu
 - **Mapeo manual siempre disponible**: la misma pantalla, eligiendo las columnas a mano. Sin Azure OpenAI configurado la aplicación funciona igual; solo desaparece la propuesta automática.
 - **Vista previa con filas interpretadas**: además de los recuentos, las primeras filas ya normalizadas —fecha, tipo, activo, cantidad, importe—. Es lo que permite ver un mapeo equivocado antes de persistir nada, también cuando se aceptó solo.
 - **Las plataformas dejan de estar codificadas**: pasan a ser datos, con su forma de importación asociada. Añadir un bróker de fichero deja de tocar código.
+- **Kapea pasa a ser multiplataforma.** XTB, Kraken y Bit2Me dejan de ser las plataformas soportadas para ser las que vienen configuradas de serie. Cualquier bróker que exporte una tabla de movimientos se da de alta desde la aplicación.
 - **BREAKING** para el contrato de cuentas: la plataforma deja de ser un conjunto cerrado de tres valores.
 
 ## Capabilities
