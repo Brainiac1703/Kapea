@@ -73,7 +73,6 @@
 - [x] 9.2 Implementar el parser de Excel y CSV con las convenciones locales (separador decimal, separador de columnas, formato de fecha, divisa); verificar con test que la convención decimal europea se interpreta sin pérdida de precisión
 - [x] 9.3 Implementar el mapeo de conceptos de XTB a los tipos de movimiento normalizados, con `Unknown` para lo no reconocido y descarte de apuntes informativos sin efecto financiero; verificar con tests
 - [x] 9.4 Implementar el endpoint de subida y el flujo de vista previa y confirmación, incluida la validación de que la cuenta destino es de plataforma `XTB` y el rechazo de tipos de fichero no admitidos; verificar con tests de integración de la API
-- [ ] 9.5 Incorporar ficheros de exportación reales como casos de test de extremo a extremo con cifras esperadas; verificar que la importación completa produce los movimientos esperados
 
 ## 10. Adaptadores de API (Kraken y Bit2Me)
 
@@ -105,8 +104,9 @@
 - [x] 13.5 Implementar en el cliente la revisión de traspasos propuestos y de movimientos sin clasificar; verificar manualmente confirmación y rechazo
 - [x] 13.6 Implementar en el cliente las vistas de posiciones abiertas y de resultados realizados por ejercicio, con la advertencia visible cuando haya movimientos sin clasificar y el desglose de un resultado hasta sus lotes y movimientos; verificar manualmente la trazabilidad de una cifra hasta la fila de origen
 
-## 14. Validación del núcleo
+## 14. Validación con datos reales
 
-- [ ] 14.1 Importar el histórico real de las tres plataformas y contrastar los resultados de un ejercicio ya declarado contra la declaración presentada; documentar las diferencias y su causa en una nota junto al change
-- [ ] 14.2 Corregir las discrepancias encontradas y añadir cada una como caso de test de referencia; verificar que la batería completa pasa
-- [ ] 14.3 Ejecutar un recálculo completo desde cero sobre el histórico real y comprobar que reproduce exactamente los mismos lotes, posiciones y resultados
+El contraste contra exportaciones reales de xStation5 y contra una declaración ya
+presentada se ha movido al change `validate-with-real-data`: no depende de este
+código sino de datos que solo el usuario tiene, y mantener este change abierto
+esperándolos habría bloqueado todo lo demás.
