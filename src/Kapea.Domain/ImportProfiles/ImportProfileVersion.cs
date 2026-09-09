@@ -40,6 +40,25 @@ public sealed class ImportProfileVersion
 
     public char Delimiter { get; private set; } = ';';
 
+    /// <summary>Qué representa cada fila: un apunte, o una posición entera.</summary>
+    public RowShape RowShape { get; private set; } = RowShape.SingleMovement;
+
+    /// <summary>De dónde sale el importe: de su columna, o de multiplicar cantidad por precio.</summary>
+    public AmountSource AmountSource { get; private set; } = AmountSource.Column;
+
+    /// <summary>Clase de activo cuando el informe no la trae y todo el fichero es de la misma.</summary>
+    public string? FixedAssetClass { get; private set; }
+
+    /// <summary>
+    /// El importe se guarda siempre en positivo.
+    /// </summary>
+    /// <remarks>
+    /// Muchos extractos marcan las salidas con signo negativo. La dirección del dinero
+    /// ya la lleva el tipo del movimiento, así que conservar además el signo la contaría
+    /// dos veces y una retirada restaría donde debía sumar.
+    /// </remarks>
+    public bool AmountIsAlwaysPositive { get; private set; }
+
     public DecimalConvention DecimalConvention { get; private set; } = DecimalConvention.European;
 
     /// <summary>Zona con la que se interpreta una fecha sin desfase, que es lo que trae casi todo CSV.</summary>
@@ -74,7 +93,11 @@ public sealed class ImportProfileVersion
         IEnumerable<string> dateFormats,
         IReadOnlyDictionary<string, TransactionType>? concepts = null,
         IEnumerable<string>? nonFinancialConcepts = null,
-        string? fixedCurrency = null)
+        string? fixedCurrency = null,
+        RowShape rowShape = RowShape.SingleMovement,
+        AmountSource amountSource = AmountSource.Column,
+        string? fixedAssetClass = null,
+        bool amountIsAlwaysPositive = false)
     {
         ArgumentNullException.ThrowIfNull(recognizedHeaders);
         ArgumentNullException.ThrowIfNull(columns);
@@ -86,6 +109,10 @@ public sealed class ImportProfileVersion
             DecimalConvention = decimalConvention,
             TimeZoneId = string.IsNullOrWhiteSpace(timeZoneId) ? "Europe/Madrid" : timeZoneId.Trim(),
             FixedCurrency = string.IsNullOrWhiteSpace(fixedCurrency) ? null : fixedCurrency.Trim().ToUpperInvariant(),
+            RowShape = rowShape,
+            AmountSource = amountSource,
+            FixedAssetClass = string.IsNullOrWhiteSpace(fixedAssetClass) ? null : fixedAssetClass.Trim(),
+            AmountIsAlwaysPositive = amountIsAlwaysPositive,
         };
 
         version._recognizedHeaders.AddRange(recognizedHeaders.Where(header => !string.IsNullOrWhiteSpace(header)).Select(header => header.Trim()));
@@ -126,7 +153,7 @@ public sealed class ImportProfileVersion
                 "El perfil necesita al menos una cabecera por la que reconocer sus ficheros.");
         }
 
-        foreach (var required in new[] { ImportField.Date, ImportField.GrossAmount })
+        foreach (var required in RequiredFields())
         {
             if (!_columns.ContainsKey(required))
             {
@@ -148,10 +175,61 @@ public sealed class ImportProfileVersion
         }
     }
 
+    /// <summary>
+    /// Qué columnas necesita este perfil según lo que represente cada fila.
+    /// </summary>
+    /// <remarks>
+    /// Un extracto de efectivo necesita fecha e importe. Un informe de posiciones no
+    /// trae ninguna de las dos: trae apertura, cierre, volumen y precios, y el importe
+    /// sale de multiplicar. Exigirle las mismas columnas lo rechazaría siempre.
+    /// </remarks>
+    private IEnumerable<ImportField> RequiredFields()
+    {
+        switch (RowShape)
+        {
+            case RowShape.OpenPosition:
+                yield return ImportField.OpenDate;
+                yield return ImportField.Quantity;
+                yield return ImportField.OpenPrice;
+
+                break;
+
+            case RowShape.OpenAndClosePosition:
+                yield return ImportField.OpenDate;
+                yield return ImportField.Quantity;
+                yield return ImportField.OpenPrice;
+                yield return ImportField.CloseDate;
+                yield return ImportField.ClosePrice;
+
+                break;
+
+            default:
+                yield return ImportField.Date;
+
+                if (AmountSource == AmountSource.Column)
+                {
+                    yield return ImportField.GrossAmount;
+                }
+                else
+                {
+                    yield return ImportField.Quantity;
+                    yield return ImportField.UnitPrice;
+                }
+
+                break;
+        }
+    }
+
     private static string Describe(ImportField field) => field switch
     {
         ImportField.Date => "la fecha",
         ImportField.GrossAmount => "el importe",
+        ImportField.OpenDate => "la fecha de apertura",
+        ImportField.OpenPrice => "el precio de apertura",
+        ImportField.CloseDate => "la fecha de cierre",
+        ImportField.ClosePrice => "el precio de cierre",
+        ImportField.Quantity => "la cantidad",
+        ImportField.UnitPrice => "el precio unitario",
         _ => field.ToString(),
     };
 }

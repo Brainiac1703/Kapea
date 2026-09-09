@@ -18,12 +18,12 @@
 - [x] 3.1 Implementar el adaptador genérico que lee un fichero aplicando un perfil y produce registros normalizados; verificar con tests de convención decimal europea e invariante, y de formatos de fecha distintos
 - [x] 3.2 Implementar la traducción de conceptos según el perfil, con `Unknown` para lo que no traduzca; verificar con test que un concepto sin traducción no bloquea el resto del fichero
 - [x] 3.3 Implementar el descarte contado de apuntes sin efecto financiero según lo que declare el perfil; verificar con test que se cuentan y no se rechazan
-- [ ] 3.4 Comprobar que la huella de deduplicación no cambia de forma respecto al adaptador anterior; verificar con test que reimportar un fichero ya importado con la versión previa descarta todos sus registros como duplicados
+- [x] 3.4 Comprobar que la huella de deduplicación no cambia de forma respecto al adaptador anterior; verificar con test que reimportar un fichero ya importado con la versión previa descarta todos sus registros como duplicados
 
 ## 4. Perfiles de XTB de serie
 
-- [ ] 4.1 Convertir los tres formatos conocidos de xStation5 —efectivo, posiciones cerradas y posiciones abiertas— en perfiles sembrados; verificar que se dan de alta al crear la base de datos
-- [ ] 4.2 Migrar los tests de extremo a extremo del adaptador de XTB al adaptador genérico con esos perfiles; verificar que producen exactamente los mismos movimientos que antes
+- [x] 4.1 Convertir los tres formatos conocidos de xStation5 —efectivo, posiciones cerradas y posiciones abiertas— en perfiles sembrados; verificar que se dan de alta al crear la base de datos
+- [x] 4.2 Migrar los tests de extremo a extremo del adaptador de XTB al adaptador genérico con esos perfiles; verificar que producen exactamente los mismos movimientos que antes
 - [ ] 4.3 Retirar el adaptador de XTB codificado y sus formatos; verificar que la batería completa sigue pasando y que no queda ninguna referencia al adaptador retirado
 - [ ] 4.4 Comprobar que un perfil de serie se puede editar desde la aplicación; verificar manualmente que corregir una cabecera permite importar un fichero que antes no encajaba
 

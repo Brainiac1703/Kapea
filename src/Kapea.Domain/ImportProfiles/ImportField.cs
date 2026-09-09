@@ -35,6 +35,48 @@ public enum ImportField
     NaturalId = 10,
 
     SplitRatio = 11,
+
+    /// <summary>Fecha de apertura, en un informe cuya fila es una posición entera.</summary>
+    OpenDate = 12,
+
+    /// <summary>Precio de apertura, en un informe cuya fila es una posición entera.</summary>
+    OpenPrice = 13,
+
+    /// <summary>Fecha de cierre, en un informe de posiciones ya transmitidas.</summary>
+    CloseDate = 14,
+
+    /// <summary>Precio de cierre, en un informe de posiciones ya transmitidas.</summary>
+    ClosePrice = 15,
+}
+
+/// <summary>
+/// Qué representa cada fila del fichero.
+/// </summary>
+/// <remarks>
+/// No todos los informes son una lista de apuntes. Los de posiciones ponen la compra y
+/// la venta en la misma fila, y es un formato común: sin esto, cada bróker que exporte
+/// así volvería a necesitar código propio.
+/// </remarks>
+public enum RowShape
+{
+    /// <summary>Un apunte por fila. Es lo que hace un extracto de efectivo.</summary>
+    SingleMovement = 1,
+
+    /// <summary>Una posición todavía abierta: solo su adquisición.</summary>
+    OpenPosition = 2,
+
+    /// <summary>Una posición ya cerrada: su adquisición y su transmisión.</summary>
+    OpenAndClosePosition = 3,
+}
+
+/// <summary>De dónde sale el importe de la operación.</summary>
+public enum AmountSource
+{
+    /// <summary>De su columna, tal y como viene.</summary>
+    Column = 1,
+
+    /// <summary>De multiplicar cantidad por precio, cuando el informe no trae el total.</summary>
+    QuantityTimesPrice = 2,
 }
 
 /// <summary>Cómo escribe los números el fichero.</summary>

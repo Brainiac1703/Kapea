@@ -49,6 +49,15 @@ if (app.Environment.IsDevelopment())
     }
 }
 
+// Los perfiles de serie se dan de alta en cada arranque si faltan. Es idempotente y
+// barato, y evita que un despliegue nuevo quede sin saber leer ningún fichero.
+await using (var profiles = app.Services.CreateAsyncScope())
+{
+    await Kapea.Infrastructure.Import.Tabular.BuiltInProfileSeeder.EnsureAsync(
+        profiles.ServiceProvider.GetRequiredService<KapeaDbContext>(),
+        profiles.ServiceProvider.GetRequiredService<TimeProvider>());
+}
+
 // Las reglas del dominio y los rechazos de las plataformas se traducen a respuestas
 // con significado; el resto sale como error genérico y queda en las trazas.
 app.UseExceptionHandler(handler => handler.Run(async context =>

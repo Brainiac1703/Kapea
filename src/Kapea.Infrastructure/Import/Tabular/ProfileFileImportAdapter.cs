@@ -1,5 +1,6 @@
 using Kapea.Application.Import;
 using Kapea.Domain.Accounts;
+using Kapea.Domain.Assets;
 using Kapea.Domain.ImportProfiles;
 using Kapea.Domain.Transactions;
 using Kapea.Domain.ValueObjects;
@@ -64,7 +65,9 @@ public sealed class ProfileFileImportAdapter
 
             try
             {
-                records.Add(Map(row, columns, version, values, unknownConcepts));
+                records.AddRange(version.RowShape == RowShape.SingleMovement
+                    ? [Map(row, columns, version, values, unknownConcepts)]
+                    : MapPosition(row, columns, version, values));
             }
             catch (ProfileValueException exception)
             {
@@ -121,6 +124,97 @@ public sealed class ProfileFileImportAdapter
         return resolved;
     }
 
+    /// <summary>
+    /// Convierte una fila que es una posición entera en sus movimientos.
+    /// </summary>
+    /// <remarks>
+    /// Una posición cerrada son dos movimientos, no uno: la adquisición y la
+    /// transmisión. Guardarla como uno solo perdería la fecha de compra, que es lo que
+    /// decide de qué ejercicio es el resultado y qué lote consume el cálculo FIFO.
+    ///
+    /// La comisión va entera a la adquisición. Repartirla entre las dos patas cambiaría
+    /// el coste de adquisición, y con él el resultado que se declara.
+    /// </remarks>
+    private static IEnumerable<ImportRecord> MapPosition(
+        TabularRow row,
+        IReadOnlyDictionary<ImportField, int> columns,
+        ImportProfileVersion version,
+        ProfileValueReader values)
+    {
+        var symbol = Cell(row, columns, ImportField.AssetSymbol);
+
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            throw new ProfileValueException("La posición no indica ningún activo.");
+        }
+
+        var quantity = values.Decimal(Cell(row, columns, ImportField.Quantity), "cantidad");
+
+        if (quantity <= 0m)
+        {
+            throw new ProfileValueException($"La cantidad '{quantity}' de una posición tiene que ser positiva.");
+        }
+
+        var currency = ResolveCurrency(row, columns, version);
+        var openedAt = values.Date(Cell(row, columns, ImportField.OpenDate));
+        var openPrice = values.Decimal(Cell(row, columns, ImportField.OpenPrice), "precio de apertura");
+        var fee = Math.Abs(values.OptionalDecimal(Cell(row, columns, ImportField.Fee)) ?? 0m);
+        var reference = Cell(row, columns, ImportField.NaturalId);
+
+        yield return Leg(TransactionType.Buy, openedAt, openPrice, "open", fee);
+
+        if (version.RowShape == RowShape.OpenPosition)
+        {
+            yield break;
+        }
+
+        yield return Leg(
+            TransactionType.Sell,
+            values.Date(Cell(row, columns, ImportField.CloseDate)),
+            values.Decimal(Cell(row, columns, ImportField.ClosePrice), "precio de cierre"),
+            "close",
+            legFee: 0m);
+
+        ImportRecord Leg(TransactionType type, DateTime moment, decimal price, string leg, decimal legFee) =>
+            new(
+                // Cada pata necesita su propio identificador: con el mismo, la segunda
+                // se descartaría como duplicado de la primera.
+                NaturalId: reference is null ? null : $"{reference}:{leg}",
+                RowNumber: row.Number,
+                Type: type,
+                AssetSymbol: symbol.Trim().ToUpperInvariant(),
+                AssetClass: AssetClassOf(version),
+                Quantity: quantity,
+                UnitPrice: price,
+                GrossAmount: quantity * price,
+                Currency: currency,
+                Fee: legFee,
+                Withholding: null,
+                OccurredAt: null,
+                NaiveOccurredAt: moment,
+                SourceTimeZoneId: version.TimeZoneId,
+                SplitRatio: null,
+                RawContent: row.Raw);
+    }
+
+    private static AssetClass? AssetClassOf(ImportProfileVersion version) =>
+        version.FixedAssetClass is { Length: > 0 } declared
+            && Enum.TryParse<AssetClass>(declared, ignoreCase: true, out var assetClass)
+            ? assetClass
+            : null;
+
+    private static Currency ResolveCurrency(
+        TabularRow row,
+        IReadOnlyDictionary<ImportField, int> columns,
+        ImportProfileVersion version)
+    {
+        var code = Cell(row, columns, ImportField.Currency) ?? version.FixedCurrency;
+
+        return string.IsNullOrWhiteSpace(code)
+            ? throw new ProfileValueException("La fila no trae divisa y el perfil tampoco fija ninguna.")
+            : Currency.FromCode(code.Trim());
+    }
+
     private static ImportRecord Map(
         TabularRow row,
         IReadOnlyDictionary<ImportField, int> columns,
@@ -131,26 +225,32 @@ public sealed class ProfileFileImportAdapter
         var concept = Cell(row, columns, ImportField.Concept);
         var type = ResolveType(concept, version, unknownConcepts);
 
-        var currencyCode = Cell(row, columns, ImportField.Currency) ?? version.FixedCurrency;
-
-        if (string.IsNullOrWhiteSpace(currencyCode))
-        {
-            throw new ProfileValueException("La fila no trae divisa y el perfil tampoco fija ninguna.");
-        }
-
+        var currency = ResolveCurrency(row, columns, version);
         var date = values.Date(Cell(row, columns, ImportField.Date));
-        var amount = values.Decimal(Cell(row, columns, ImportField.GrossAmount), "importe");
+        var quantity = values.OptionalDecimal(Cell(row, columns, ImportField.Quantity)) ?? 0m;
+        var unitPrice = values.OptionalDecimal(Cell(row, columns, ImportField.UnitPrice));
+
+        // Hay informes que no traen el total, solo cantidad y precio. Calcularlo aquí
+        // evita tener que preparar el fichero a mano antes de importarlo.
+        var amount = version.AmountSource == AmountSource.QuantityTimesPrice
+            ? quantity * (unitPrice ?? throw new ProfileValueException("La fila no trae precio unitario con el que calcular el importe."))
+            : values.Decimal(Cell(row, columns, ImportField.GrossAmount), "importe");
+
+        if (version.AmountIsAlwaysPositive)
+        {
+            amount = Math.Abs(amount);
+        }
 
         return new ImportRecord(
             NaturalId: Cell(row, columns, ImportField.NaturalId),
             RowNumber: row.Number,
             Type: type,
-            AssetSymbol: Cell(row, columns, ImportField.AssetSymbol),
-            AssetClass: null,
-            Quantity: values.OptionalDecimal(Cell(row, columns, ImportField.Quantity)) ?? 0m,
-            UnitPrice: values.OptionalDecimal(Cell(row, columns, ImportField.UnitPrice)),
+            AssetSymbol: Cell(row, columns, ImportField.AssetSymbol)?.ToUpperInvariant(),
+            AssetClass: AssetClassOf(version),
+            Quantity: quantity,
+            UnitPrice: unitPrice,
             GrossAmount: amount,
-            Currency: Currency.FromCode(currencyCode.Trim()),
+            Currency: currency,
             Fee: values.OptionalDecimal(Cell(row, columns, ImportField.Fee)) ?? 0m,
             Withholding: values.OptionalDecimal(Cell(row, columns, ImportField.Withholding)),
             OccurredAt: null,
