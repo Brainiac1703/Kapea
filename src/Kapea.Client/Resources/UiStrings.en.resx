@@ -509,7 +509,7 @@
     <value>The sign-in could not be completed.</value>
   </data>
   <data name="SignIn_Development" xml:space="preserve">
-    <value>No external provider is configured: you sign in as a fixed development user.</value>
+    <value>Development sign-in is on. It only exists in the local environment.</value>
   </data>
   <data name="Session_SignOut" xml:space="preserve">
     <value>Sign out</value>

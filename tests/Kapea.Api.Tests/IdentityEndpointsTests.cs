@@ -236,6 +236,67 @@ public class AuthenticationStartupTests
     }
 
     [Fact]
+    public void The_development_access_stays_shut_outside_development_however_it_is_configured()
+    {
+        // Es el guardarraíl que importa: una bandera copiada por descuido a un
+        // despliegue dejaría entrar a cualquiera como el usuario de desarrollo.
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:Google:ClientId"] = "cliente",
+                ["Authentication:Google:ClientSecret"] = "secreto",
+                ["Authentication:DevelopmentUser:Enabled"] = "true",
+            })
+            .Build();
+
+        services.AddKapeaAuthentication(configuration, isDevelopment: false);
+
+        var providers = services.BuildServiceProvider().GetRequiredService<AvailableProviders>();
+
+        Assert.False(providers.AllowsDevelopmentSignIn);
+        Assert.Equal("Google", Assert.Single(providers.All).Name);
+    }
+
+    [Fact]
+    public void In_development_the_flag_puts_the_development_access_next_to_the_provider()
+    {
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:Google:ClientId"] = "cliente",
+                ["Authentication:DevelopmentUser:Enabled"] = "true",
+            })
+            .Build();
+
+        services.AddKapeaAuthentication(configuration, isDevelopment: true);
+
+        var providers = services.BuildServiceProvider().GetRequiredService<AvailableProviders>();
+
+        Assert.True(providers.AllowsDevelopmentSignIn);
+        Assert.Equal(["Google", "Development"], providers.All.Select(provider => provider.Name));
+    }
+
+    [Fact]
+    public void In_development_without_the_flag_a_configured_provider_is_the_only_way_in()
+    {
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Authentication:Google:ClientId"] = "cliente",
+            })
+            .Build();
+
+        services.AddKapeaAuthentication(configuration, isDevelopment: true);
+
+        var providers = services.BuildServiceProvider().GetRequiredService<AvailableProviders>();
+
+        Assert.False(providers.AllowsDevelopmentSignIn);
+    }
+
+    [Fact]
     public void With_a_provider_configured_it_starts_outside_development()
     {
         var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();

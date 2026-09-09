@@ -13,6 +13,16 @@ public sealed class DevelopmentUserOptions
 {
     public const string SectionName = "Authentication:DevelopmentUser";
 
+    /// <summary>
+    /// Enciende el acceso de desarrollo aunque haya un proveedor externo configurado.
+    /// </summary>
+    /// <remarks>
+    /// Sin proveedor externo el acceso de desarrollo aparece igualmente: es la única
+    /// forma de entrar. Esta bandera es para tenerlo al lado de Google mientras se
+    /// trabaja, sin renunciar a probar el intercambio de verdad.
+    /// </remarks>
+    public const string EnabledKey = $"{SectionName}:Enabled";
+
     /// <summary>Sujeto de la identidad: fijo, para reconocer siempre al mismo usuario.</summary>
     public const string Subject = "usuario-de-desarrollo";
 

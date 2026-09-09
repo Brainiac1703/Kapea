@@ -509,7 +509,7 @@
     <value>No se ha podido completar el acceso.</value>
   </data>
   <data name="SignIn_Development" xml:space="preserve">
-    <value>No hay proveedor externo configurado: se entra como un usuario fijo de desarrollo.</value>
+    <value>El acceso como usuario de desarrollo está activo. Solo existe en el entorno local.</value>
   </data>
   <data name="Session_SignOut" xml:space="preserve">
     <value>Cerrar sesión</value>

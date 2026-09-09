@@ -44,7 +44,13 @@ API se niega a arrancar sin identidad configurada, en lugar de abrirse a cualqui
 
 Para activar Google, crea un ID de cliente de OAuth en Google Cloud con la URI de
 redirección `http://localhost:8082/signin-google` y rellena `GOOGLE_CLIENT_ID` y
-`GOOGLE_CLIENT_SECRET` en el `.env`.
+`GOOGLE_CLIENT_SECRET` en el `.env`. Crear esas credenciales es gratuito y no exige
+cuenta de facturación.
+
+Con Google configurado el acceso de desarrollo desaparece. Para conservar los dos a la
+vez mientras se trabaja, pon `DEV_USER_ENABLED=true` en el `.env`: la pantalla de acceso
+ofrecerá ambos botones. Esa bandera **solo** surte efecto en `Development`; fuera de
+ahí la API la ignora, de modo que copiarla por descuido a un despliegue no abre nada.
 
 #### Activar Apple
 

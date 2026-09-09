@@ -126,9 +126,26 @@ public static class KapeaAuthentication
             });
         }
 
-        services.AddSingleton(new AvailableProviders(hasGoogle
-            ? [new AuthProvider(IdentityProviders.Google, "Google")]
-            : [new AuthProvider(IdentityProviders.Development, "usuario de desarrollo")]));
+        // El acceso de desarrollo aparece solo si no hay proveedor externo, o si se pide
+        // expresamente para tenerlo al lado de Google. La condición de entorno va aparte
+        // y primero: una bandera de configuración mal puesta en un despliegue no debe
+        // poder abrir esta puerta, y así no llega ni a mirarse.
+        var developmentSignIn = isDevelopment
+            && (!hasGoogle || configuration.GetValue<bool>(DevelopmentUserOptions.EnabledKey));
+
+        List<AuthProvider> providers = [];
+
+        if (hasGoogle)
+        {
+            providers.Add(new AuthProvider(IdentityProviders.Google, "Google"));
+        }
+
+        if (developmentSignIn)
+        {
+            providers.Add(new AuthProvider(IdentityProviders.Development, "usuario de desarrollo"));
+        }
+
+        services.AddSingleton(new AvailableProviders(providers));
 
         return builder;
     }
