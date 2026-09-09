@@ -1,0 +1,114 @@
+@page "/accounts"
+@inject KapeaApiClient Api
+@inject IDialogService Dialogs
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Accounts_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Accounts_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Accounts_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentButton Appearance="Appearance.Accent"
+                  IconStart="@(new Icons.Regular.Size16.Add())"
+                  OnClick="OpenNewAccountAsync">
+        @Ui["Accounts_New"]
+    </FluentButton>
+</FluentToolbar>
+
+@if (_accounts is null)
+{
+    <FluentProgressRing />
+}
+else if (_accounts.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Accounts_Empty"]</FluentMessageBar>
+}
+else
+{
+    <FluentDataGrid Items="@_accounts.AsQueryable()" TGridItem="AccountResponse" GridTemplateColumns="1fr 2fr 1fr auto">
+        <PropertyColumn Property="@(account => account.Platform)" Title="@Ui["Common_Platform"]" />
+        <PropertyColumn Property="@(account => account.Alias)" Title="@Ui["Common_Alias"]" />
+        <PropertyColumn Property="@(account => account.BaseCurrency)" Title="@Ui["Accounts_BaseCurrency"]" />
+        <TemplateColumn Title="@Ui["Common_Actions"]" Align="Align.End">
+            <FluentButton Appearance="Appearance.Stealth"
+                          IconStart="@(new Icons.Regular.Size16.Delete())"
+                          Title="@Ui["Common_Delete"]"
+                          OnClick="@(() => DeleteAsync(context))" />
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    private IReadOnlyList<AccountResponse>? _accounts;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        // Un fallo al cargar deja la lista sin poner: así la pantalla vuelve al estado
+        // de carga en lugar de enseñar una lista vacía, que se leería como "no tienes
+        // cuentas" cuando en realidad no se han podido leer.
+        try
+        {
+            _accounts = await Api.GetAccountsAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            _accounts = null;
+            Toasts.ShowError(exception.Message);
+        }
+    }
+
+    private async Task OpenNewAccountAsync()
+    {
+        var dialog = await Dialogs.ShowDialogAsync<NewAccountDialog>(
+            new NewAccountModel(),
+            new DialogParameters { Title = Ui["Accounts_New"], PreventDismissOnOverlayClick = true });
+
+        var result = await dialog.Result;
+
+        if (result.Cancelled || result.Data is not NewAccountModel model || !model.IsComplete)
+        {
+            return;
+        }
+
+        try
+        {
+            var created = await Api.CreateAccountAsync(
+                new CreateAccountRequest(model.Platform, model.Alias, model.BaseCurrency));
+            Toasts.ShowSuccess(created.Alias);
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowError(exception.Message);
+        }
+    }
+
+    private async Task DeleteAsync(AccountResponse account)
+    {
+        var confirmation = await Dialogs.ShowConfirmationAsync(
+            Ui["Accounts_DeleteConfirm_Message"],
+            Ui["Common_Delete"],
+            Ui["Common_Cancel"],
+            $"{Ui["Accounts_DeleteConfirm_Title"]}: {account.Alias}");
+
+        if ((await confirmation.Result).Cancelled)
+        {
+            return;
+        }
+
+        try
+        {
+            await Api.DeleteAccountAsync(account.Id);
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            // La API rechaza el borrado de una cuenta con movimientos, y su mensaje ya
+            // dice cuántos son. Enseñarlo tal cual es más útil que un error genérico.
+            Toasts.ShowError(exception.Message);
+        }
+    }
+}

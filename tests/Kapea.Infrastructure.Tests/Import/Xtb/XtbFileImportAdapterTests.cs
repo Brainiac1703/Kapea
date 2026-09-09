@@ -23,7 +23,10 @@ public class XtbFileImportAdapterTests
 
         Assert.Empty(result.Rejected);
         Assert.Equal(2, result.Records.Count);
-        Assert.Equal(TransactionType.Buy, result.Records[0].Type);
+
+        // Sin volumen no puede ser una compra: la operación completa la trae el informe
+        // de posiciones, y clasificarla aquí la duplicaría con un lote de cero unidades.
+        Assert.Equal(TransactionType.Unknown, result.Records[0].Type);
         Assert.Equal(1234.56m, result.Records[0].GrossAmount);
         Assert.Equal("SAN.ES", result.Records[0].AssetSymbol);
         Assert.Equal(TransactionType.Dividend, result.Records[1].Type);
@@ -101,6 +104,51 @@ public class XtbFileImportAdapterTests
         Assert.Equal(TransactionType.Unknown, Assert.Single(result.Records).Type);
     }
 
+    [Theory]
+    [InlineData("Bonificacion inventada")]
+    [InlineData("Reventa de derechos")]
+    [InlineData("Compraventa asistida")]
+    public async Task A_concept_that_merely_contains_a_keyword_is_not_classified_by_it(string concept)
+    {
+        // "inventada" contiene "venta". Con emparejamiento por subcadena, el concepto se
+        // tomaba por una venta sin activo y reventaba la importación entera al confirmar.
+        var result = await Read($"""
+            ID;Type;Time;Symbol;Comment;Amount;Currency
+            1001;{concept};10.01.2024 09:30:00;;;12,00;EUR
+            """);
+
+        Assert.Equal(TransactionType.Unknown, Assert.Single(result.Records).Type);
+    }
+
+    [Theory]
+    [InlineData("Withholding tax", TransactionType.Dividend)]
+    [InlineData("Dividendo ordinario", TransactionType.Dividend)]
+    [InlineData("Ingreso de efectivo", TransactionType.Deposit)]
+    public async Task A_concept_that_really_is_the_keyword_is_still_classified(string concept, TransactionType expected)
+    {
+        var result = await Read($"""
+            ID;Type;Time;Symbol;Comment;Amount;Currency
+            1001;{concept};10.01.2024 09:30:00;SAN.ES;;12,00;EUR
+            """);
+
+        Assert.Equal(expected, Assert.Single(result.Records).Type);
+    }
+
+    [Theory]
+    [InlineData("Stocks sale")]
+    [InlineData("Venta de acciones")]
+    public async Task A_trade_concept_in_the_cash_report_is_left_unclassified(string concept)
+    {
+        // El informe de efectivo no trae volumen. Su línea de compraventa es la
+        // contrapartida en dinero de una operación que el informe de posiciones ya trae.
+        var result = await Read($"""
+            ID;Type;Time;Symbol;Comment;Amount;Currency
+            1001;{concept};10.01.2024 09:30:00;SAN.ES;;12,00;EUR
+            """);
+
+        Assert.Equal(TransactionType.Unknown, Assert.Single(result.Records).Type);
+    }
+
     [Fact]
     public async Task An_informational_row_with_no_financial_effect_is_discarded_and_counted()
     {
@@ -154,6 +202,60 @@ public class XtbFileImportAdapterTests
         Assert.Equal(new DateTime(2025, 9, 20, 16, 0, 0), sell.NaiveOccurredAt);
         Assert.Equal(Currency.FromCode("USD"), sell.Currency);
         Assert.NotEqual(buy.NaturalId, sell.NaturalId);
+    }
+
+    [Fact]
+    public async Task An_open_position_becomes_only_its_acquisition()
+    {
+        // El informe de cerradas nunca deja nada abierto, así que sin este formato un
+        // usuario de XTB no podría tener posición alguna en la cartera.
+        var result = await Read("""
+            Position;Symbol;Type;Volume;Open time;Open price;Market price;Commission;Currency
+            77003;SAN.ES;BUY;50;01.04.2025 09:00:00;4,10;4,55;-1,00;EUR
+            """);
+
+        var buy = Assert.Single(result.Records);
+
+        Assert.Equal(TransactionType.Buy, buy.Type);
+        Assert.Equal("SAN.ES", buy.AssetSymbol);
+        Assert.Equal(50m, buy.Quantity);
+        Assert.Equal(4.10m, buy.UnitPrice);
+        Assert.Equal(205m, buy.GrossAmount);
+        Assert.Equal(1m, buy.Fee);
+        Assert.Equal(new DateTime(2025, 4, 1, 9, 0, 0), buy.NaiveOccurredAt);
+    }
+
+    [Fact]
+    public async Task The_market_price_of_an_open_position_is_not_imported()
+    {
+        // Es el precio del momento en que se exportó el informe. Guardarlo como si
+        // fuera actual daría una valoración vieja con aspecto de reciente.
+        var result = await Read("""
+            Position;Symbol;Type;Volume;Open time;Open price;Market price;Commission;Currency
+            77003;SAN.ES;BUY;50;01.04.2025 09:00:00;4,10;9,99;-1,00;EUR
+            """);
+
+        Assert.Equal(205m, Assert.Single(result.Records).GrossAmount);
+    }
+
+    [Fact]
+    public async Task An_open_and_a_closed_position_of_the_same_trade_do_not_collide()
+    {
+        // Las dos exportaciones usan el mismo identificador de posición. La huella los
+        // distingue por el sufijo, o al cerrar la posición la compra se vería duplicada.
+        var open = await Read("""
+            Position;Symbol;Type;Volume;Open time;Open price;Market price;Commission;Currency
+            77001;SAN.ES;BUY;100;05.02.2024 15:30:00;3,50;4,80;-2,50;EUR
+            """);
+
+        var closed = await Read("""
+            Position;Symbol;Type;Volume;Open time;Open price;Close time;Close price;Commission;Currency
+            77001;SAN.ES;BUY;100;05.02.2024 15:30:00;3,50;20.09.2025 16:00:00;4,80;-2,50;EUR
+            """);
+
+        Assert.Equal("77001:open", Assert.Single(open.Records).NaturalId);
+        Assert.Equal("77001:open", closed.Records[0].NaturalId);
+        Assert.Equal("77001:close", closed.Records[1].NaturalId);
     }
 
     [Fact]

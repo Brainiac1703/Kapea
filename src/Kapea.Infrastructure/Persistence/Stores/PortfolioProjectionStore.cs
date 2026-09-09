@@ -23,26 +23,25 @@ public sealed class PortfolioProjectionStore(KapeaDbContext context, ILogger<Por
     {
         ArgumentNullException.ThrowIfNull(result);
 
-        await using var transaction = await context.Database
-            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await context.Database.ExecuteAsync(async token =>
+        {
+            // El filtro global limita el borrado al usuario actual, así que un recálculo
+            // nunca puede llevarse por delante la proyección de otro.
+            await context.Lots.Where(lot => lot.AssetId == assetId)
+                .ExecuteDeleteAsync(token).ConfigureAwait(false);
 
-        // El filtro global limita el borrado al usuario actual, así que un recálculo
-        // nunca puede llevarse por delante la proyección de otro.
-        await context.Lots.Where(lot => lot.AssetId == assetId)
-            .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            await context.RealizedResults.Where(realized => realized.AssetId == assetId)
+                .ExecuteDeleteAsync(token).ConfigureAwait(false);
 
-        await context.RealizedResults.Where(realized => realized.AssetId == assetId)
-            .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            await context.CapitalIncomes.Where(income => income.AssetId == assetId)
+                .ExecuteDeleteAsync(token).ConfigureAwait(false);
 
-        await context.CapitalIncomes.Where(income => income.AssetId == assetId)
-            .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            context.Lots.AddRange(result.Lots);
+            context.RealizedResults.AddRange(result.RealizedResults);
+            context.CapitalIncomes.AddRange(result.CapitalIncomes);
 
-        context.Lots.AddRange(result.Lots);
-        context.RealizedResults.AddRange(result.RealizedResults);
-        context.CapitalIncomes.AddRange(result.CapitalIncomes);
-
-        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            await context.SaveChangesAsync(token).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
             "Proyección del activo {Activo} reemplazada: {Lotes} lotes, {Resultados} resultados, {Rendimientos} rendimientos.",

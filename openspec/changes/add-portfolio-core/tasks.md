@@ -99,7 +99,7 @@
 ## 13. API y cliente
 
 - [x] 13.1 Configurar la autenticación con Entra External ID en la API y la extracción del `UserId` del token, sin aceptarlo nunca como parámetro de entrada; verificar con tests que una petición sin token o con token de otro usuario no accede a los datos
-- [ ] 13.2 Implementar los endpoints de cuentas, credenciales, importaciones, movimientos, posiciones y resultados con sus comandos y consultas MediatR y su validación FluentValidation; verificar con tests de integración de la API
+- [x] 13.2 Implementar los endpoints de cuentas, credenciales, importaciones, movimientos, posiciones y resultados como minimal APIs sobre los servicios de aplicación; verificar con tests de integración de la API
 - [ ] 13.3 Implementar en el cliente Blazor WebAssembly las pantallas de cuentas y credenciales; verificar manualmente el alta, la rotación y la revocación contra la API
 - [ ] 13.4 Implementar en el cliente la subida de fichero XTB con vista previa y confirmación, y el historial de importaciones con el detalle de rechazados; verificar manualmente el flujo completo con un fichero real
 - [ ] 13.5 Implementar en el cliente la revisión de traspasos propuestos y de movimientos sin clasificar; verificar manualmente confirmación y rechazo

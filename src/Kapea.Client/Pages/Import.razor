@@ -1,0 +1,177 @@
+@page "/import"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Import_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Import_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Import_Intro"]</FluentLabel>
+
+@if (_accounts is null)
+{
+    <FluentProgressRing />
+}
+else if (_accounts.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Import_NoFileAccounts"]</FluentMessageBar>
+}
+else
+{
+    <FluentCard Class="upload-card">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+            <FluentSelect TOption="AccountResponse"
+                          Label="@Ui["Import_ChooseAccount"]"
+                          Items="@_accounts"
+                          OptionValue="@(account => account.Id.ToString())"
+                          OptionText="@(account => account.Alias)"
+                          SelectedOptionChanged="@(account => _accountId = account?.Id)" />
+
+            <label class="file-picker">
+                <FluentIcon Value="@(new Icons.Regular.Size20.ArrowUpload())" />
+                <span>@Ui["Import_ChooseFile"]</span>
+                <InputFile OnChange="OnFileChosenAsync" accept=".csv,.xlsx,.xlsm" disabled="@(_accountId is null)" />
+            </label>
+
+            @if (_uploading)
+            {
+                <FluentProgressRing />
+            }
+        </FluentStack>
+    </FluentCard>
+}
+
+@if (_preview is not null)
+{
+    <FluentLabel Typo="Typography.H3" Class="section">@Ui["Import_Preview"]</FluentLabel>
+
+    <ImportRunSummary Run="@_preview.Run" />
+
+    @foreach (var warning in _preview.Warnings)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">@warning</FluentMessageBar>
+    }
+
+    @if (_preview.Run.RecordsImported == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Ui["Import_NothingToImport"]</FluentMessageBar>
+    }
+
+    <RejectedRecords Records="@_preview.Run.Rejected" />
+
+    <FluentToolbar Class="section">
+        <FluentButton Appearance="Appearance.Accent"
+                      Disabled="@(_preview.Run.RecordsImported == 0 || _working)"
+                      OnClick="ConfirmAsync">
+            @Ui["Import_Confirm"]
+        </FluentButton>
+        <FluentButton Appearance="Appearance.Neutral" Disabled="@_working" OnClick="DiscardAsync">
+            @Ui["Import_Discard"]
+        </FluentButton>
+    </FluentToolbar>
+}
+
+@code {
+    /// <summary>Solo XTB se importa por fichero; el resto llega por su API.</summary>
+    private const string FilePlatform = "Xtb";
+
+    private IReadOnlyList<AccountResponse>? _accounts;
+    private Guid? _accountId;
+    private ImportPreviewResponse? _preview;
+    private bool _uploading;
+    private bool _working;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var accounts = await Api.GetAccountsAsync();
+            _accounts = [.. accounts.Where(account => account.Platform == FilePlatform)];
+            _accountId = _accounts.Count == 1 ? _accounts[0].Id : null;
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowError(exception.Message);
+        }
+    }
+
+    private async Task OnFileChosenAsync(InputFileChangeEventArgs args)
+    {
+        if (_accountId is not { } accountId)
+        {
+            return;
+        }
+
+        _uploading = true;
+        _preview = null;
+
+        try
+        {
+            // 32 MB es el máximo que acepta la API. Un extracto de años no se acerca,
+            // así que un fichero mayor es un error del usuario y conviene que lo diga
+            // el servidor con su motivo.
+            await using var content = args.File.OpenReadStream(32 * 1024 * 1024);
+
+            _preview = await Api.UploadImportFileAsync(accountId, content, args.File.Name);
+        }
+        catch (KapeaApiException exception)
+        {
+            // El adaptador rechaza el fichero entero cuando no reconoce el formato, y
+            // su mensaje enumera las columnas esperadas: es justo lo que hace falta.
+            Toasts.ShowError(exception.Message);
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_preview is null)
+        {
+            return;
+        }
+
+        _working = true;
+
+        try
+        {
+            var run = await Api.ConfirmImportAsync(_preview.Run.Id);
+            Toasts.ShowSuccess($"{Ui["Import_Confirmed"]}: {run.RecordsImported}");
+            _preview = null;
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowError(exception.Message);
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    private async Task DiscardAsync()
+    {
+        if (_preview is null)
+        {
+            return;
+        }
+
+        _working = true;
+
+        try
+        {
+            await Api.DiscardImportAsync(_preview.Run.Id);
+            Toasts.ShowInfo(Ui["Import_Discarded"]);
+            _preview = null;
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowError(exception.Message);
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+}

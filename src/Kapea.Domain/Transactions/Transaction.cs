@@ -204,6 +204,7 @@ public sealed class Transaction
         }
     }
 
+    /// <summary>Las invariantes viven en TransactionRules para que la importación pueda comprobarlas antes.</summary>
     private static void EnsureConsistent(
         TransactionType type,
         Guid? assetId,
@@ -211,47 +212,7 @@ public sealed class Transaction
         Money? unitPrice,
         Money grossAmount,
         Money fee,
-        Money? withholdingTax)
-    {
-        if (type is TransactionType.Buy or TransactionType.Sell)
-        {
-            if (assetId is null)
-            {
-                throw new DomainException("Una compra o una venta necesita activo.");
-            }
+        Money? withholdingTax) =>
+        TransactionRules.Ensure(type, assetId, quantity, unitPrice, grossAmount, fee, withholdingTax);
 
-            if (quantity.IsZero)
-            {
-                throw new DomainException("Una compra o una venta necesita cantidad.");
-            }
-        }
-
-        if (unitPrice is { } price && price.Currency != grossAmount.Currency)
-        {
-            throw new CurrencyMismatchException(price.Currency, grossAmount.Currency, "combinar");
-        }
-
-        if (fee.Currency != grossAmount.Currency)
-        {
-            throw new CurrencyMismatchException(fee.Currency, grossAmount.Currency, "combinar");
-        }
-
-        if (fee.IsNegative)
-        {
-            throw new DomainException("Una comisión no puede ser negativa; su signo lo decide el cálculo, no el dato.");
-        }
-
-        if (withholdingTax is { } withholding)
-        {
-            if (withholding.Currency != grossAmount.Currency)
-            {
-                throw new CurrencyMismatchException(withholding.Currency, grossAmount.Currency, "combinar");
-            }
-
-            if (withholding.IsNegative)
-            {
-                throw new DomainException("Una retención no puede ser negativa.");
-            }
-        }
-    }
 }

@@ -206,11 +206,17 @@ public static class PortfolioEndpoints
         imports.MapPost("/{runId:guid}/confirm", async (
             Guid runId,
             ImportPipeline pipeline,
+            InternalTransferService transfers,
             PortfolioCalculationService calculation,
             IPortfolioQueries queries,
             CancellationToken token) =>
         {
             await pipeline.ConfirmAsync(runId, cancellationToken: token);
+
+            // Justo después de importar es cuando pueden aparecer las dos patas de un
+            // traspaso, así que se buscan aquí. Solo se proponen: hasta que el usuario
+            // decida, sus movimientos quedan fuera del cálculo.
+            await transfers.ProposeAsync(cancellationToken: token);
             await calculation.RecalculateAsync(cancellationToken: token);
 
             return Results.Ok(await queries.FindImportRunAsync(runId, token));
@@ -279,43 +285,41 @@ public static class PortfolioEndpoints
             queries.ListTransfersAsync(onlyPending ?? true, token));
 
         transfers.MapPost("/{transferId:guid}/confirm", (
-                Guid transferId, KapeaDbContext context, PortfolioCalculationService calculation,
-                TimeProvider time, CancellationToken token) =>
-            ResolveAsync(transferId, context, calculation, time, token, confirm: true));
+                Guid transferId, InternalTransferService service, PortfolioCalculationService calculation,
+                CancellationToken token) =>
+            ResolveAsync(transferId, service, calculation, token, confirm: true));
 
         transfers.MapPost("/{transferId:guid}/reject", (
-                Guid transferId, KapeaDbContext context, PortfolioCalculationService calculation,
-                TimeProvider time, CancellationToken token) =>
-            ResolveAsync(transferId, context, calculation, time, token, confirm: false));
+                Guid transferId, InternalTransferService service, PortfolioCalculationService calculation,
+                CancellationToken token) =>
+            ResolveAsync(transferId, service, calculation, token, confirm: false));
+
+        transfers.MapPost("/detect", async (
+            InternalTransferService service, IPortfolioQueries queries, CancellationToken token) =>
+        {
+            await service.ProposeAsync(cancellationToken: token);
+
+            return Results.Ok(await queries.ListTransfersAsync(onlyPending: true, token));
+        });
     }
 
     private static async Task<IResult> ResolveAsync(
         Guid transferId,
-        KapeaDbContext context,
+        InternalTransferService service,
         PortfolioCalculationService calculation,
-        TimeProvider time,
         CancellationToken token,
         bool confirm)
     {
-        var transfer = await context.InternalTransfers
-            .SingleOrDefaultAsync(entity => entity.Id == transferId, token);
+        var assetId = await service.ResolveAsync(transferId, confirm, token);
 
-        if (transfer is null)
+        if (assetId is null)
         {
             return Results.NotFound();
         }
 
-        if (confirm)
-        {
-            transfer.Confirm(time.GetUtcNow());
-        }
-        else
-        {
-            transfer.Reject(time.GetUtcNow());
-        }
-
-        await context.SaveChangesAsync(token);
-        await calculation.RecalculateAsync(transfer.AssetId, token);
+        // Se recalcula solo el activo afectado: confirmar un traspaso mueve sus lotes,
+        // y el resto de la cartera no cambia.
+        await calculation.RecalculateAsync(assetId, token);
 
         return Results.NoContent();
     }

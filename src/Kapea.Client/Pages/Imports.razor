@@ -1,0 +1,101 @@
+@page "/imports"
+@inject KapeaApiClient Api
+@inject IDialogService Dialogs
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Imports_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Imports_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Imports_Intro"]</FluentLabel>
+
+@if (_runs is null)
+{
+    <FluentProgressRing />
+}
+else if (_runs.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Imports_Empty"]</FluentMessageBar>
+}
+else
+{
+    <FluentAccordion>
+        @foreach (var run in _runs)
+        {
+            <FluentAccordionItem Heading="@Heading(run)">
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+                    <ImportRunSummary Run="@run" />
+
+                    <FluentLabel Typo="Typography.H5">@Ui["Imports_Detail"]</FluentLabel>
+                    <RejectedRecords Records="@run.Rejected" />
+
+                    <FluentButton Appearance="Appearance.Neutral"
+                                  IconStart="@(new Icons.Regular.Size16.Delete())"
+                                  OnClick="@(() => DeleteAsync(run))">
+                        @Ui["Imports_Delete"]
+                    </FluentButton>
+                </FluentStack>
+            </FluentAccordionItem>
+        }
+    </FluentAccordion>
+}
+
+@code {
+    private IReadOnlyList<ImportRunResponse>? _runs;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _runs = await Api.GetImportRunsAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            _runs = null;
+            Toasts.ShowError(exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// El encabezado lleva fecha, origen y estado porque es lo único visible con el
+    /// panel cerrado, y es lo que permite encontrar la importación que se busca.
+    /// </summary>
+    private string Heading(ImportRunResponse run) =>
+        $"{run.StartedAt.ToLocalTime():g} · {run.FileName ?? Ui["Imports_Api"].Value} · {StatusText(run.Status)}";
+
+    private string StatusText(string status) => status switch
+    {
+        "Staged" => Ui["RunStatus_Staged"],
+        "Completed" => Ui["RunStatus_Completed"],
+        "Failed" => Ui["RunStatus_Failed"],
+        _ => Ui["RunStatus_Discarded"],
+    };
+
+    private async Task DeleteAsync(ImportRunResponse run)
+    {
+        var confirmation = await Dialogs.ShowConfirmationAsync(
+            Ui["Imports_Delete_Message"],
+            Ui["Common_Delete"],
+            Ui["Common_Cancel"],
+            Ui["Imports_Delete"]);
+
+        if ((await confirmation.Result).Cancelled)
+        {
+            return;
+        }
+
+        try
+        {
+            await Api.DeleteImportAsync(run.Id);
+        }
+        catch (KapeaApiException exception)
+        {
+            // La API bloquea el borrado si algún movimiento participa en un traspaso
+            // confirmado, y enumera las dependencias en el mensaje.
+            Toasts.ShowError(exception.Message);
+        }
+
+        await ReloadAsync();
+    }
+}

@@ -56,6 +56,8 @@ public static class DependencyInjection
         services.AddScoped<IPortfolioCalculationRepository, PortfolioCalculationRepository>();
         services.AddScoped<PortfolioCalculationService>();
         services.AddScoped<IPortfolioQueries, PortfolioQueries>();
+        services.AddScoped<IInternalTransferRepository, InternalTransferRepository>();
+        services.AddScoped<InternalTransferService>();
         services.AddScoped<ImportPipeline>();
         services.AddScoped<BrokerCredentialService>();
         services.AddScoped<SynchronizationService>();

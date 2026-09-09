@@ -1,0 +1,14 @@
+<div class="count">
+    <div class="count-value">@Format.Euros(Value, "—")</div>
+    <div class="count-label">@Label</div>
+</div>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required string Label { get; set; }
+
+    /// <summary>Nulo cuando la cifra no está disponible; se enseña un guion, no un cero.</summary>
+    [Parameter]
+    public decimal? Value { get; set; }
+}

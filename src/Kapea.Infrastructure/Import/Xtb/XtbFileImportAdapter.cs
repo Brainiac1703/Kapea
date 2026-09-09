@@ -58,9 +58,12 @@ public sealed class XtbFileImportAdapter(ILogger<XtbFileImportAdapter> logger) :
 
             try
             {
-                var mapped = format.Kind == XtbReportKind.CashOperations
-                    ? MapCashOperation(row, columns)
-                    : MapClosedPosition(row, columns);
+                var mapped = format.Kind switch
+                {
+                    XtbReportKind.CashOperations => MapCashOperation(row, columns),
+                    XtbReportKind.OpenPositions => MapOpenPosition(row, columns),
+                    _ => MapClosedPosition(row, columns),
+                };
 
                 if (mapped.Count == 0)
                 {
@@ -82,7 +85,7 @@ public sealed class XtbFileImportAdapter(ILogger<XtbFileImportAdapter> logger) :
     private static IReadOnlyList<ImportRecord> MapCashOperation(TabularRow row, IReadOnlyDictionary<string, int> columns)
     {
         var concept = Text(row, columns, "Type");
-        var type = XtbTypeMapper.Map(concept);
+        var type = XtbTypeMapper.MapCashOperation(concept);
 
         if (!XtbValueReader.TryReadDate(Text(row, columns, "Time"), out var occurredAt))
         {
@@ -187,6 +190,61 @@ public sealed class XtbFileImportAdapter(ILogger<XtbFileImportAdapter> logger) :
                 SourceTimeZoneId: PlatformTimeZoneId,
                 SplitRatio: null,
                 RawContent: row.Raw);
+    }
+
+    /// <summary>
+    /// Una posición abierta es solo su adquisición: el precio de mercado que trae el
+    /// informe no se importa, porque es del momento en que se exportó y el valor actual
+    /// lo resuelve el proveedor de precios.
+    /// </summary>
+    private static IReadOnlyList<ImportRecord> MapOpenPosition(TabularRow row, IReadOnlyDictionary<string, int> columns)
+    {
+        var symbol = Text(row, columns, "Symbol");
+
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            throw new XtbRowException("La posición no indica símbolo.");
+        }
+
+        if (!XtbValueReader.TryReadDecimal(Text(row, columns, "Volume"), out var volume) || volume <= 0m)
+        {
+            throw new XtbRowException($"El volumen '{Text(row, columns, "Volume")}' no se puede interpretar.");
+        }
+
+        if (!XtbValueReader.TryReadDate(Text(row, columns, "OpenTime"), out var openedAt))
+        {
+            throw new XtbRowException($"La fecha de apertura '{Text(row, columns, "OpenTime")}' no se puede interpretar.");
+        }
+
+        if (!XtbValueReader.TryReadDecimal(Text(row, columns, "OpenPrice"), out var openPrice))
+        {
+            throw new XtbRowException($"El precio de apertura '{Text(row, columns, "OpenPrice")}' no se puede interpretar.");
+        }
+
+        XtbValueReader.TryReadDecimal(Text(row, columns, "Commission"), out var commission);
+
+        var position = Text(row, columns, "Position");
+
+        return
+        [
+            new ImportRecord(
+                NaturalId: string.IsNullOrWhiteSpace(position) ? null : $"{position}:open",
+                RowNumber: row.Number,
+                Type: TransactionType.Buy,
+                AssetSymbol: symbol.Trim().ToUpperInvariant(),
+                AssetClass: AssetClass.Equity,
+                Quantity: volume,
+                UnitPrice: openPrice,
+                GrossAmount: volume * openPrice,
+                Currency: ReadCurrency(row, columns),
+                Fee: Math.Abs(commission),
+                Withholding: null,
+                OccurredAt: null,
+                NaiveOccurredAt: openedAt,
+                SourceTimeZoneId: PlatformTimeZoneId,
+                SplitRatio: null,
+                RawContent: row.Raw),
+        ];
     }
 
     private static Currency ReadCurrency(TabularRow row, IReadOnlyDictionary<string, int> columns)

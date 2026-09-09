@@ -64,6 +64,12 @@
   <data name="Nav_Home" xml:space="preserve">
     <value>Inicio</value>
   </data>
+  <data name="Nav_Accounts" xml:space="preserve">
+    <value>Cuentas</value>
+  </data>
+  <data name="Nav_Credentials" xml:space="preserve">
+    <value>Credenciales</value>
+  </data>
   <data name="Nav_Menu_Toggle" xml:space="preserve">
     <value>Menú de navegación</value>
   </data>
@@ -76,6 +82,9 @@
   <data name="Home_Intro" xml:space="preserve">
     <value>Consolida tus inversiones, calcula tus resultados y prepara tu información fiscal.</value>
   </data>
+  <data name="Home_NextStep" xml:space="preserve">
+    <value>Empieza dando de alta una cuenta y, si la plataforma tiene API, su credencial de solo lectura.</value>
+  </data>
   <data name="NotFound_Title" xml:space="preserve">
     <value>Página no encontrada</value>
   </data>
@@ -84,5 +93,401 @@
   </data>
   <data name="NotFound_Message" xml:space="preserve">
     <value>El contenido que buscas no existe.</value>
+  </data>
+  <data name="Common_Add" xml:space="preserve">
+    <value>Añadir</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Common_Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>Cargando…</value>
+  </data>
+  <data name="Common_Platform" xml:space="preserve">
+    <value>Plataforma</value>
+  </data>
+  <data name="Common_Alias" xml:space="preserve">
+    <value>Alias</value>
+  </data>
+  <data name="Common_Actions" xml:space="preserve">
+    <value>Acciones</value>
+  </data>
+  <data name="Common_Status" xml:space="preserve">
+    <value>Estado</value>
+  </data>
+  <data name="Common_Never" xml:space="preserve">
+    <value>Nunca</value>
+  </data>
+  <data name="Accounts_Title" xml:space="preserve">
+    <value>Cuentas</value>
+  </data>
+  <data name="Accounts_Heading" xml:space="preserve">
+    <value>Cuentas</value>
+  </data>
+  <data name="Accounts_Intro" xml:space="preserve">
+    <value>Una cuenta por cada plataforma en la que operas. Los movimientos siempre pertenecen a una.</value>
+  </data>
+  <data name="Accounts_Empty" xml:space="preserve">
+    <value>Todavía no hay ninguna cuenta. Añade la primera para poder importar movimientos.</value>
+  </data>
+  <data name="Accounts_BaseCurrency" xml:space="preserve">
+    <value>Divisa base</value>
+  </data>
+  <data name="Accounts_New" xml:space="preserve">
+    <value>Nueva cuenta</value>
+  </data>
+  <data name="Accounts_AliasHelp" xml:space="preserve">
+    <value>Para distinguirla de otras de la misma plataforma.</value>
+  </data>
+  <data name="Accounts_DeleteConfirm_Title" xml:space="preserve">
+    <value>Eliminar la cuenta</value>
+  </data>
+  <data name="Accounts_DeleteConfirm_Message" xml:space="preserve">
+    <value>Se eliminará la cuenta. Si tiene movimientos importados, la operación se rechazará.</value>
+  </data>
+  <data name="Credentials_Title" xml:space="preserve">
+    <value>Credenciales</value>
+  </data>
+  <data name="Credentials_Heading" xml:space="preserve">
+    <value>Credenciales de plataforma</value>
+  </data>
+  <data name="Credentials_Intro" xml:space="preserve">
+    <value>Claves de solo lectura para que Kapea descargue tu histórico. Se guardan en el servidor y nunca llegan al navegador.</value>
+  </data>
+  <data name="Credentials_Empty" xml:space="preserve">
+    <value>No hay ninguna credencial. XTB no la necesita: su histórico se importa por fichero.</value>
+  </data>
+  <data name="Credentials_Warning" xml:space="preserve">
+    <value>Crea la clave con permisos de solo lectura. Kapea rechaza las que pueden operar o retirar fondos.</value>
+  </data>
+  <data name="Credentials_Account" xml:space="preserve">
+    <value>Cuenta</value>
+  </data>
+  <data name="Credentials_ApiKey" xml:space="preserve">
+    <value>Clave de API</value>
+  </data>
+  <data name="Credentials_ApiSecret" xml:space="preserve">
+    <value>Secreto de API</value>
+  </data>
+  <data name="Credentials_Scopes" xml:space="preserve">
+    <value>Permisos</value>
+  </data>
+  <data name="Credentials_Created" xml:space="preserve">
+    <value>Alta</value>
+  </data>
+  <data name="Credentials_LastSync" xml:space="preserve">
+    <value>Última sincronización</value>
+  </data>
+  <data name="Credentials_New" xml:space="preserve">
+    <value>Nueva credencial</value>
+  </data>
+  <data name="Credentials_Rotate" xml:space="preserve">
+    <value>Rotar</value>
+  </data>
+  <data name="Credentials_Rotate_Title" xml:space="preserve">
+    <value>Rotar la credencial</value>
+  </data>
+  <data name="Credentials_Rotate_Message" xml:space="preserve">
+    <value>Sustituye la clave y el secreto. Se conserva el histórico de la credencial y lo ya importado con ella.</value>
+  </data>
+  <data name="Credentials_Revoke" xml:space="preserve">
+    <value>Revocar</value>
+  </data>
+  <data name="Credentials_Revoke_Title" xml:space="preserve">
+    <value>Revocar la credencial</value>
+  </data>
+  <data name="Credentials_Revoke_Message" xml:space="preserve">
+    <value>Dejará de usarse en las sincronizaciones y se borrará su secreto. Los movimientos ya importados se conservan.</value>
+  </data>
+  <data name="Credentials_NoApiAccounts" xml:space="preserve">
+    <value>Primero necesitas una cuenta de Kraken o Bit2Me. XTB se importa por fichero.</value>
+  </data>
+  <data name="Status_Active" xml:space="preserve">
+    <value>Activa</value>
+  </data>
+  <data name="Status_Revoked" xml:space="preserve">
+    <value>Revocada</value>
+  </data>
+  <data name="Status_Invalid" xml:space="preserve">
+    <value>Inválida</value>
+  </data>
+  <data name="Nav_Import" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="Nav_Imports" xml:space="preserve">
+    <value>Importaciones</value>
+  </data>
+  <data name="Import_Title" xml:space="preserve">
+    <value>Importar movimientos</value>
+  </data>
+  <data name="Import_Heading" xml:space="preserve">
+    <value>Importar movimientos</value>
+  </data>
+  <data name="Import_Intro" xml:space="preserve">
+    <value>Sube la exportación de xStation5. Verás lo que entraría antes de confirmar nada.</value>
+  </data>
+  <data name="Import_ChooseAccount" xml:space="preserve">
+    <value>Cuenta de destino</value>
+  </data>
+  <data name="Import_ChooseFile" xml:space="preserve">
+    <value>Elegir fichero</value>
+  </data>
+  <data name="Import_NoFileAccounts" xml:space="preserve">
+    <value>Necesitas una cuenta de XTB. Kraken y Bit2Me se importan por API.</value>
+  </data>
+  <data name="Import_Preview" xml:space="preserve">
+    <value>Vista previa</value>
+  </data>
+  <data name="Import_Confirm" xml:space="preserve">
+    <value>Confirmar la importación</value>
+  </data>
+  <data name="Import_Discard" xml:space="preserve">
+    <value>Descartar</value>
+  </data>
+  <data name="Import_Confirmed" xml:space="preserve">
+    <value>Importación confirmada</value>
+  </data>
+  <data name="Import_Discarded" xml:space="preserve">
+    <value>Importación descartada</value>
+  </data>
+  <data name="Import_NothingToImport" xml:space="preserve">
+    <value>No hay nada nuevo que importar: todo lo del fichero ya estaba.</value>
+  </data>
+  <data name="Import_RecordsRead" xml:space="preserve">
+    <value>Leídos</value>
+  </data>
+  <data name="Import_RecordsImported" xml:space="preserve">
+    <value>Se importarán</value>
+  </data>
+  <data name="Import_Duplicates" xml:space="preserve">
+    <value>Duplicados</value>
+  </data>
+  <data name="Import_Rejected" xml:space="preserve">
+    <value>Rechazados</value>
+  </data>
+  <data name="Import_NonFinancial" xml:space="preserve">
+    <value>Sin efecto financiero</value>
+  </data>
+  <data name="Imports_Title" xml:space="preserve">
+    <value>Importaciones</value>
+  </data>
+  <data name="Imports_Heading" xml:space="preserve">
+    <value>Historial de importaciones</value>
+  </data>
+  <data name="Imports_Intro" xml:space="preserve">
+    <value>Cada importación con lo que entró, lo que se descartó por duplicado y lo que se rechazó.</value>
+  </data>
+  <data name="Imports_Empty" xml:space="preserve">
+    <value>Todavía no se ha importado nada.</value>
+  </data>
+  <data name="Imports_Started" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Imports_Source" xml:space="preserve">
+    <value>Origen</value>
+  </data>
+  <data name="Imports_Detail" xml:space="preserve">
+    <value>Registros rechazados</value>
+  </data>
+  <data name="Imports_Row" xml:space="preserve">
+    <value>Fila</value>
+  </data>
+  <data name="Imports_Reason" xml:space="preserve">
+    <value>Motivo</value>
+  </data>
+  <data name="Imports_RawContent" xml:space="preserve">
+    <value>Contenido original</value>
+  </data>
+  <data name="Imports_NoRejected" xml:space="preserve">
+    <value>Esta importación no rechazó ningún registro.</value>
+  </data>
+  <data name="Imports_Delete" xml:space="preserve">
+    <value>Eliminar la importación</value>
+  </data>
+  <data name="Imports_Delete_Message" xml:space="preserve">
+    <value>Se eliminarán la importación y los movimientos que creó. Se rechazará si alguno participa en un traspaso confirmado.</value>
+  </data>
+  <data name="Imports_Api" xml:space="preserve">
+    <value>API</value>
+  </data>
+  <data name="RunStatus_Staged" xml:space="preserve">
+    <value>Pendiente de confirmar</value>
+  </data>
+  <data name="RunStatus_Completed" xml:space="preserve">
+    <value>Confirmada</value>
+  </data>
+  <data name="RunStatus_Failed" xml:space="preserve">
+    <value>Fallida</value>
+  </data>
+  <data name="RunStatus_Discarded" xml:space="preserve">
+    <value>Descartada</value>
+  </data>
+  <data name="Nav_Review" xml:space="preserve">
+    <value>Revisión</value>
+  </data>
+  <data name="Nav_Portfolio" xml:space="preserve">
+    <value>Cartera</value>
+  </data>
+  <data name="Nav_Results" xml:space="preserve">
+    <value>Resultados</value>
+  </data>
+  <data name="Review_Title" xml:space="preserve">
+    <value>Revisión</value>
+  </data>
+  <data name="Review_Heading" xml:space="preserve">
+    <value>Pendiente de revisar</value>
+  </data>
+  <data name="Review_Intro" xml:space="preserve">
+    <value>Mientras quede algo aquí, las cifras de la cartera y de los resultados están incompletas.</value>
+  </data>
+  <data name="Review_Transfers" xml:space="preserve">
+    <value>Traspasos propuestos</value>
+  </data>
+  <data name="Review_Transfers_Help" xml:space="preserve">
+    <value>Una salida de una cuenta que se corresponde con una entrada en otra. Kapea no lo da por hecho: confirmarlo mueve los lotes sin generar resultado, y rechazarlo deja dos operaciones independientes.</value>
+  </data>
+  <data name="Review_Transfers_Empty" xml:space="preserve">
+    <value>No hay ningún traspaso pendiente de decidir.</value>
+  </data>
+  <data name="Review_Unclassified" xml:space="preserve">
+    <value>Movimientos sin clasificar</value>
+  </data>
+  <data name="Review_Unclassified_Help" xml:space="preserve">
+    <value>El origen trajo un concepto que no encaja en ningún tipo conocido. Quedan fuera del cálculo hasta resolverlos.</value>
+  </data>
+  <data name="Review_Unclassified_Empty" xml:space="preserve">
+    <value>No hay movimientos sin clasificar.</value>
+  </data>
+  <data name="Review_AllClear" xml:space="preserve">
+    <value>No queda nada por revisar.</value>
+  </data>
+  <data name="Review_Detect" xml:space="preserve">
+    <value>Buscar traspasos</value>
+  </data>
+  <data name="Transfer_Sent" xml:space="preserve">
+    <value>Enviado</value>
+  </data>
+  <data name="Transfer_Received" xml:space="preserve">
+    <value>Recibido</value>
+  </data>
+  <data name="Transfer_NetworkFee" xml:space="preserve">
+    <value>Comisión de red</value>
+  </data>
+  <data name="Transfer_Confirm" xml:space="preserve">
+    <value>Es un traspaso</value>
+  </data>
+  <data name="Transfer_Reject" xml:space="preserve">
+    <value>Son independientes</value>
+  </data>
+  <data name="Common_Asset" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Common_Date" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Common_Type" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="Common_Amount" xml:space="preserve">
+    <value>Importe</value>
+  </data>
+  <data name="Common_Quantity" xml:space="preserve">
+    <value>Cantidad</value>
+  </data>
+  <data name="Common_Origin" xml:space="preserve">
+    <value>Procedencia</value>
+  </data>
+  <data name="Common_Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Common_Year" xml:space="preserve">
+    <value>Ejercicio</value>
+  </data>
+  <data name="Portfolio_Title" xml:space="preserve">
+    <value>Cartera</value>
+  </data>
+  <data name="Portfolio_Heading" xml:space="preserve">
+    <value>Posiciones abiertas</value>
+  </data>
+  <data name="Portfolio_Intro" xml:space="preserve">
+    <value>Lo que tienes ahora mismo y lo que te costó. El valor de mercado solo aparece si hay precio disponible.</value>
+  </data>
+  <data name="Portfolio_Empty" xml:space="preserve">
+    <value>No hay ninguna posición abierta. Importa movimientos para verla.</value>
+  </data>
+  <data name="Portfolio_Incomplete" xml:space="preserve">
+    <value>Las cifras están incompletas: quedan movimientos por revisar.</value>
+  </data>
+  <data name="Portfolio_Cost" xml:space="preserve">
+    <value>Coste</value>
+  </data>
+  <data name="Portfolio_AverageCost" xml:space="preserve">
+    <value>Coste medio</value>
+  </data>
+  <data name="Portfolio_MarketPrice" xml:space="preserve">
+    <value>Precio</value>
+  </data>
+  <data name="Portfolio_MarketValue" xml:space="preserve">
+    <value>Valor</value>
+  </data>
+  <data name="Portfolio_Unrealised" xml:space="preserve">
+    <value>Resultado latente</value>
+  </data>
+  <data name="Portfolio_NoPrice" xml:space="preserve">
+    <value>Sin precio</value>
+  </data>
+  <data name="Portfolio_Unverified" xml:space="preserve">
+    <value>Activo sin verificar</value>
+  </data>
+  <data name="Portfolio_TotalCost" xml:space="preserve">
+    <value>Coste total</value>
+  </data>
+  <data name="Portfolio_TotalValue" xml:space="preserve">
+    <value>Valor total</value>
+  </data>
+  <data name="Portfolio_Recalculate" xml:space="preserve">
+    <value>Recalcular</value>
+  </data>
+  <data name="Results_Title" xml:space="preserve">
+    <value>Resultados</value>
+  </data>
+  <data name="Results_Heading" xml:space="preserve">
+    <value>Resultados realizados</value>
+  </data>
+  <data name="Results_Intro" xml:space="preserve">
+    <value>Ganancias y pérdidas patrimoniales del ejercicio, con el desglose hasta los lotes que las originan.</value>
+  </data>
+  <data name="Results_Empty" xml:space="preserve">
+    <value>No hay ninguna transmisión en este ejercicio.</value>
+  </data>
+  <data name="Results_Proceeds" xml:space="preserve">
+    <value>Transmisión</value>
+  </data>
+  <data name="Results_AcquisitionCost" xml:space="preserve">
+    <value>Coste de adquisición</value>
+  </data>
+  <data name="Results_Result" xml:space="preserve">
+    <value>Resultado</value>
+  </data>
+  <data name="Results_ByAsset" xml:space="preserve">
+    <value>Por activo</value>
+  </data>
+  <data name="Results_Details" xml:space="preserve">
+    <value>Transmisiones</value>
+  </data>
+  <data name="Results_ConsumedLots" xml:space="preserve">
+    <value>Lotes consumidos</value>
+  </data>
+  <data name="Results_Acquired" xml:space="preserve">
+    <value>Adquirido</value>
+  </data>
+  <data name="Results_Incomplete" xml:space="preserve">
+    <value>Estas cifras están incompletas: quedan movimientos sin clasificar.</value>
   </data>
 </root>

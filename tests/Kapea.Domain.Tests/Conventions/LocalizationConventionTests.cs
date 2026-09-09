@@ -50,6 +50,37 @@ public class LocalizationConventionTests
     }
 
     [Fact]
+    public void Scanner_still_catches_text_next_to_control_flow()
+    {
+        // El escáner ignora if, else y foreach para no confundir el control de flujo con
+        // texto. Esta prueba vigila que esa concesión no se lleve por delante el texto
+        // de verdad que hay al lado.
+        var literals = UiLiteralScanner.FindLiterals("""
+            @if (_cuentas.Count == 0)
+            {
+                <p>Todavía no hay ninguna cuenta.</p>
+            }
+            else
+            {
+                <FluentButton OnClick="@(() => Borrar(context))">@Ui["Common_Delete"]</FluentButton>
+            }
+            """);
+
+        Assert.Contains(literals, literal => literal.Contains("Todavía no hay ninguna cuenta.", StringComparison.Ordinal));
+        Assert.DoesNotContain(literals, literal => literal.Contains("Borrar", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Scanner_does_not_mistake_a_format_string_for_visible_text()
+    {
+        var literals = UiLiteralScanner.FindLiterals("""
+            <span>@context.OccurredAt.ToLocalTime().ToString("d")</span>
+            """);
+
+        Assert.Empty(literals);
+    }
+
+    [Fact]
     public void Scanner_accepts_localized_markup()
     {
         var literals = UiLiteralScanner.FindLiterals("""

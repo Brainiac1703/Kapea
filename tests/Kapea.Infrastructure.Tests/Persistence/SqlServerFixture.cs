@@ -31,7 +31,9 @@ public sealed class SqlServerFixture : IAsyncLifetime
     public KapeaDbContext CreateContext(UserId userId)
     {
         var options = new DbContextOptionsBuilder<KapeaDbContext>()
-            .UseSqlServer(_container.GetConnectionString())
+            // Con los reintentos activados, como en producción: sin ellos EF permite
+            // abrir transacciones a mano y los tests no verían el fallo que eso provoca.
+            .UseSqlServer(_container.GetConnectionString(), sql => sql.EnableRetryOnFailure())
             .Options;
 
         return new KapeaDbContext(options, new FixedUser(userId));

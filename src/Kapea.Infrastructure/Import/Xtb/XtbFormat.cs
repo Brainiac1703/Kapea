@@ -14,6 +14,9 @@ public enum XtbReportKind
 
     /// <summary>Posiciones cerradas: cada fila es una compra y su venta.</summary>
     ClosedPositions = 2,
+
+    /// <summary>Posiciones abiertas: cada fila es solo la compra, todavía sin transmitir.</summary>
+    OpenPositions = 3,
 }
 
 /// <summary>
@@ -54,6 +57,20 @@ public sealed record XtbFormat(string Name, XtbReportKind Kind, IReadOnlyList<Xt
             new("Commission", ["Commission", "Comisión", "Comision"], IsRequired: false),
             new("Currency", ["Currency", "Divisa", "Moneda"], IsRequired: false),
             new("GrossPL", ["Gross P/L", "Beneficio bruto", "Profit"], IsRequired: false),
+        ]),
+        // Sin este formato, un usuario de XTB nunca tendría posición abierta: el informe
+        // de cerradas, por definición, solo trae lo que ya se ha vendido.
+        new("Open positions", XtbReportKind.OpenPositions,
+        [
+            new("Position", ["Position", "Posición", "Posicion"]),
+            new("Symbol", ["Symbol", "Símbolo", "Simbolo"]),
+            new("Type", ["Type", "Tipo"]),
+            new("Volume", ["Volume", "Volumen"]),
+            new("OpenTime", ["Open time", "Hora de apertura", "Fecha de apertura"]),
+            new("OpenPrice", ["Open price", "Precio de apertura"]),
+            new("MarketPrice", ["Market price", "Precio de mercado"], IsRequired: false),
+            new("Commission", ["Commission", "Comisión", "Comision"], IsRequired: false),
+            new("Currency", ["Currency", "Divisa", "Moneda"], IsRequired: false),
         ]),
     ];
 }

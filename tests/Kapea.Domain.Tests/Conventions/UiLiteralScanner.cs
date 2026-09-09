@@ -34,9 +34,11 @@ internal static partial class UiLiteralScanner
         }
 
         var textOnly = Tag().Replace(withoutScripts, " ");
-        var withoutExpressions = RazorExpression().Replace(textOnly, " ");
+        var withoutControlFlow = ControlFlow().Replace(textOnly, " ");
+        var withoutExpressions = RazorExpression().Replace(withoutControlFlow, " ");
+        var withoutBraces = Braces().Replace(withoutExpressions, " ");
 
-        findings.AddRange(withoutExpressions
+        findings.AddRange(withoutBraces
             .Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries)
             .Select(line => line.Trim())
             .Where(line => Letter().IsMatch(line)));
@@ -104,11 +106,31 @@ internal static partial class UiLiteralScanner
     [GeneratedRegex(@"(?<name>[A-Za-z-]+)\s*=\s*""(?<value>[^""]*)""")]
     private static partial Regex UserFacingAttribute();
 
-    [GeneratedRegex(@"<[^>]*>", RegexOptions.Singleline)]
+    /// <summary>
+    /// Etiqueta completa, saltando por encima de los valores entrecomillados. Sin eso,
+    /// un lambda en un atributo —OnClick="@(() =&gt; Borrar())"— cierra la etiqueta en su
+    /// flecha y el resto del atributo se leería como texto visible.
+    /// </summary>
+    [GeneratedRegex("""<(?:[^>"']|"[^"]*"|'[^']*')*>""", RegexOptions.Singleline)]
     private static partial Regex Tag();
 
-    /// <summary>Expresiones Razor: @Body, @Ui["Clave"], @(expresión), @page "/ruta".</summary>
-    [GeneratedRegex("""@\w+(\.\w+)*(\[[^\]]*\])?|@\([^)]*\)""")]
+    /// <summary>
+    /// Control de flujo de Razor con su condición. La arroba es opcional porque en un
+    /// encadenamiento solo la lleva el primero: el else que sigue a una llave va suelto.
+    /// </summary>
+    [GeneratedRegex(@"@?\b(?:else\s+if|if|foreach|for|while|switch|do|try|catch|finally|else)\b\s*(?:\((?:[^()]|\([^()]*\))*\))?")]
+    private static partial Regex ControlFlow();
+
+    /// <summary>Llaves sueltas de los bloques de control, que no son texto de nadie.</summary>
+    [GeneratedRegex(@"[{}]")]
+    private static partial Regex Braces();
+
+    /// <summary>
+    /// Expresiones Razor: @Body, @Ui["Clave"], @(expresión) y cadenas de llamadas como
+    /// @fecha.ToLocalTime().ToString("d"), donde el formato entre comillas no es texto
+    /// para nadie aunque lo parezca.
+    /// </summary>
+    [GeneratedRegex("""@\w+(?:\((?:[^()]|\([^()]*\))*\)|\[[^\]]*\])?(?:\.\w+(?:\((?:[^()]|\([^()]*\))*\)|\[[^\]]*\])?)*|@\((?:[^()]|\([^()]*\))*\)"""  )]
     private static partial Regex RazorExpression();
 
     [GeneratedRegex(@"\p{L}")]

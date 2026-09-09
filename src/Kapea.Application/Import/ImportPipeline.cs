@@ -66,15 +66,24 @@ public sealed class ImportPipeline(
             var fingerprint = fingerprints[index];
             var duplicated = existing.Contains(fingerprint) || !seen.Add(fingerprint);
 
+            // Se comprueba aquí que el registro pueda llegar a ser un movimiento válido.
+            // Si se dejara para la confirmación, la vista previa prometería importar
+            // algo que después revienta, y el recuento que ve el usuario sería mentira.
+            var invalid = Validate(record);
+
+            var outcome = invalid is not null
+                ? StagedRecordOutcome.Rejected
+                : duplicated ? StagedRecordOutcome.Duplicate : StagedRecordOutcome.Importable;
+
             run.Stage(new StagedRecord(
                 run.Id,
-                duplicated ? StagedRecordOutcome.Duplicate : StagedRecordOutcome.Importable,
+                outcome,
                 fingerprint,
                 record.NaturalId,
                 record.RowNumber,
                 record.RawContent,
                 StagedPayload.Serialize(record),
-                rejectionReason: null));
+                invalid));
         }
 
         foreach (var rejected in read.Rejected)
@@ -101,6 +110,17 @@ public sealed class ImportPipeline(
 
         return run;
     }
+
+    private static string? Validate(ImportRecord record) => TransactionRules.Validate(
+        record.Type,
+        record.AssetSymbol is { Length: > 0 },
+        new Quantity(record.Quantity),
+        record.Currency,
+        record.UnitPrice is null ? null : record.Currency,
+        record.Currency,
+        record.Fee,
+        record.Withholding is null ? null : record.Currency,
+        record.Withholding);
 
     /// <summary>
     /// Materializa los registros importables. Es atómico: o entran todos o no entra

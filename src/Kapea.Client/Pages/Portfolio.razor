@@ -1,0 +1,102 @@
+@page "/portfolio"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Portfolio_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Portfolio_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Portfolio_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowSync())" OnClick="RecalculateAsync">
+        @Ui["Portfolio_Recalculate"]
+    </FluentButton>
+</FluentToolbar>
+
+@if (_portfolio is null)
+{
+    <FluentProgressRing />
+}
+else
+{
+    @* La advertencia va arriba y no al pie: quien mira estas cifras tiene que saber
+       antes de leerlas que están incompletas. *@
+    @if (!_portfolio.IsComplete)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+            @Ui["Portfolio_Incomplete"]
+            <FluentAnchor Href="review" Appearance="Appearance.Hypertext">@Ui["Nav_Review"]</FluentAnchor>
+        </FluentMessageBar>
+    }
+
+    @if (_portfolio.Positions.Count == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Ui["Portfolio_Empty"]</FluentMessageBar>
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
+            <Amount Label="@Ui["Portfolio_TotalCost"]" Value="@_portfolio.TotalCostInEuros" />
+            <Amount Label="@Ui["Portfolio_TotalValue"]" Value="@_portfolio.TotalMarketValueInEuros" />
+        </FluentStack>
+
+        <FluentDataGrid Items="@_portfolio.Positions.AsQueryable()"
+                        TGridItem="OpenPositionResponse"
+                        GridTemplateColumns="1fr 1fr 1fr 1fr 1fr 1fr 1fr">
+            <TemplateColumn Title="@Ui["Common_Asset"]">
+                @context.AssetSymbol
+                @if (!context.AssetIsVerified)
+                {
+                    <FluentIcon Value="@(new Icons.Regular.Size16.Warning())"
+                                Title="@Ui["Portfolio_Unverified"]" />
+                }
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Quantity"]">@Format.Quantity(context.Quantity)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Cost"]">@Euros(context.CostInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_AverageCost"]">@Euros(context.AverageCostInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]">@Euros(context.MarketPriceInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_MarketValue"]">@Euros(context.MarketValueInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Unrealised"]">
+                <span class="@Sign(context.UnrealisedResultInEuros)">@Euros(context.UnrealisedResultInEuros)</span>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+}
+
+@code {
+    private PortfolioResponse? _portfolio;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _portfolio = await Api.GetPortfolioAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            _portfolio = null;
+            Toasts.ShowError(exception.Message);
+        }
+    }
+
+    private async Task RecalculateAsync()
+    {
+        try
+        {
+            await Api.RecalculatePortfolioAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowError(exception.Message);
+        }
+
+        await ReloadAsync();
+    }
+
+    /// <summary>Un valor ausente se dice, no se disimula con un cero.</summary>
+    private string Euros(decimal? amount) => Format.Euros(amount, Ui["Portfolio_NoPrice"]);
+
+    private static string Sign(decimal? amount) => Format.Sign(amount);
+}

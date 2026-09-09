@@ -167,6 +167,38 @@ public class ImportPipelineTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task A_record_that_could_never_become_a_movement_is_rejected_in_the_preview()
+    {
+        // La vista previa tiene que decir la verdad: si un registro no puede llegar a ser
+        // un movimiento, se rechaza aquí y no al confirmar, cuando ya se ha prometido.
+        var scenario = await NewScenarioAsync();
+
+        var run = await StageAsync(scenario, Read([Buy("TX-1") with { AssetSymbol = null }]));
+
+        Assert.Equal(0, run.RecordsImported);
+        Assert.Equal(1, run.RecordsRejected);
+        Assert.Contains(
+            "necesita activo",
+            Assert.Single(run.Records, record => record.Outcome == StagedRecordOutcome.Rejected).RejectionReason!,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Confirming_a_preview_never_fails_over_a_record_it_promised()
+    {
+        var scenario = await NewScenarioAsync();
+
+        var run = await StageAsync(scenario, Read([Buy("TX-1"), Buy("TX-2") with { AssetSymbol = null }]));
+
+        await WithPipelineAsync(scenario, pipeline => pipeline.ConfirmAsync(run.Id));
+
+        await using var context = fixture.CreateContext(scenario.Owner);
+
+        Assert.Equal(1, run.RecordsImported);
+        Assert.Single(await context.Transactions.ToListAsync());
+    }
+
+    [Fact]
     public async Task A_failure_halfway_leaves_no_transactions_and_a_failed_run()
     {
         var scenario = await NewScenarioAsync();

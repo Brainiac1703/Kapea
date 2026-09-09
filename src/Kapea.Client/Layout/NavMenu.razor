@@ -1,29 +1,28 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">@Ui["App_Name"]</a>
-        <button title="@Ui["Nav_Menu_Toggle"]" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
+<div class="navmenu">
+    <FluentNavMenu Width="220" Title="@Ui["Nav_Menu_Toggle"]" Collapsible="true">
+        <FluentNavLink Href="" Match="NavLinkMatch.All" Icon="@(new Icons.Regular.Size20.Home())">
+            @Ui["Nav_Home"]
+        </FluentNavLink>
+        <FluentNavLink Href="accounts" Icon="@(new Icons.Regular.Size20.Wallet())">
+            @Ui["Nav_Accounts"]
+        </FluentNavLink>
+        <FluentNavLink Href="credentials" Icon="@(new Icons.Regular.Size20.Key())">
+            @Ui["Nav_Credentials"]
+        </FluentNavLink>
+        <FluentNavLink Href="import" Icon="@(new Icons.Regular.Size20.ArrowUpload())">
+            @Ui["Nav_Import"]
+        </FluentNavLink>
+        <FluentNavLink Href="imports" Icon="@(new Icons.Regular.Size20.History())">
+            @Ui["Nav_Imports"]
+        </FluentNavLink>
+        <FluentNavLink Href="review" Icon="@(new Icons.Regular.Size20.TaskListSquareLtr())">
+            @Ui["Nav_Review"]
+        </FluentNavLink>
+        <FluentNavLink Href="portfolio" Icon="@(new Icons.Regular.Size20.ChartMultiple())">
+            @Ui["Nav_Portfolio"]
+        </FluentNavLink>
+        <FluentNavLink Href="results" Icon="@(new Icons.Regular.Size20.DocumentTable())">
+            @Ui["Nav_Results"]
+        </FluentNavLink>
+    </FluentNavMenu>
 </div>
-
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> @Ui["Nav_Home"]
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
-@code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
-}

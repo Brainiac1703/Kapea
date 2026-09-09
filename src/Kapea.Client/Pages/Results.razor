@@ -1,0 +1,139 @@
+@page "/results"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Results_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Results_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Results_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentSelect TOption="int"
+                  Label="@Ui["Common_Year"]"
+                  Items="@Years"
+                  OptionText="@(year => year.ToString())"
+                  OptionValue="@(year => year.ToString())"
+                  SelectedOption="@_year"
+                  SelectedOptionChanged="OnYearChangedAsync" />
+</FluentToolbar>
+
+@if (_results is null)
+{
+    <FluentProgressRing />
+}
+else
+{
+    @if (!_results.IsComplete)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+            @Ui["Results_Incomplete"]
+            <FluentAnchor Href="review" Appearance="Appearance.Hypertext">@Ui["Nav_Review"]</FluentAnchor>
+        </FluentMessageBar>
+    }
+
+    @if (_results.ByAsset.Count == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Ui["Results_Empty"]</FluentMessageBar>
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
+            <Amount Label="@Ui["Results_Result"]" Value="@_results.TotalResultInEuros" />
+        </FluentStack>
+
+        <FluentLabel Typo="Typography.H3" Class="section">@Ui["Results_ByAsset"]</FluentLabel>
+
+        <FluentDataGrid Items="@_results.ByAsset.AsQueryable()"
+                        TGridItem="AssetResultResponse"
+                        GridTemplateColumns="1fr 1fr 1fr 1fr">
+            <PropertyColumn Property="@(entry => entry.AssetSymbol)" Title="@Ui["Common_Asset"]" />
+            <TemplateColumn Title="@Ui["Results_Proceeds"]">@Euros(context.ProceedsInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Results_AcquisitionCost"]">@Euros(context.AcquisitionCostInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Results_Result"]">
+                <span class="@Sign(context.ResultInEuros)">@Euros(context.ResultInEuros)</span>
+            </TemplateColumn>
+        </FluentDataGrid>
+
+        <FluentLabel Typo="Typography.H3" Class="section">@Ui["Results_Details"]</FluentLabel>
+
+        @* Cada transmisión se abre hasta los lotes que consumió: es lo que permite
+           defender la cifra, y sin ese desglose el informe no vale ante una gestoría. *@
+        <FluentAccordion>
+            @foreach (var detail in _results.Details)
+            {
+                <FluentAccordionItem Heading="@DetailHeading(detail)">
+                    <FluentDataGrid Items="@detail.ConsumedLots.AsQueryable()"
+                                    TGridItem="ConsumedLotResponse"
+                                    GridTemplateColumns="1fr 1fr 1fr 1fr 1fr">
+                        <TemplateColumn Title="@Ui["Results_Acquired"]">
+                            @context.AcquiredAt.ToLocalTime().ToString("d")
+                        </TemplateColumn>
+                        <TemplateColumn Title="@Ui["Common_Quantity"]">@Format.Quantity(context.Quantity)</TemplateColumn>
+                        <TemplateColumn Title="@Ui["Results_AcquisitionCost"]">
+                            @Euros(context.AcquisitionCostInEuros)
+                        </TemplateColumn>
+                        <TemplateColumn Title="@Ui["Results_Proceeds"]">@Euros(context.ProceedsInEuros)</TemplateColumn>
+                        <TemplateColumn Title="@Ui["Results_Result"]">
+                            <span class="@Sign(context.ResultInEuros)">@Euros(context.ResultInEuros)</span>
+                        </TemplateColumn>
+                    </FluentDataGrid>
+                </FluentAccordionItem>
+            }
+        </FluentAccordion>
+    }
+}
+
+@code {
+    private TaxYearResultsResponse? _results;
+    private int _year = DateTime.Today.Year;
+
+    /// <summary>Ejercicios ofrecidos: el actual y los cuatro anteriores, que es el plazo de prescripción.</summary>
+    private static readonly int[] Years =
+        [.. Enumerable.Range(0, 5).Select(offset => DateTime.Today.Year - offset)];
+
+    /// <summary>
+    /// Abre en el ejercicio más reciente que tenga transmisiones. Empezar siempre en el
+    /// año en curso enseña una pantalla vacía a quien todavía no ha vendido nada este
+    /// año, que es el caso normal en enero.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var year in Years)
+        {
+            _year = year;
+            await ReloadAsync();
+
+            if (_results is { ByAsset.Count: > 0 })
+            {
+                return;
+            }
+        }
+    }
+
+    private async Task OnYearChangedAsync(int year)
+    {
+        _year = year;
+
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _results = await Api.GetTaxYearResultsAsync(_year);
+        }
+        catch (KapeaApiException exception)
+        {
+            _results = null;
+            Toasts.ShowError(exception.Message);
+        }
+    }
+
+    private string DetailHeading(RealizedResultResponse detail) =>
+        $"{detail.DisposedAt.ToLocalTime():d} · {detail.AssetSymbol} · {Format.Quantity(detail.Quantity)} · {Euros(detail.ResultInEuros)}";
+
+    private static string Euros(decimal amount) => Format.Euros(amount);
+
+    private static string Sign(decimal amount) => Format.Sign(amount);
+}

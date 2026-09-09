@@ -64,7 +64,7 @@ public sealed class KapeaApiFactory : WebApplicationFactory<Program>, IAsyncLife
     public KapeaDbContext CreateContext(Guid userId)
     {
         var options = new DbContextOptionsBuilder<KapeaDbContext>()
-            .UseSqlServer(_container.GetConnectionString())
+            .UseSqlServer(_container.GetConnectionString(), sql => sql.EnableRetryOnFailure())
             .Options;
 
         return new KapeaDbContext(options, new FixedUser(userId));

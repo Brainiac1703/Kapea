@@ -114,18 +114,6 @@ public sealed class ImportRepository(KapeaDbContext context) : IImportRepository
     {
         ArgumentNullException.ThrowIfNull(work);
 
-        // La estrategia de ejecución de EF puede reintentar el bloque entero, así que
-        // la transacción se abre dentro y no fuera: reintentar con una ya abierta
-        // dejaría cambios a medias.
-        var strategy = context.Database.CreateExecutionStrategy();
-
-        await strategy.ExecuteAsync(async () =>
-        {
-            await using var transaction = await context.Database
-                .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-
-            await work(cancellationToken).ConfigureAwait(false);
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        }).ConfigureAwait(false);
+        await context.Database.ExecuteAsync(work, cancellationToken).ConfigureAwait(false);
     }
 }
