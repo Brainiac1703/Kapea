@@ -1,7 +1,7 @@
 using System.Globalization;
 using Kapea.Domain.ImportProfiles;
 
-namespace Kapea.Infrastructure.Import.Tabular;
+namespace Kapea.Application.Import;
 
 /// <summary>Una celda no se puede interpretar con las reglas del perfil.</summary>
 public sealed class ProfileValueException(string message) : InvalidOperationException(message);

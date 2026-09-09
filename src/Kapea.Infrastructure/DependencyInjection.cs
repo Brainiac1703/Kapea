@@ -77,6 +77,8 @@ public static class DependencyInjection
         services.AddScoped<IApiImportAdapter, Bit2MeImportAdapter>();
         services.AddScoped<IImportAdapterRegistry, ImportAdapterRegistry>();
 
+        services.AddMappingProposals(configuration);
+
         services.AddScoped<ICredentialVerifier, KrakenCredentialVerifier>();
         services.AddScoped<ICredentialVerifier, Bit2MeCredentialVerifier>();
 
@@ -124,6 +126,38 @@ public static class DependencyInjection
 
         services.AddScoped<IMarketPriceProvider>(
             provider => provider.GetRequiredService<CoinGeckoMarketPriceProvider>());
+    }
+
+    /// <summary>
+    /// Registra el servicio que propone mapeos, o su ausencia.
+    /// </summary>
+    /// <remarks>
+    /// Sin endpoint configurado se registra el que nunca propone nada, en lugar de no
+    /// registrar ninguno. Así el resto del código no tiene que preguntar si existe antes
+    /// de cada llamada, y la aplicación arranca igual sin el servicio.
+    /// </remarks>
+    private static void AddMappingProposals(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<Import.Mapping.AzureOpenAiOptions>(
+            configuration.GetSection(Import.Mapping.AzureOpenAiOptions.SectionName));
+
+        var options = configuration
+            .GetSection(Import.Mapping.AzureOpenAiOptions.SectionName)
+            .Get<Import.Mapping.AzureOpenAiOptions>() ?? new Import.Mapping.AzureOpenAiOptions();
+
+        if (!options.IsConfigured)
+        {
+            services.AddScoped<IMappingProposer, Import.Mapping.UnavailableMappingProposer>();
+
+            return;
+        }
+
+        services.AddHttpClient<IMappingProposer, Import.Mapping.AzureOpenAiMappingProposer>(client =>
+        {
+            client.BaseAddress = new Uri(options.Endpoint!.TrimEnd('/') + "/");
+            client.DefaultRequestHeaders.Add("api-key", options.ApiKey);
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
     }
 
     private static void TryAddTimeProvider(this IServiceCollection services)

@@ -74,6 +74,25 @@ resolverlo al arrancar y no dejarlo escrito en el `.env`.
 La pantalla de acceso no necesita ningún cambio: pinta un botón por cada proveedor que
 la API declara disponible.
 
+### Propuesta automática del mapeo
+
+Cuando aparece un formato de fichero que ningún perfil reconoce, Kapea puede pedir a
+Azure OpenAI que deduzca el mapeo. Es opcional: sin `AZURE_OPENAI_ENDPOINT` configurado
+el mapeo se hace a mano y todo lo demás funciona igual.
+
+Al servicio van las cabeceras y **como mucho tres filas** de ejemplo. Un extracto es un
+dato personal, y para saber qué columna es la fecha no hace falta ver el año entero; hay
+un test que inspecciona la petición emitida y falla si se cuela una cuarta fila.
+
+Lo que devuelve es un mapeo, nunca una cifra. Los importes los calcula después el motor
+determinista aplicando el perfil, así que recalcular un ejercicio ya presentado da
+siempre lo mismo. La propuesta se contrasta además con las filas de ejemplo: si la
+columna que dice ser la fecha no se lee como fecha en ninguna, se pregunta aunque el
+modelo declare estar seguro.
+
+`MappingProposals:AzureOpenAi:ConfidenceThreshold` decide cuánta seguridad basta para no
+preguntar. Sale a configuración porque el valor bueno solo se sabe usándolo.
+
 ### Secretos de los brokers
 
 Sin `KEYVAULT_URI` se usa el almacén de desarrollo, un fichero de User Secrets en un

@@ -29,12 +29,12 @@
 
 ## 5. Propuesta de mapeo por IA
 
-- [ ] 5.1 Definir el puerto de propuesta de mapeo en la capa de aplicación, con su contrato de entrada (cabeceras y filas de ejemplo) y de salida (correspondencia, traducción y confianza por campo); verificar con un doble que el motor de perfiles funciona sin implementación real
-- [ ] 5.2 Implementar el adaptador contra Azure OpenAI; verificar contra respuestas grabadas que una propuesta bien formada se interpreta y que una malformada se rechaza sin romper la importación
-- [ ] 5.3 Garantizar que la petición lleva solo cabeceras y como mucho tres filas; verificar con test que inspecciona la petición emitida y falla si contiene más filas del fichero
-- [ ] 5.4 Implementar la validación de la propuesta contra las filas de ejemplo: si la columna mapeada como fecha o como importe no se puede interpretar en ellas, la propuesta se marca como no concluyente; verificar con tests de columna mal mapeada
-- [ ] 5.5 Implementar la regla de confirmación —campo obligatorio sin mapear, confianza por debajo del umbral o concepto sin traducir— con el umbral en configuración; verificar con tests de propuesta concluyente y de cada motivo de duda por separado
-- [ ] 5.6 Implementar la degradación cuando el servicio no está configurado o falla; verificar con test que la importación sigue siendo posible por la vía manual
+- [x] 5.1 Definir el puerto de propuesta de mapeo en la capa de aplicación, con su contrato de entrada (cabeceras y filas de ejemplo) y de salida (correspondencia, traducción y confianza por campo); verificar con un doble que el motor de perfiles funciona sin implementación real
+- [x] 5.2 Implementar el adaptador contra Azure OpenAI; verificar contra respuestas grabadas que una propuesta bien formada se interpreta y que una malformada se rechaza sin romper la importación
+- [x] 5.3 Garantizar que la petición lleva solo cabeceras y como mucho tres filas; verificar con test que inspecciona la petición emitida y falla si contiene más filas del fichero
+- [x] 5.4 Implementar la validación de la propuesta contra las filas de ejemplo: si la columna mapeada como fecha o como importe no se puede interpretar en ellas, la propuesta se marca como no concluyente; verificar con tests de columna mal mapeada
+- [x] 5.5 Implementar la regla de confirmación —campo obligatorio sin mapear, confianza por debajo del umbral o concepto sin traducir— con el umbral en configuración; verificar con tests de propuesta concluyente y de cada motivo de duda por separado
+- [x] 5.6 Implementar la degradación cuando el servicio no está configurado o falla; verificar con test que la importación sigue siendo posible por la vía manual
 
 ## 6. Interfaz
 
