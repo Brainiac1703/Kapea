@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Kapea.Api/Kapea.Api.csproj" />
+    <Project Path="src/Kapea.Application/Kapea.Application.csproj" />
+    <Project Path="src/Kapea.Client/Kapea.Client.csproj" />
+    <Project Path="src/Kapea.Domain/Kapea.Domain.csproj" />
+    <Project Path="src/Kapea.Infrastructure/Kapea.Infrastructure.csproj" />
+    <Project Path="src/Kapea.Shared/Kapea.Shared.csproj" />
+    <Project Path="src/Kapea.Sync/Kapea.Sync.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Kapea.Api.Tests/Kapea.Api.Tests.csproj" />
+    <Project Path="tests/Kapea.Application.Tests/Kapea.Application.Tests.csproj" />
+    <Project Path="tests/Kapea.Domain.Tests/Kapea.Domain.Tests.csproj" />
+    <Project Path="tests/Kapea.Infrastructure.Tests/Kapea.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

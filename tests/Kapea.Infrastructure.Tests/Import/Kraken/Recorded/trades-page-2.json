@@ -1,0 +1,3 @@
+{"error":[],"result":{"trades":{
+"TCWJEG-FL4SZ-3FKGH8":{"ordertxid":"OQCLML-BW3P3-BUCMWB","pair":"XXBTZEUR","time":1705056600.0,"type":"sell","ordertype":"limit","price":"40000.0","cost":"2000.0","fee":"3.20","vol":"0.05000000","margin":"0.00000","misc":""}
+},"count":3}}

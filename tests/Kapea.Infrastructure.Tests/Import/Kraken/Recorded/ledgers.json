@@ -1,0 +1,6 @@
+{"error":[],"result":{"ledger":{
+"LGRSVT-QOWLF-3FKGH1":{"refid":"QCCUMLR-SEHU3-U2FLXD","time":1704797400.0,"type":"deposit","subtype":"","aclass":"currency","asset":"ZEUR","amount":"5000.0000","fee":"0.0000","balance":"5000.0000"},
+"LGRSVT-QOWLF-3FKGH2":{"refid":"QCCUMLR-SEHU3-U2FLXE","time":1704883800.1234,"type":"trade","subtype":"","aclass":"currency","asset":"XXBT","amount":"0.10000000","fee":"0.00000000","balance":"0.10000000"},
+"LGRSVT-QOWLF-3FKGH3":{"refid":"QCCUMLR-SEHU3-U2FLXF","time":1705143000.0,"type":"staking","subtype":"","aclass":"currency","asset":"ETH.S","amount":"0.00420000","fee":"0.00000000","balance":"0.00420000"},
+"LGRSVT-QOWLF-3FKGH4":{"refid":"QCCUMLR-SEHU3-U2FLXG","time":1705229400.0,"type":"withdrawal","subtype":"","aclass":"currency","asset":"XXBT","amount":"-0.02000000","fee":"0.00005000","balance":"0.08000000"}
+},"count":4}}

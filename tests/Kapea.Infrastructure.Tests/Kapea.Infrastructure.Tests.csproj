@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Kapea.Infrastructure\Kapea.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Kapea.Domain\Kapea.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Kapea.Shared\Kapea.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Respuestas grabadas de las APIs externas: se copian para poder leerlas como
+         ficheros, igual que llegan de la red. -->
+    <!-- La exclusión no es opcional: sin ella el glob recoge lo ya copiado en bin y
+         cada compilación lo vuelve a anidar un nivel más. -->
+    <None Include="**\Recorded\**\*" Exclude="bin\**;obj\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

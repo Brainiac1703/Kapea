@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="App_Name" xml:space="preserve">
+    <value>Kapea</value>
+  </data>
+  <data name="Nav_Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Nav_Accounts" xml:space="preserve">
+    <value>Accounts</value>
+  </data>
+  <data name="Nav_Credentials" xml:space="preserve">
+    <value>Credentials</value>
+  </data>
+  <data name="Nav_Menu_Toggle" xml:space="preserve">
+    <value>Navigation menu</value>
+  </data>
+  <data name="Home_Title" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Home_Heading" xml:space="preserve">
+    <value>Kapea</value>
+  </data>
+  <data name="Home_Intro" xml:space="preserve">
+    <value>Consolidate your investments, work out your results and prepare your tax information.</value>
+  </data>
+  <data name="Home_NextStep" xml:space="preserve">
+    <value>Start by adding an account and, if the platform has an API, its read-only credential.</value>
+  </data>
+  <data name="NotFound_Title" xml:space="preserve">
+    <value>Page not found</value>
+  </data>
+  <data name="NotFound_Heading" xml:space="preserve">
+    <value>Page not found</value>
+  </data>
+  <data name="NotFound_Message" xml:space="preserve">
+    <value>The content you are looking for does not exist.</value>
+  </data>
+  <data name="Common_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Common_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="Common_Platform" xml:space="preserve">
+    <value>Platform</value>
+  </data>
+  <data name="Common_Alias" xml:space="preserve">
+    <value>Alias</value>
+  </data>
+  <data name="Common_Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Common_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Common_Never" xml:space="preserve">
+    <value>Never</value>
+  </data>
+  <data name="Accounts_Title" xml:space="preserve">
+    <value>Accounts</value>
+  </data>
+  <data name="Accounts_Heading" xml:space="preserve">
+    <value>Accounts</value>
+  </data>
+  <data name="Accounts_Intro" xml:space="preserve">
+    <value>One account per platform you trade on. Every movement belongs to exactly one.</value>
+  </data>
+  <data name="Accounts_Empty" xml:space="preserve">
+    <value>No accounts yet. Add the first one to start importing movements.</value>
+  </data>
+  <data name="Accounts_BaseCurrency" xml:space="preserve">
+    <value>Base currency</value>
+  </data>
+  <data name="Accounts_New" xml:space="preserve">
+    <value>New account</value>
+  </data>
+  <data name="Accounts_AliasHelp" xml:space="preserve">
+    <value>To tell it apart from others on the same platform.</value>
+  </data>
+  <data name="Accounts_DeleteConfirm_Title" xml:space="preserve">
+    <value>Delete the account</value>
+  </data>
+  <data name="Accounts_DeleteConfirm_Message" xml:space="preserve">
+    <value>The account will be deleted. If it has imported movements, the operation is refused.</value>
+  </data>
+  <data name="Credentials_Title" xml:space="preserve">
+    <value>Credentials</value>
+  </data>
+  <data name="Credentials_Heading" xml:space="preserve">
+    <value>Platform credentials</value>
+  </data>
+  <data name="Credentials_Intro" xml:space="preserve">
+    <value>Read-only keys so Kapea can download your history. They are kept on the server and never reach the browser.</value>
+  </data>
+  <data name="Credentials_Empty" xml:space="preserve">
+    <value>No credentials yet. XTB does not need one: its history is imported from a file.</value>
+  </data>
+  <data name="Credentials_Warning" xml:space="preserve">
+    <value>Create the key with read-only permissions. Kapea refuses any that can trade or withdraw funds.</value>
+  </data>
+  <data name="Credentials_Account" xml:space="preserve">
+    <value>Account</value>
+  </data>
+  <data name="Credentials_ApiKey" xml:space="preserve">
+    <value>API key</value>
+  </data>
+  <data name="Credentials_ApiSecret" xml:space="preserve">
+    <value>API secret</value>
+  </data>
+  <data name="Credentials_Scopes" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+  <data name="Credentials_Created" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="Credentials_LastSync" xml:space="preserve">
+    <value>Last synchronised</value>
+  </data>
+  <data name="Credentials_New" xml:space="preserve">
+    <value>New credential</value>
+  </data>
+  <data name="Credentials_Rotate" xml:space="preserve">
+    <value>Rotate</value>
+  </data>
+  <data name="Credentials_Rotate_Title" xml:space="preserve">
+    <value>Rotate the credential</value>
+  </data>
+  <data name="Credentials_Rotate_Message" xml:space="preserve">
+    <value>Replaces the key and the secret. The credential history and everything imported with it are kept.</value>
+  </data>
+  <data name="Credentials_Revoke" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+  <data name="Credentials_Revoke_Title" xml:space="preserve">
+    <value>Revoke the credential</value>
+  </data>
+  <data name="Credentials_Revoke_Message" xml:space="preserve">
+    <value>It will no longer be used for synchronisation and its secret is deleted. Movements already imported are kept.</value>
+  </data>
+  <data name="Credentials_NoApiAccounts" xml:space="preserve">
+    <value>You need a Kraken or Bit2Me account first. XTB is imported from a file.</value>
+  </data>
+  <data name="Status_Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Status_Revoked" xml:space="preserve">
+    <value>Revoked</value>
+  </data>
+  <data name="Status_Invalid" xml:space="preserve">
+    <value>Invalid</value>
+  </data>
+  <data name="Nav_Import" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="Nav_Imports" xml:space="preserve">
+    <value>Imports</value>
+  </data>
+  <data name="Import_Title" xml:space="preserve">
+    <value>Import movements</value>
+  </data>
+  <data name="Import_Heading" xml:space="preserve">
+    <value>Import movements</value>
+  </data>
+  <data name="Import_Intro" xml:space="preserve">
+    <value>Upload the xStation5 export. You will see what would go in before confirming anything.</value>
+  </data>
+  <data name="Import_ChooseAccount" xml:space="preserve">
+    <value>Target account</value>
+  </data>
+  <data name="Import_ChooseFile" xml:space="preserve">
+    <value>Choose file</value>
+  </data>
+  <data name="Import_NoFileAccounts" xml:space="preserve">
+    <value>You need an XTB account. Kraken and Bit2Me are imported through their API.</value>
+  </data>
+  <data name="Import_Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="Import_Confirm" xml:space="preserve">
+    <value>Confirm the import</value>
+  </data>
+  <data name="Import_Discard" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="Import_Confirmed" xml:space="preserve">
+    <value>Import confirmed</value>
+  </data>
+  <data name="Import_Discarded" xml:space="preserve">
+    <value>Import discarded</value>
+  </data>
+  <data name="Import_NothingToImport" xml:space="preserve">
+    <value>Nothing new to import: everything in the file was already there.</value>
+  </data>
+  <data name="Import_RecordsRead" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Import_RecordsImported" xml:space="preserve">
+    <value>Will be imported</value>
+  </data>
+  <data name="Import_Duplicates" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="Import_Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Import_NonFinancial" xml:space="preserve">
+    <value>No financial effect</value>
+  </data>
+  <data name="Imports_Title" xml:space="preserve">
+    <value>Imports</value>
+  </data>
+  <data name="Imports_Heading" xml:space="preserve">
+    <value>Import history</value>
+  </data>
+  <data name="Imports_Intro" xml:space="preserve">
+    <value>Every import with what went in, what was discarded as duplicate and what was rejected.</value>
+  </data>
+  <data name="Imports_Empty" xml:space="preserve">
+    <value>Nothing has been imported yet.</value>
+  </data>
+  <data name="Imports_Started" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Imports_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Imports_Detail" xml:space="preserve">
+    <value>Rejected records</value>
+  </data>
+  <data name="Imports_Row" xml:space="preserve">
+    <value>Row</value>
+  </data>
+  <data name="Imports_Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Imports_RawContent" xml:space="preserve">
+    <value>Original content</value>
+  </data>
+  <data name="Imports_NoRejected" xml:space="preserve">
+    <value>This import rejected no records.</value>
+  </data>
+  <data name="Imports_Delete" xml:space="preserve">
+    <value>Delete the import</value>
+  </data>
+  <data name="Imports_Delete_Message" xml:space="preserve">
+    <value>The import and the movements it created will be deleted. It is refused if any of them is part of a confirmed transfer.</value>
+  </data>
+  <data name="Imports_Api" xml:space="preserve">
+    <value>API</value>
+  </data>
+  <data name="RunStatus_Staged" xml:space="preserve">
+    <value>Awaiting confirmation</value>
+  </data>
+  <data name="RunStatus_Completed" xml:space="preserve">
+    <value>Confirmed</value>
+  </data>
+  <data name="RunStatus_Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="RunStatus_Discarded" xml:space="preserve">
+    <value>Discarded</value>
+  </data>
+  <data name="Nav_Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Nav_Portfolio" xml:space="preserve">
+    <value>Portfolio</value>
+  </data>
+  <data name="Nav_Results" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="Review_Title" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Review_Heading" xml:space="preserve">
+    <value>Pending review</value>
+  </data>
+  <data name="Review_Intro" xml:space="preserve">
+    <value>While anything remains here, the portfolio and result figures are incomplete.</value>
+  </data>
+  <data name="Review_Transfers" xml:space="preserve">
+    <value>Proposed transfers</value>
+  </data>
+  <data name="Review_Transfers_Help" xml:space="preserve">
+    <value>A withdrawal from one account matching a deposit in another. Kapea does not assume it: confirming moves the lots without realising a result, rejecting leaves two independent operations.</value>
+  </data>
+  <data name="Review_Transfers_Empty" xml:space="preserve">
+    <value>No transfers awaiting a decision.</value>
+  </data>
+  <data name="Review_Unclassified" xml:space="preserve">
+    <value>Unclassified movements</value>
+  </data>
+  <data name="Review_Unclassified_Help" xml:space="preserve">
+    <value>The source brought a concept that fits no known type. They stay out of the calculation until resolved.</value>
+  </data>
+  <data name="Review_Unclassified_Empty" xml:space="preserve">
+    <value>No unclassified movements.</value>
+  </data>
+  <data name="Review_AllClear" xml:space="preserve">
+    <value>Nothing left to review.</value>
+  </data>
+  <data name="Review_Detect" xml:space="preserve">
+    <value>Look for transfers</value>
+  </data>
+  <data name="Transfer_Sent" xml:space="preserve">
+    <value>Sent</value>
+  </data>
+  <data name="Transfer_Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Transfer_NetworkFee" xml:space="preserve">
+    <value>Network fee</value>
+  </data>
+  <data name="Transfer_Confirm" xml:space="preserve">
+    <value>It is a transfer</value>
+  </data>
+  <data name="Transfer_Reject" xml:space="preserve">
+    <value>They are independent</value>
+  </data>
+  <data name="Common_Asset" xml:space="preserve">
+    <value>Asset</value>
+  </data>
+  <data name="Common_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Common_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Common_Amount" xml:space="preserve">
+    <value>Amount</value>
+  </data>
+  <data name="Common_Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="Common_Origin" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Common_Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Common_Year" xml:space="preserve">
+    <value>Tax year</value>
+  </data>
+  <data name="Portfolio_Title" xml:space="preserve">
+    <value>Portfolio</value>
+  </data>
+  <data name="Portfolio_Heading" xml:space="preserve">
+    <value>Open positions</value>
+  </data>
+  <data name="Portfolio_Intro" xml:space="preserve">
+    <value>What you hold right now and what it cost. Market value only appears when a price is available.</value>
+  </data>
+  <data name="Portfolio_Empty" xml:space="preserve">
+    <value>No open positions. Import movements to see one.</value>
+  </data>
+  <data name="Portfolio_Incomplete" xml:space="preserve">
+    <value>These figures are incomplete: there are movements pending review.</value>
+  </data>
+  <data name="Portfolio_Cost" xml:space="preserve">
+    <value>Cost</value>
+  </data>
+  <data name="Portfolio_AverageCost" xml:space="preserve">
+    <value>Average cost</value>
+  </data>
+  <data name="Portfolio_MarketPrice" xml:space="preserve">
+    <value>Price</value>
+  </data>
+  <data name="Portfolio_MarketValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="Portfolio_Unrealised" xml:space="preserve">
+    <value>Unrealised result</value>
+  </data>
+  <data name="Portfolio_NoPrice" xml:space="preserve">
+    <value>No price</value>
+  </data>
+  <data name="Portfolio_Unverified" xml:space="preserve">
+    <value>Unverified asset</value>
+  </data>
+  <data name="Portfolio_TotalCost" xml:space="preserve">
+    <value>Total cost</value>
+  </data>
+  <data name="Portfolio_TotalValue" xml:space="preserve">
+    <value>Total value</value>
+  </data>
+  <data name="Portfolio_Recalculate" xml:space="preserve">
+    <value>Recalculate</value>
+  </data>
+  <data name="Results_Title" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="Results_Heading" xml:space="preserve">
+    <value>Realised results</value>
+  </data>
+  <data name="Results_Intro" xml:space="preserve">
+    <value>Capital gains and losses for the tax year, broken down to the lots behind them.</value>
+  </data>
+  <data name="Results_Empty" xml:space="preserve">
+    <value>No disposals in this tax year.</value>
+  </data>
+  <data name="Results_Proceeds" xml:space="preserve">
+    <value>Proceeds</value>
+  </data>
+  <data name="Results_AcquisitionCost" xml:space="preserve">
+    <value>Acquisition cost</value>
+  </data>
+  <data name="Results_Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="Results_ByAsset" xml:space="preserve">
+    <value>By asset</value>
+  </data>
+  <data name="Results_Details" xml:space="preserve">
+    <value>Disposals</value>
+  </data>
+  <data name="Results_ConsumedLots" xml:space="preserve">
+    <value>Lots consumed</value>
+  </data>
+  <data name="Results_Acquired" xml:space="preserve">
+    <value>Acquired</value>
+  </data>
+  <data name="Results_Incomplete" xml:space="preserve">
+    <value>These figures are incomplete: there are unclassified movements.</value>
+  </data>
+</root>

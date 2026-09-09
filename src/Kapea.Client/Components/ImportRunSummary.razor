@@ -1,0 +1,21 @@
+@* Recuentos de una importación. Los cinco se enseñan siempre, también los ceros: un
+   descarte silencioso es indistinguible de un dato perdido. *@
+
+<FluentStack Orientation="Orientation.Horizontal" HorizontalGap="24" Class="counts">
+    <Count Label="@Ui["Import_RecordsRead"]" Value="@Run.RecordsRead" />
+    <Count Label="@Ui["Import_RecordsImported"]" Value="@Run.RecordsImported" Highlight="true" />
+    <Count Label="@Ui["Import_Duplicates"]" Value="@Run.DuplicatesDiscarded" />
+    <Count Label="@Ui["Import_Rejected"]" Value="@Run.RecordsRejected" />
+    <Count Label="@Ui["Import_NonFinancial"]" Value="@Run.NonFinancialRecords" />
+</FluentStack>
+
+@if (!string.IsNullOrWhiteSpace(Run.FailureReason))
+{
+    <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false">@Run.FailureReason</FluentMessageBar>
+}
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required ImportRunResponse Run { get; set; }
+}

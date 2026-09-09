@@ -1,0 +1,134 @@
+name: kapea
+
+# ---------------------------------------------------------------------------
+# Entorno de desarrollo completo en contenedores.
+#
+#   cp .env.example .env      (y ajusta la contraseña de SQL Server)
+#   docker compose up --build
+#   -> aplicación en http://localhost:8082
+#   -> SQL Server en localhost:14331 con la base de datos Kapea
+#
+# Levanta tres piezas:
+#
+#   api      Web API que además sirve los estáticos del cliente WebAssembly.
+#            Es la única que ve las credenciales de los brokers: el cliente
+#            corre en el navegador y no puede custodiar secretos.
+#
+#   sync     Proceso de sincronización periódica con Kraken y Bit2Me. Vive
+#            aparte porque su ciclo de vida es distinto y para que un fallo
+#            hablando con un tercero no arrastre a la API.
+#
+#   sqlserver  Base de datos de la aplicación. Las migraciones las aplica la
+#            API al arrancar en desarrollo, así que la base se crea sola.
+#
+# Sin credenciales de broker configuradas el entorno funciona igual: se pueden
+# crear cuentas e importar ficheros de XTB. La sincronización simplemente no
+# encuentra nada que sincronizar.
+# ---------------------------------------------------------------------------
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    image: kapea-api:dev
+    ports:
+      # Solo cambia el puerto publicado en el anfitrión. El interno sigue siendo
+      # el 8080, que es el que espera el ingress de Container Apps y el que
+      # declara el Dockerfile.
+      - '${API_PORT:-8082}:8080'
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: '8080'
+      ConnectionStrings__Kapea: &sqlserver-connection >-
+        Server=sqlserver,1433;Database=Kapea;User Id=sa;
+        Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=True
+
+      # Sin autoridad configurada, la API arranca con autenticación de
+      # desarrollo y atribuye todo al usuario fijo de abajo. Es deliberado que
+      # esto solo valga en Development: fuera de él la API se niega a arrancar
+      # sin identidad configurada, en lugar de abrirse a cualquiera.
+      Authentication__Authority: '${AUTH_AUTHORITY:-}'
+      Authentication__Audience: '${AUTH_AUDIENCE:-}'
+      Authentication__DevelopmentUser__Id: '${DEV_USER_ID:-00000000-0000-0000-0000-000000000001}'
+
+      ApplicationInsights__ConnectionString: '${APPLICATIONINSIGHTS_CONNECTION_STRING:-}'
+
+      # Sin Key Vault se usa el almacén de desarrollo, un fichero de User
+      # Secrets dentro del volumen de abajo. Guarda en claro, como todo User
+      # Secrets, y por eso vive fuera de la imagen y del repositorio.
+      KeyVault__Uri: '${KEYVAULT_URI:-}'
+      UserSecrets__Id: kapea-local
+    volumes:
+      - broker-secrets:/home/app/.microsoft/usersecrets
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', "timeout 2 bash -c '</dev/tcp/localhost/8080' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: sync
+    image: kapea-sync:dev
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__Kapea: *sqlserver-connection
+
+      # Intervalo corto en desarrollo para no esperar seis horas a ver si la
+      # sincronización funciona. En producción manda el valor por omisión.
+      Synchronization__Interval: '${SYNC_INTERVAL:-00:15:00}'
+
+      ApplicationInsights__ConnectionString: '${APPLICATIONINSIGHTS_CONNECTION_STRING:-}'
+      KeyVault__Uri: '${KEYVAULT_URI:-}'
+      UserSecrets__Id: kapea-local
+    volumes:
+      # El mismo volumen que la API: las credenciales las da de alta la API y
+      # las lee el proceso de sincronización, así que ambos ven el mismo almacén.
+      - broker-secrets:/home/app/.microsoft/usersecrets
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      api:
+        # Espera a que la API haya aplicado las migraciones: si arrancara antes,
+        # su primera pasada fallaría contra una base de datos que aún no existe.
+        condition: service_healthy
+    restart: unless-stopped
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: '${MSSQL_SA_PASSWORD:?define MSSQL_SA_PASSWORD en el fichero .env}'
+      MSSQL_PID: Developer
+    ports:
+      # 14331 y no 1433 a propósito: es habitual tener ya una instancia local de
+      # SQL Server, o el contenedor de otro proyecto, ocupando el puerto
+      # estándar. Se cambia con SQLSERVER_PORT en el fichero .env.
+      - '${SQLSERVER_PORT:-14331}:1433'
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      # Las imágenes de SQL Server 2022 ya no incluyen mssql-tools, así que se
+      # comprueba el puerto en lugar de ejecutar una consulta.
+      test: ['CMD-SHELL', "timeout 2 bash -c '</dev/tcp/localhost/1433' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  mssql-data:
+
+  # Las credenciales de los brokers en desarrollo. En un volumen y no en la
+  # imagen para que sobrevivan a un rebuild y no acaben nunca en un commit.
+  broker-secrets:

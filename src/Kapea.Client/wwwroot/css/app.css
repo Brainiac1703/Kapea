@@ -1,0 +1,111 @@
+/* Estilos propios de Kapea. Fluent UI aporta el resto: tipografía, colores y
+   componentes vienen de su sistema de diseño y no se redefinen aquí. */
+
+.body-content {
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+}
+
+.content {
+    max-width: 1200px;
+}
+
+/* Separa el texto introductorio del título y de lo que viene debajo. */
+.intro {
+    margin: 0.25rem 0 1.5rem 0;
+    color: var(--neutral-foreground-hint);
+}
+
+.navmenu {
+    /* Ancho fijo: el menú no compite por el espacio con la tabla de la derecha,
+       que es lo que de verdad necesita crecer. */
+    min-width: 220px;
+    border-right: 1px solid var(--neutral-stroke-divider-rest);
+}
+
+.main {
+    height: calc(100dvh - 50px);
+}
+
+/* La interfaz de error de Blazor es la única de la plantilla que se conserva:
+   avisa de un fallo del cliente del que no hay forma de enterarse si no. */
+#blazor-error-ui {
+    background: var(--error);
+    color: var(--neutral-fill-rest);
+    bottom: 0;
+    display: none;
+    left: 0;
+    padding: 0.75rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+.section {
+    margin-top: 2rem;
+}
+
+.upload-card {
+    max-width: 640px;
+    padding: 1.5rem;
+}
+
+/* El input de fichero nativo es feo y no se puede estilar; se oculta y se usa la
+   etiqueta como botón, que es lo que sí acepta estilos. */
+.file-picker {
+    align-items: center;
+    border: 1px dashed var(--neutral-stroke-rest);
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+
+.file-picker input[type="file"] {
+    display: none;
+}
+
+.counts {
+    margin: 1rem 0;
+}
+
+.count-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.1;
+}
+
+.count-label {
+    color: var(--neutral-foreground-hint);
+    font-size: 0.8rem;
+}
+
+.count-highlight .count-value {
+    color: var(--accent-fill-rest);
+}
+
+/* El contenido original de una fila rechazada se lee mejor sin ajuste de línea:
+   así se corresponde con lo que hay en el fichero. */
+.raw {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+/* Ganancia y pérdida en color, pero el signo sigue delante: el color solo refuerza
+   lo que ya dice el número, para que se lea igual sin distinguirlos. */
+.gain {
+    color: var(--success);
+}
+
+.loss {
+    color: var(--error);
+}

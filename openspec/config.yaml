@@ -14,9 +14,13 @@ context: |
     (Directory.Packages.props, ManagePackageVersionsCentrally + pinning
     transitivo).
   - Arquitectura por capas con las dependencias apuntando hacia dentro:
-    Domain sin dependencias, Application con CQRS (MediatR) + FluentValidation,
-    adaptador de persistencia con EF Core + SQL Server, Web solo conoce ISender.
-    Ajustar a lo que Kapea necesite, pero mantener la dirección de dependencias.
+    Domain sin dependencias, Application con los casos de uso y los puertos,
+    adaptador de persistencia con EF Core + SQL Server, Web solo consume la capa
+    de aplicación. Mantener siempre la dirección de dependencias.
+  - Sin CQRS por ahora: MediatR y FluentValidation pasaron a licencia comercial,
+    así que la API son minimal APIs que llaman a los servicios de aplicación.
+    Minimal APIs no excluye CQRS; queda pendiente de una implementación propia
+    del despacho de comandos y de la validación, que llegará de otro proyecto.
 
   Convenciones de idioma:
   - Identificadores, nombres de fichero, rutas y URLs de páginas: en inglés.

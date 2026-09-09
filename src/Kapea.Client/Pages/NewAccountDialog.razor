@@ -1,0 +1,35 @@
+@implements IDialogContentComponent<NewAccountModel>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentSelect TOption="string"
+                  Label="@Ui["Common_Platform"]"
+                  Items="@Platforms"
+                  @bind-Value="Content.Platform"
+                  Required="true" />
+
+    <FluentTextField @bind-Value="Content.Alias"
+                     Label="@Ui["Common_Alias"]"
+                     Required="true"
+                     Style="width: 100%" />
+
+    <FluentLabel Typo="Typography.Body">@Ui["Accounts_AliasHelp"]</FluentLabel>
+
+    <FluentSelect TOption="string"
+                  Label="@Ui["Accounts_BaseCurrency"]"
+                  Items="@Currencies"
+                  @bind-Value="Content.BaseCurrency"
+                  Required="true" />
+</FluentStack>
+
+@code {
+    /// <summary>
+    /// Las plataformas se listan aquí y no se piden a la API porque el conjunto lo fija
+    /// el dominio: añadir una es dar de alta su adaptador, no un dato de configuración.
+    /// </summary>
+    private static readonly string[] Platforms = ["Xtb", "Kraken", "Bit2Me"];
+
+    private static readonly string[] Currencies = ["EUR", "USD", "GBP", "CHF"];
+
+    [Parameter]
+    public NewAccountModel Content { get; set; } = new();
+}

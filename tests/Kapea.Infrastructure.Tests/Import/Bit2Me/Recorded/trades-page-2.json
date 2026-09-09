@@ -1,0 +1,3 @@
+{"count":3,"data":[
+{"id":"a1b2c3d4-0001-4000-8000-000000000003","orderId":"o-3","symbol":"BTC/EUR","side":"sell","orderType":"limit","price":"40000.00","amount":"0.05000000","priceCurrency":"EUR","amountCurrency":"BTC","isMaker":true,"createdAt":"2024-01-12T10:50:00.000Z","cost":2000.00,"costEuro":2000.00,"feeAmount":3.20,"feePercentage":0.16,"feeCurrency":"EUR"}
+]}

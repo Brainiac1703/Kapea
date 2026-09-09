@@ -1,0 +1,32 @@
+# ---------------------------------------------------------------------------
+# Ajustes que solo aplican en desarrollo local.
+#
+# Docker Compose lo combina automáticamente con docker-compose.yml, así que el
+# fichero base se mantiene limpio y reutilizable.
+#
+# Para levantar el entorno sin estos ajustes (por ejemplo para reproducir el
+# comportamiento de producción):
+#   docker compose -f docker-compose.yml up --build
+# ---------------------------------------------------------------------------
+
+services:
+  api:
+    environment:
+      # Registro detallado, incluido el SQL que ejecuta EF Core. En el núcleo
+      # fiscal poder ver la consulta exacta ahorra mucho tiempo cuando una cifra
+      # no cuadra.
+      Logging__LogLevel__Default: Information
+      Logging__LogLevel__Kapea: Debug
+      Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command: Information
+    # Se para si falla en el arranque, en lugar de reiniciarse en bucle y
+    # esconder el error entre los reintentos.
+    restart: 'no'
+
+  sync:
+    environment:
+      Logging__LogLevel__Default: Information
+      Logging__LogLevel__Kapea: Debug
+    restart: 'no'
+
+  sqlserver:
+    restart: 'no'

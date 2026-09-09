@@ -1,0 +1,124 @@
+@page "/review"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Review_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Review_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Review_Intro"]</FluentLabel>
+
+@if (_transfers is null || _unclassified is null)
+{
+    <FluentProgressRing />
+}
+else
+{
+    @if (_transfers.Count == 0 && _unclassified.Count == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Success">@Ui["Review_AllClear"]</FluentMessageBar>
+    }
+
+    <FluentLabel Typo="Typography.H3" Class="section">@Ui["Review_Transfers"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Review_Transfers_Help"]</FluentLabel>
+
+    <FluentToolbar>
+        <FluentButton IconStart="@(new Icons.Regular.Size16.Search())" OnClick="DetectAsync">
+            @Ui["Review_Detect"]
+        </FluentButton>
+    </FluentToolbar>
+
+    @if (_transfers.Count == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Ui["Review_Transfers_Empty"]</FluentMessageBar>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_transfers.AsQueryable()"
+                        TGridItem="InternalTransferResponse"
+                        GridTemplateColumns="1fr 1fr 1fr 1fr auto">
+            <PropertyColumn Property="@(transfer => transfer.AssetSymbol)" Title="@Ui["Common_Asset"]" />
+            <TemplateColumn Title="@Ui["Transfer_Sent"]">@Format.Quantity(context.SentQuantity)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Transfer_Received"]">@Format.Quantity(context.ReceivedQuantity)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Transfer_NetworkFee"]">@Format.Quantity(context.NetworkFeeQuantity)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Actions"]" Align="Align.End">
+                <FluentButton Appearance="Appearance.Accent" OnClick="@(() => ResolveAsync(context, true))">
+                    @Ui["Transfer_Confirm"]
+                </FluentButton>
+                <FluentButton Appearance="Appearance.Neutral" OnClick="@(() => ResolveAsync(context, false))">
+                    @Ui["Transfer_Reject"]
+                </FluentButton>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+
+    <FluentLabel Typo="Typography.H3" Class="section">@Ui["Review_Unclassified"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Review_Unclassified_Help"]</FluentLabel>
+
+    @if (_unclassified.Count == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Ui["Review_Unclassified_Empty"]</FluentMessageBar>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_unclassified.AsQueryable()"
+                        TGridItem="TransactionResponse"
+                        GridTemplateColumns="1fr 1fr 1fr 3fr">
+            <TemplateColumn Title="@Ui["Common_Date"]">@context.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Amount"]">
+                @Format.Money(context.GrossAmount, context.Currency)
+            </TemplateColumn>
+            <PropertyColumn Property="@(transaction => transaction.Type)" Title="@Ui["Common_Type"]" />
+            <TemplateColumn Title="@Ui["Imports_RawContent"]">
+                <code class="raw">@context.RawContent</code>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+}
+
+@code {
+    private IReadOnlyList<InternalTransferResponse>? _transfers;
+    private IReadOnlyList<TransactionResponse>? _unclassified;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _transfers = await Api.GetTransfersAsync(onlyPending: true);
+            _unclassified = await Api.GetTransactionsAsync(onlyRequiringReview: true);
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowError(exception.Message);
+        }
+    }
+
+    private async Task DetectAsync()
+    {
+        try
+        {
+            await Api.DetectTransfersAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowError(exception.Message);
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task ResolveAsync(InternalTransferResponse transfer, bool confirm)
+    {
+        try
+        {
+            await Api.ResolveTransferAsync(transfer.Id, confirm);
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowError(exception.Message);
+        }
+
+        await ReloadAsync();
+    }
+}

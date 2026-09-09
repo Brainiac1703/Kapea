@@ -518,3 +518,7 @@ backend.hcl
 
 # Configuración MCP de la demo: contiene la contraseña de SQL Server.
 samples/demo-mcp/.mcp.json
+
+# .NET
+bin/
+obj/

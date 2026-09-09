@@ -1,0 +1,18 @@
+<div class="count @(Highlight ? "count-highlight" : null)">
+    <div class="count-value">@Value</div>
+    <div class="count-label">@Label</div>
+</div>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required string Label { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public required int Value { get; set; }
+
+    /// <summary>Destaca el recuento que responde a la pregunta que trae al usuario aquí.</summary>
+    [Parameter]
+    public bool Highlight { get; set; }
+}

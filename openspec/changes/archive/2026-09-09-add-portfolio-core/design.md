@@ -5,7 +5,8 @@ Repositorio vacío: este change levanta la solución entera además de implement
 Restricciones que condicionan el diseño:
 
 - **El cliente es Blazor WebAssembly**, decidido en la propuesta inicial. Corre en el navegador y no puede custodiar secretos, así que la Web API ASP.NET Core no es opcional: es la única pieza que ve las API keys de los brokers.
-- **Convenciones del equipo** (heredadas de legacy-lens): .NET 10, solución `.slnx`, versiones centralizadas, arquitectura por capas con las dependencias apuntando hacia dentro, CQRS con MediatR y FluentValidation en Application, EF Core en el adaptador de persistencia.
+- **Convenciones del equipo** (heredadas de legacy-lens): .NET 10, solución `.slnx`, versiones centralizadas, arquitectura por capas con las dependencias apuntando hacia dentro, EF Core en el adaptador de persistencia.
+- **Sin CQRS en esta fase.** MediatR y FluentValidation pasaron a licencia comercial, así que la API son minimal APIs que llaman directamente a los servicios de aplicación. La decisión no cierra la puerta: minimal APIs y CQRS son ortogonales, y el despacho de comandos y la validación se retomarán con una implementación propia.
 - **Ritmo real: ~1 día/semana.** El diseño prioriza que cada tarea deje algo verificable y que el núcleo determinista esté cubierto por tests antes de tocar la UI.
 - **El cálculo fiscal es crítico.** La decisión de que el informe sea presentable a una gestoría convierte la trazabilidad en requisito estructural, no en una mejora posterior: hay que poder recorrer cualquier cifra hasta la fila del fichero o el registro de la API que la originó.
 - **Los orígenes son inestables.** El formato de exportación de XTB cambia sin aviso y las APIs de Kraken y Bit2Me están fuera de nuestro control.
@@ -33,8 +34,8 @@ Restricciones que condicionan el diseño:
 ```
 Kapea.slnx
   src/Kapea.Domain              — entidades, invariantes, cálculo FIFO. Sin dependencias.
-  src/Kapea.Application         — CQRS (MediatR), validación, puertos (interfaces) de importación,
-                                  tipos de cambio y almacén de secretos.
+  src/Kapea.Application         — casos de uso, validación y puertos (interfaces) de
+                                  importación, tipos de cambio y almacén de secretos.
   src/Kapea.Infrastructure      — EF Core + SQL Server, adaptadores de broker, Key Vault, tipos de cambio.
   src/Kapea.Api                 — Web API: endpoints, autenticación, composición.
   src/Kapea.Client              — Blazor WebAssembly.

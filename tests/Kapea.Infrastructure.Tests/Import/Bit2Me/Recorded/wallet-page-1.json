@@ -1,0 +1,6 @@
+{"data":[
+{"id":"w-0001","date":"2024-01-05T08:00:00.000Z","completedAt":"2024-01-05T08:00:05.000Z","concept":"Ingreso SEPA","type":"transfer","subtype":"deposit","method":"bank","status":"completed","denomination":{"amount":"5000.00","currency":"EUR"},"destination":{"currency":"EUR","amount":"5000.00"}},
+{"id":"w-0002","date":"2024-02-20T09:30:00.000Z","completedAt":"2024-02-20T09:30:10.000Z","concept":"Permuta","type":"transfer","subtype":"swap","method":"pocket","status":"completed","denomination":{"amount":"1500.00","currency":"EUR"},"origin":{"currency":"BTC","amount":"0.02500000"},"destination":{"currency":"ETH","amount":"0.60000000"}},
+{"id":"w-0003","date":"2024-03-01T09:30:00.000Z","completedAt":"2024-03-01T09:30:10.000Z","concept":"Retirada","type":"transfer","subtype":"withdrawal","method":"blockchain","status":"completed","denomination":{"amount":"800.00","currency":"EUR"},"origin":{"currency":"BTC","amount":"0.01000000"},"fee":{"network":{"amount":"0.00005000","currency":"BTC"}}},
+{"id":"w-0004","date":"2024-03-02T09:30:00.000Z","concept":"Cancelada","type":"transfer","subtype":"deposit","method":"bank","status":"canceled","denomination":{"amount":"100.00","currency":"EUR"},"destination":{"currency":"EUR","amount":"100.00"}}
+],"pageInfo":{"hasNextPage":true,"endCursor":"Y3Vyc29yLTE="}}

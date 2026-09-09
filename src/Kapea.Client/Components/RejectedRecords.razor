@@ -1,0 +1,25 @@
+@* Registros que no se han podido normalizar, con su contenido original y el motivo.
+   Se enseña el contenido tal cual porque sin él no hay forma de arreglar la fila. *@
+
+@if (Records.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Success" AllowDismiss="false">@Ui["Imports_NoRejected"]</FluentMessageBar>
+}
+else
+{
+    <FluentDataGrid Items="@Records.AsQueryable()"
+                    TGridItem="RejectedRecordResponse"
+                    GridTemplateColumns="auto 2fr 3fr">
+        <PropertyColumn Property="@(record => record.RowNumber)" Title="@Ui["Imports_Row"]" />
+        <PropertyColumn Property="@(record => record.Reason)" Title="@Ui["Imports_Reason"]" />
+        <TemplateColumn Title="@Ui["Imports_RawContent"]">
+            <code class="raw">@context.RawContent</code>
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required IReadOnlyList<RejectedRecordResponse> Records { get; set; }
+}

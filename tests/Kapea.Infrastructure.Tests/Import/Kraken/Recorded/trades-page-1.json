@@ -1,0 +1,4 @@
+{"error":[],"result":{"trades":{
+"TCWJEG-FL4SZ-3FKGH6":{"ordertxid":"OQCLML-BW3P3-BUCMWZ","pair":"XXBTZEUR","time":1704883800.1234,"type":"buy","ordertype":"limit","price":"38000.0","cost":"3800.0","fee":"6.08","vol":"0.10000000","margin":"0.00000","misc":""},
+"TCWJEG-FL4SZ-3FKGH7":{"ordertxid":"OQCLML-BW3P3-BUCMWA","pair":"XETHXXBT","time":1704970200.5,"type":"sell","ordertype":"market","price":"0.0530","cost":"0.10600","fee":"0.00021","vol":"2.00000000","margin":"0.00000","misc":""}
+},"count":3}}
