@@ -60,7 +60,10 @@ public sealed record TransactionResponse(
     string? RawContent,
     decimal? AppliedExchangeRate,
     DateOnly? ExchangeRateDate,
-    bool ExchangeRateWasSubstituted);
+    bool ExchangeRateWasSubstituted,
+    Guid? ProfileId = null,
+    string? ProfileName = null,
+    int? ProfileVersion = null);
 
 /// <summary>Posición abierta. El valor de mercado puede faltar y se dice explícitamente.</summary>
 public sealed record OpenPositionResponse(

@@ -53,6 +53,11 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
             source.Property(value => value.RowNumber).HasColumnName("SourceRowNumber");
             source.Property(value => value.Fingerprint).HasColumnName("Fingerprint").HasMaxLength(64).IsRequired();
 
+            // Con qué reglas se leyó la fila. Es lo que permite responder de dónde salió
+            // una cifra meses después, cuando el perfil ya se ha corregido varias veces.
+            source.Property(value => value.ProfileId).HasColumnName("SourceProfileId");
+            source.Property(value => value.ProfileVersion).HasColumnName("SourceProfileVersion");
+
             // Índice único por cuenta y huella: es lo que hace que reimportar el mismo
             // periodo no duplique, y que el intento quede rechazado por la base de datos
             // y no solo por la comprobación previa en memoria.

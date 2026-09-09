@@ -30,6 +30,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<Platform> Platforms => Set<Platform>();
 
+    public DbSet<Domain.ImportProfiles.ImportProfile> ImportProfiles => Set<Domain.ImportProfiles.ImportProfile>();
+
     public DbSet<PlatformAccount> Accounts => Set<PlatformAccount>();
 
     public DbSet<Transaction> Transactions => Set<Transaction>();

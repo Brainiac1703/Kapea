@@ -13,21 +13,42 @@ namespace Kapea.Domain.Transactions;
 /// <param name="RowNumber">Fila dentro del fichero. Nulo en orígenes de API.</param>
 /// <param name="Fingerprint">Huella de deduplicación, estable para el mismo registro de origen.</param>
 /// <param name="RawContent">Contenido original íntegro del registro. Ocupa poco a esta escala y es lo que sostiene la trazabilidad.</param>
-public sealed record TransactionSource(Guid? ImportRunId, string? NaturalId, int? RowNumber, string Fingerprint, string? RawContent = null)
+/// <param name="ProfileId">Perfil con el que se leyó la fila. Nulo si el origen fue una API o un ajuste manual.</param>
+/// <param name="ProfileVersion">Versión concreta de ese perfil, que es la que fija cómo se interpretó cada columna.</param>
+public sealed record TransactionSource(
+    Guid? ImportRunId,
+    string? NaturalId,
+    int? RowNumber,
+    string Fingerprint,
+    string? RawContent = null,
+    Guid? ProfileId = null,
+    int? ProfileVersion = null)
 {
     public static TransactionSource FromImport(
         Guid importRunId,
         string? naturalId,
         int? rowNumber,
         string fingerprint,
-        string? rawContent = null)
+        string? rawContent = null,
+        Guid? profileId = null,
+        int? profileVersion = null)
     {
         if (string.IsNullOrWhiteSpace(fingerprint))
         {
             throw new DomainException("Un movimiento importado necesita huella de deduplicación.");
         }
 
-        return new TransactionSource(importRunId, naturalId, rowNumber, fingerprint, rawContent);
+        // Van juntos o no van: una versión sin perfil no dice nada, y un perfil sin
+        // versión no permite recuperar las reglas que produjeron la cifra, que es lo
+        // único para lo que se guarda.
+        if (profileId.HasValue != profileVersion.HasValue)
+        {
+            throw new DomainException(
+                "El perfil y su versión se guardan juntos: uno sin el otro no permite reconstruir cómo se interpretó la fila.");
+        }
+
+        return new TransactionSource(
+            importRunId, naturalId, rowNumber, fingerprint, rawContent, profileId, profileVersion);
     }
 
     public static TransactionSource ForManualAdjustment(Guid adjustmentId) =>

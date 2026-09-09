@@ -7,11 +7,11 @@
 
 ## 2. Perfil de importación
 
-- [ ] 2.1 Implementar la entidad de perfil con sus cabeceras reconocidas, delimitador, convenciones de número y fecha, correspondencia de columnas y traducción de conceptos; verificar con tests que un perfil sin fecha o sin importe se rechaza indicando el campo que falta
-- [ ] 2.2 Implementar el versionado: editar un perfil crea una versión nueva y conserva la anterior; verificar con test que la versión previa sigue siendo recuperable
-- [ ] 2.3 Añadir al movimiento la referencia al perfil y la versión con los que se interpretó; verificar con test de integración que la consulta de un movimiento devuelve esa referencia junto a la ejecución y la fila original
-- [ ] 2.4 Implementar el emparejamiento de un fichero con su perfil por las cabeceras; verificar con tests de formato conocido, formato desconocido y varios perfiles posibles, comprobando que en el último caso se aplica el más reciente y se deja constancia
-- [ ] 2.5 Persistir perfiles y versiones con su configuración de EF Core; verificar con test de integración que un perfil sobrevive al viaje de ida y vuelta con todas sus reglas
+- [x] 2.1 Implementar la entidad de perfil con sus cabeceras reconocidas, delimitador, convenciones de número y fecha, correspondencia de columnas y traducción de conceptos; verificar con tests que un perfil sin fecha o sin importe se rechaza indicando el campo que falta
+- [x] 2.2 Implementar el versionado: editar un perfil crea una versión nueva y conserva la anterior; verificar con test que la versión previa sigue siendo recuperable
+- [x] 2.3 Añadir al movimiento la referencia al perfil y la versión con los que se interpretó; verificar con test de integración que la consulta de un movimiento devuelve esa referencia junto a la ejecución y la fila original
+- [x] 2.4 Implementar el emparejamiento de un fichero con su perfil por las cabeceras; verificar con tests de formato conocido, formato desconocido y varios perfiles posibles, comprobando que en el último caso se aplica el más reciente y se deja constancia
+- [x] 2.5 Persistir perfiles y versiones con su configuración de EF Core; verificar con test de integración que un perfil sobrevive al viaje de ida y vuelta con todas sus reglas
 
 ## 3. Adaptador genérico de fichero
 

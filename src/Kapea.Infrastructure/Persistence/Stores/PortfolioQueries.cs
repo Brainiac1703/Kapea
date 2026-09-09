@@ -86,6 +86,12 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
 
         var symbols = await SymbolsAsync(cancellationToken).ConfigureAwait(false);
 
+        // El nombre del perfil se resuelve aquí y no fila a fila: son unos pocos, y
+        // consultarlos por movimiento multiplicaría las idas a la base de datos.
+        var profileNames = await context.ImportProfiles
+            .ToDictionaryAsync(profile => profile.Id, profile => profile.Name, cancellationToken)
+            .ConfigureAwait(false);
+
         return
         [
             .. transactions
@@ -111,7 +117,12 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
                     transaction.Source.RawContent,
                     transaction.AppliedExchangeRate?.UnitsPerEuro,
                     transaction.AppliedExchangeRate?.RateDate,
-                    transaction.AppliedExchangeRate?.WasSubstituted ?? false)),
+                    transaction.AppliedExchangeRate?.WasSubstituted ?? false,
+                    transaction.Source.ProfileId,
+                    transaction.Source.ProfileId is { } profileId
+                        ? profileNames.GetValueOrDefault(profileId)
+                        : null,
+                    transaction.Source.ProfileVersion)),
         ];
     }
 
