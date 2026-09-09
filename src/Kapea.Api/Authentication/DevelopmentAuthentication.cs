@@ -9,10 +9,10 @@ namespace Kapea.Api.Authentication;
 /// Autenticación de conveniencia para desarrollo local.
 /// </summary>
 /// <remarks>
-/// Existe para que el entorno de docker compose se pueda levantar sin un inquilino de
-/// Entra. No es un modo relajado del real: es un esquema distinto que solo se registra
-/// cuando el entorno es Development y no hay autoridad configurada, y el arranque
-/// falla si alguna vez se dieran las dos cosas fuera de desarrollo.
+/// Existe para que el entorno de docker compose se pueda levantar sin dar de alta
+/// un proveedor externo. No es un modo relajado del real: es un esquema distinto que
+/// solo se registra cuando el entorno es Development y no hay proveedor configurado, y
+/// el arranque falla si alguna vez se dieran las dos cosas fuera de desarrollo.
 ///
 /// El identificador es fijo y configurable para que los datos importados sobrevivan a
 /// un reinicio del contenedor; uno aleatorio dejaría la cartera vacía en cada arranque.
@@ -29,7 +29,7 @@ public sealed class DevelopmentAuthenticationHandler(
     {
         var identity = new ClaimsIdentity(
             [
-                new Claim("oid", user.Value.Id.ToString()),
+                new Claim(KapeaAuthentication.UserIdClaim, user.Value.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Value.DisplayName),
             ],
             SchemeName);
@@ -39,7 +39,7 @@ public sealed class DevelopmentAuthenticationHandler(
     }
 }
 
-/// <summary>Usuario con el que se trabaja en desarrollo cuando no hay Entra configurado.</summary>
+/// <summary>Usuario con el que se trabaja en desarrollo cuando no hay proveedor configurado.</summary>
 public sealed class DevelopmentUserOptions
 {
     public const string SectionName = "Authentication:DevelopmentUser";

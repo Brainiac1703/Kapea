@@ -8,17 +8,17 @@
 
 ## 2. Inicio de sesión con Google
 
-- [ ] 2.1 Configurar el flujo de acceso con Google en la API, con el secreto de cliente en el almacén de secretos; verificar que el secreto no aparece en ninguna respuesta ni en ningún mensaje de registro
-- [ ] 2.2 Implementar la resolución de identidad al volver del proveedor: crear el usuario en el primer acceso y reconocerlo en los siguientes; verificar con tests de primer acceso, acceso repetido y correo cambiado en el proveedor
-- [ ] 2.3 Implementar el manejo del acceso cancelado o rechazado por el proveedor; verificar con test que no se crea ningún usuario y que el mensaje lo explica
-- [ ] 2.4 Establecer la sesión con cookie del servidor y hacer que el usuario actual salga de ella; verificar con test que el identificador de la sesión no puede sustituirse por un parámetro de la petición
-- [ ] 2.5 Retirar la configuración de Entra External ID; verificar que la aplicación sigue negándose a arrancar fuera de desarrollo sin proveedor configurado
+- [x] 2.1 Configurar el flujo de acceso con Google en la API, con el secreto de cliente en la configuración —y no en el almacén de secretos, que guarda credenciales de usuario y no se puede leer antes de saber quién entra—; verificar que el secreto no aparece en ninguna respuesta
+- [x] 2.2 Implementar la resolución de identidad al volver del proveedor: crear el usuario en el primer acceso y reconocerlo en los siguientes; verificar con tests de primer acceso, acceso repetido y correo cambiado en el proveedor
+- [x] 2.3 Implementar el manejo del acceso cancelado o rechazado por el proveedor; verificar con test que no se crea ningún usuario y que el mensaje lo explica
+- [x] 2.4 Establecer la sesión con cookie del servidor y hacer que el usuario actual salga de ella; verificar con test que el identificador de la sesión no puede sustituirse por un parámetro de la petición
+- [x] 2.5 Retirar la configuración de Entra External ID; verificar que la aplicación sigue negándose a arrancar fuera de desarrollo sin proveedor configurado
 
 ## 3. Aislamiento con usuarios reales
 
-- [ ] 3.1 Adaptar la autenticación de prueba de los tests de API para que emita identidades de proveedor en lugar de un identificador directo; verificar que la batería existente sigue pasando
-- [ ] 3.2 Añadir pruebas de extremo a extremo con dos usuarios sobre la misma instalación: cuentas, movimientos, importaciones, posiciones y resultados; verificar que ninguno ve rastro del otro en ninguna de las consultas
-- [ ] 3.3 Verificar que una petición con el identificador de otro usuario como parámetro devuelve los datos del usuario de la sesión, para cada endpoint que acepte parámetros
+- [x] 3.1 Adaptar la autenticación de prueba de los tests de API para que emita identidades de proveedor en lugar de un identificador directo; verificar que la batería existente sigue pasando
+- [x] 3.2 Añadir pruebas de extremo a extremo con dos usuarios sobre la misma instalación: cuentas, movimientos, importaciones, posiciones y resultados; verificar que ninguno ve rastro del otro en ninguna de las consultas
+- [x] 3.3 Verificar que una petición con el identificador de otro usuario como parámetro devuelve los datos del usuario de la sesión, para cada endpoint que acepte parámetros
 
 ## 4. Migración de los datos existentes
 

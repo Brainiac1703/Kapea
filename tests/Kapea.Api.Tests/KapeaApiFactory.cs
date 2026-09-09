@@ -33,6 +33,24 @@ public sealed class KapeaApiFactory : WebApplicationFactory<Program>, IAsyncLife
     /// <summary>Usuario que presentará el cliente autenticado. Se cambia por test.</summary>
     public Guid CurrentUserId { get; set; } = Guid.NewGuid();
 
+    /// <summary>
+    /// Da de alta un usuario con una identidad de proveedor y devuelve un cliente con
+    /// su sesión. Es el camino que recorre una persona de verdad, y así los tests
+    /// ejercitan el registro además del aislamiento.
+    /// </summary>
+    public async Task<(HttpClient Client, Guid UserId)> CreateSignedInClientAsync(
+        string provider = "Google",
+        string? subject = null)
+    {
+        using var scope = Services.CreateScope();
+
+        var signIn = scope.ServiceProvider.GetRequiredService<Application.Identity.UserSignInService>();
+        var result = await signIn.SignInAsync(new Application.Identity.ExternalPrincipal(
+            provider, subject ?? Guid.NewGuid().ToString("N"), "Persona de prueba", null));
+
+        return (CreateClientFor(result.User.Id.Value), result.User.Id.Value);
+    }
+
     public async Task InitializeAsync()
     {
         await _container.StartAsync();
@@ -117,7 +135,8 @@ public sealed class TestAuthenticationHandler(
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
-        var identity = new ClaimsIdentity([new Claim("oid", userId.ToString())], SchemeName);
+        var identity = new ClaimsIdentity(
+            [new Claim(Kapea.Api.Authentication.KapeaAuthentication.UserIdClaim, userId.ToString())], SchemeName);
 
         return Task.FromResult(AuthenticateResult.Success(
             new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));

@@ -45,12 +45,12 @@ services:
         Server=sqlserver,1433;Database=Kapea;User Id=sa;
         Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=True
 
-      # Sin autoridad configurada, la API arranca con autenticación de
-      # desarrollo y atribuye todo al usuario fijo de abajo. Es deliberado que
-      # esto solo valga en Development: fuera de él la API se niega a arrancar
-      # sin identidad configurada, en lugar de abrirse a cualquiera.
-      Authentication__Authority: '${AUTH_AUTHORITY:-}'
-      Authentication__Audience: '${AUTH_AUDIENCE:-}'
+      # Sin proveedor configurado, la API arranca con autenticación de desarrollo
+      # y atribuye todo al usuario fijo de abajo. Es deliberado que esto solo
+      # valga en Development: fuera de él la API se niega a arrancar sin
+      # identidad configurada, en lugar de abrirse a cualquiera.
+      Authentication__Google__ClientId: '${GOOGLE_CLIENT_ID:-}'
+      Authentication__Google__ClientSecret: '${GOOGLE_CLIENT_SECRET:-}'
       Authentication__DevelopmentUser__Id: '${DEV_USER_ID:-00000000-0000-0000-0000-000000000001}'
 
       ApplicationInsights__ConnectionString: '${APPLICATIONINSIGHTS_CONNECTION_STRING:-}'

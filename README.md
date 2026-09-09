@@ -35,10 +35,18 @@ que sincronizar.
 
 ### Identidad en desarrollo
 
-Sin `AUTH_AUTHORITY` configurado, la API arranca con autenticación de desarrollo y
+Kapea no guarda contraseñas: se entra con un proveedor externo. Sin
+`GOOGLE_CLIENT_ID` configurado, la API arranca con autenticación de desarrollo y
 atribuye toda petición a un usuario fijo. Es deliberado que esto **solo** valga en
 `Development`: fuera de él la API se niega a arrancar sin identidad configurada, en
 lugar de abrirse a cualquiera.
+
+Para activar Google, crea un ID de cliente de OAuth en Google Cloud con la URI de
+redirección `http://localhost:8082/signin-google` y rellena `GOOGLE_CLIENT_ID` y
+`GOOGLE_CLIENT_SECRET` en el `.env`.
+
+Apple queda preparado y sin implementar: el modelo admite varios proveedores por
+usuario, pero «Sign in with Apple» exige una cuenta de Apple Developer de pago.
 
 ### Secretos de los brokers
 

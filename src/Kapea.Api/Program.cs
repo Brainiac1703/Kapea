@@ -2,12 +2,12 @@ using Kapea.Api.Authentication;
 using Kapea.Api.Endpoints;
 using Kapea.Application.Abstractions;
 using Kapea.Application.Credentials;
+using Kapea.Application.Identity;
 using Kapea.Application.Import;
 using Kapea.Domain.Common;
 using Kapea.Infrastructure;
 using Kapea.Infrastructure.Import.Xtb;
 using Kapea.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,39 +18,7 @@ builder.Services.AddKapeaInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 
-var authority = builder.Configuration["Authentication:Authority"];
-var usesEntra = !string.IsNullOrWhiteSpace(authority);
-
-if (!usesEntra && !builder.Environment.IsDevelopment())
-{
-    // Sin esta comprobación, un despliegue al que se le olvidara configurar Entra
-    // arrancaría con la autenticación de desarrollo y expondría los datos a cualquiera.
-    throw new InvalidOperationException(
-        "Falta Authentication:Authority. Fuera de desarrollo la API no arranca sin identidad configurada.");
-}
-
-if (usesEntra)
-{
-    builder.Services
-        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.Authority = authority;
-            options.Audience = builder.Configuration["Authentication:Audience"];
-            options.TokenValidationParameters.ValidateIssuer = true;
-            options.TokenValidationParameters.ValidateAudience = true;
-        });
-}
-else
-{
-    builder.Services.Configure<DevelopmentUserOptions>(
-        builder.Configuration.GetSection(DevelopmentUserOptions.SectionName));
-
-    builder.Services
-        .AddAuthentication(DevelopmentAuthenticationHandler.SchemeName)
-        .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, DevelopmentAuthenticationHandler>(
-            DevelopmentAuthenticationHandler.SchemeName, _ => { });
-}
+builder.Services.AddKapeaAuthentication(builder.Configuration, builder.Environment.IsDevelopment());
 
 builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
@@ -73,7 +41,7 @@ if (app.Environment.IsDevelopment())
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<KapeaDbContext>().Database.MigrateAsync();
 
-    if (!usesEntra)
+    if (string.IsNullOrWhiteSpace(builder.Configuration["Authentication:Google:ClientId"]))
     {
         app.Logger.LogWarning(
             "Autenticación de desarrollo activa: toda petición se atribuye al usuario fijo de desarrollo.");
@@ -88,6 +56,9 @@ app.UseExceptionHandler(handler => handler.Run(async context =>
 
     var (status, title) = exception switch
     {
+        // Antes que DomainException, de la que deriva: el caso concreto explica mejor
+        // qué ha pasado que el genérico.
+        IdentityAlreadyLinkedException => (StatusCodes.Status409Conflict, "Esa cuenta ya está enlazada a otro usuario."),
         DomainException => (StatusCodes.Status409Conflict, "La operación no es válida en el estado actual."),
         CredentialRejectedException => (StatusCodes.Status400BadRequest, "La plataforma ha rechazado la credencial."),
         UnsupportedPlatformException => (StatusCodes.Status400BadRequest, "Plataforma no soportada."),
@@ -120,6 +91,7 @@ app.MapStaticAssets();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapIdentityEndpoints();
 app.MapKapeaEndpoints();
 
 // Cualquier ruta que no sea de la API la resuelve el enrutador de Blazor en el cliente.
