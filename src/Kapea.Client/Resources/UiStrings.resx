@@ -556,4 +556,61 @@
   <data name="Identities_AppleSoon" xml:space="preserve">
     <value>Apple llegará más adelante: exige una cuenta de desarrollador de pago.</value>
   </data>
+  <data name="Nav_Platforms" xml:space="preserve">
+    <value>Plataformas</value>
+  </data>
+  <data name="Platforms_Title" xml:space="preserve">
+    <value>Plataformas</value>
+  </data>
+  <data name="Platforms_Heading" xml:space="preserve">
+    <value>Plataformas</value>
+  </data>
+  <data name="Platforms_Intro" xml:space="preserve">
+    <value>Los brókeres y exchanges de los que importas. Vienen tres puestas; puedes añadir cualquiera que exporte un fichero.</value>
+  </data>
+  <data name="Platforms_New" xml:space="preserve">
+    <value>Nueva plataforma</value>
+  </data>
+  <data name="Platforms_Empty" xml:space="preserve">
+    <value>No hay ninguna plataforma. Eso no debería pasar: las tres de serie se dan de alta al arrancar.</value>
+  </data>
+  <data name="Platforms_Code" xml:space="preserve">
+    <value>Código</value>
+  </data>
+  <data name="Platforms_CodeHelp" xml:space="preserve">
+    <value>Solo letras y dígitos, sin espacios ni acentos. Queda guardado en cada movimiento importado, así que no se puede cambiar después.</value>
+  </data>
+  <data name="Platforms_ImportKind" xml:space="preserve">
+    <value>Cómo llegan los movimientos</value>
+  </data>
+  <data name="Platforms_ImportKind_File" xml:space="preserve">
+    <value>Por fichero que subes</value>
+  </data>
+  <data name="Platforms_ImportKind_Api" xml:space="preserve">
+    <value>Por su API</value>
+  </data>
+  <data name="Platforms_ApiNote" xml:space="preserve">
+    <value>Solo puedes añadir plataformas de fichero. Una de API necesita además un adaptador propio, que es código.</value>
+  </data>
+  <data name="Platforms_BuiltIn" xml:space="preserve">
+    <value>De serie</value>
+  </data>
+  <data name="Platforms_Added" xml:space="preserve">
+    <value>Añadida</value>
+  </data>
+  <data name="Platforms_NoProfileYet" xml:space="preserve">
+    <value>Todavía no hay ningún perfil que sepa leer sus ficheros. Podrás crearlo cuando exista la pantalla de perfiles.</value>
+  </data>
+  <data name="Platforms_DeleteConfirm_Title" xml:space="preserve">
+    <value>Retirar plataforma</value>
+  </data>
+  <data name="Platforms_DeleteConfirm_Message" xml:space="preserve">
+    <value>Si tiene cuentas, no se podrá retirar hasta que las borres.</value>
+  </data>
+  <data name="Common_Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Platforms_CodeExample" xml:space="preserve">
+    <value>DeGiro</value>
+  </data>
 </root>

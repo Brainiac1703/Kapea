@@ -556,4 +556,61 @@
   <data name="Identities_AppleSoon" xml:space="preserve">
     <value>Apple will come later: it requires a paid developer account.</value>
   </data>
+  <data name="Nav_Platforms" xml:space="preserve">
+    <value>Platforms</value>
+  </data>
+  <data name="Platforms_Title" xml:space="preserve">
+    <value>Platforms</value>
+  </data>
+  <data name="Platforms_Heading" xml:space="preserve">
+    <value>Platforms</value>
+  </data>
+  <data name="Platforms_Intro" xml:space="preserve">
+    <value>The brokers and exchanges you import from. Three come configured; you can add any that exports a file.</value>
+  </data>
+  <data name="Platforms_New" xml:space="preserve">
+    <value>New platform</value>
+  </data>
+  <data name="Platforms_Empty" xml:space="preserve">
+    <value>There are no platforms. That should not happen: the three built-in ones are added at start-up.</value>
+  </data>
+  <data name="Platforms_Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Platforms_CodeHelp" xml:space="preserve">
+    <value>Letters and digits only, no spaces or accents. It is stored with every imported movement, so it cannot be changed later.</value>
+  </data>
+  <data name="Platforms_ImportKind" xml:space="preserve">
+    <value>How movements arrive</value>
+  </data>
+  <data name="Platforms_ImportKind_File" xml:space="preserve">
+    <value>By file you upload</value>
+  </data>
+  <data name="Platforms_ImportKind_Api" xml:space="preserve">
+    <value>Through its API</value>
+  </data>
+  <data name="Platforms_ApiNote" xml:space="preserve">
+    <value>You can only add file platforms. An API one also needs its own adapter, which is code.</value>
+  </data>
+  <data name="Platforms_BuiltIn" xml:space="preserve">
+    <value>Built-in</value>
+  </data>
+  <data name="Platforms_Added" xml:space="preserve">
+    <value>Added</value>
+  </data>
+  <data name="Platforms_NoProfileYet" xml:space="preserve">
+    <value>No profile can read its files yet. You will be able to create one once the profiles screen exists.</value>
+  </data>
+  <data name="Platforms_DeleteConfirm_Title" xml:space="preserve">
+    <value>Retire platform</value>
+  </data>
+  <data name="Platforms_DeleteConfirm_Message" xml:space="preserve">
+    <value>If it has accounts, it cannot be retired until you delete them.</value>
+  </data>
+  <data name="Common_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Platforms_CodeExample" xml:space="preserve">
+    <value>DeGiro</value>
+  </data>
 </root>

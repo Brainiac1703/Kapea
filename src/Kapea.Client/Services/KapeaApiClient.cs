@@ -17,6 +17,22 @@ public sealed class KapeaApiClient(HttpClient http)
     public Task<IReadOnlyList<PlatformResponse>> GetPlatformsAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<PlatformResponse>("api/platforms", cancellationToken);
 
+    public async Task<PlatformResponse> CreatePlatformAsync(
+        CreatePlatformRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/platforms", request, cancellationToken);
+
+        return await ReadAsync<PlatformResponse>(response, cancellationToken);
+    }
+
+    public async Task DeletePlatformAsync(string code, CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/platforms/{Uri.EscapeDataString(code)}", cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public Task<IReadOnlyList<AccountResponse>> GetAccountsAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<AccountResponse>("api/accounts", cancellationToken);
 
