@@ -56,7 +56,7 @@ else
         catch (KapeaApiException exception)
         {
             _accounts = null;
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 
@@ -93,7 +93,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 
@@ -119,7 +119,7 @@ else
         {
             // La API rechaza el borrado de una cuenta con movimientos, y su mensaje ya
             // dice cuántos son. Enseñarlo tal cual es más útil que un error genérico.
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 }

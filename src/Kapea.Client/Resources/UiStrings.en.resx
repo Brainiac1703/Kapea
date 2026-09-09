@@ -490,4 +490,70 @@
   <data name="Results_Incomplete" xml:space="preserve">
     <value>These figures are incomplete: there are unclassified movements.</value>
   </data>
+  <data name="SignIn_Title" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="SignIn_Heading" xml:space="preserve">
+    <value>Sign in to Kapea</value>
+  </data>
+  <data name="SignIn_Intro" xml:space="preserve">
+    <value>Kapea stores no passwords. You sign in with an account you already have.</value>
+  </data>
+  <data name="SignIn_With" xml:space="preserve">
+    <value>Sign in with {0}</value>
+  </data>
+  <data name="SignIn_Warning" xml:space="preserve">
+    <value>Access depends on that account. Once inside, link a second one so losing it does not lock you out.</value>
+  </data>
+  <data name="SignIn_Failed" xml:space="preserve">
+    <value>The sign-in could not be completed.</value>
+  </data>
+  <data name="SignIn_Development" xml:space="preserve">
+    <value>No external provider is configured: you sign in as a fixed development user.</value>
+  </data>
+  <data name="Session_SignOut" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="Session_Expired" xml:space="preserve">
+    <value>Your session has expired. Sign in again.</value>
+  </data>
+  <data name="Nav_Identities" xml:space="preserve">
+    <value>Your account</value>
+  </data>
+  <data name="Identities_Title" xml:space="preserve">
+    <value>Your account</value>
+  </data>
+  <data name="Identities_Heading" xml:space="preserve">
+    <value>How you sign in to Kapea</value>
+  </data>
+  <data name="Identities_Intro" xml:space="preserve">
+    <value>The providers linked to your account. Any of them lets you in.</value>
+  </data>
+  <data name="Identities_Warning" xml:space="preserve">
+    <value>With a single provider, losing that account means losing access to your history. Link another one.</value>
+  </data>
+  <data name="Identities_Provider" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="Identities_LinkedAt" xml:space="preserve">
+    <value>Linked</value>
+  </data>
+  <data name="Identities_LastSignIn" xml:space="preserve">
+    <value>Last sign-in</value>
+  </data>
+  <data name="Identities_Link" xml:space="preserve">
+    <value>Link {0}</value>
+  </data>
+  <data name="Identities_Unlink" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Identities_Unlink_Title" xml:space="preserve">
+    <value>Remove the provider</value>
+  </data>
+  <data name="Identities_Unlink_Message" xml:space="preserve">
+    <value>You will no longer be able to sign in with that provider. Your data is untouched.</value>
+  </data>
+  <data name="Identities_AppleSoon" xml:space="preserve">
+    <value>Apple will come later: it requires a paid developer account.</value>
+  </data>
 </root>

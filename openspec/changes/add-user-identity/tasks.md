@@ -22,17 +22,17 @@
 
 ## 4. Migración de los datos existentes
 
-- [ ] 4.1 Implementar la reasignación de los datos del usuario fijo de desarrollo al primer usuario que inicie sesión, documentando en la propia migración que solo es correcta con un único usuario; verificar sobre una base con datos que el histórico queda a su nombre
-- [ ] 4.2 Verificar que tras la migración las cifras de cartera y resultados son idénticas a las de antes
+- [x] 4.1 Implementar la reasignación de los datos del usuario fijo de desarrollo al primer usuario que inicie sesión, documentando en la propia migración que solo es correcta con un único usuario; verificar sobre una base con datos que el histórico queda a su nombre
+- [x] 4.2 Verificar que tras la migración las cifras de cartera y resultados son idénticas a las de antes
 
 ## 5. Interfaz
 
-- [ ] 5.1 Implementar la pantalla de acceso con el botón de entrar con Google y el aviso de que el acceso depende de esa cuenta; verificar manualmente el flujo completo de entrada
-- [ ] 5.2 Mostrar en la aplicación quién tiene la sesión iniciada y permitir cerrarla; verificar manualmente que al salir se pierde el acceso a los datos
-- [ ] 5.3 Implementar la pantalla de identidades enlazadas, con enlazar y desenlazar; verificar manualmente que no deja quitar la última
-- [ ] 5.4 Llevar a la pantalla de acceso cuando la sesión caduque, en lugar de fallar con un error técnico; verificar manualmente forzando la caducidad
+- [x] 5.1 Implementar la pantalla de acceso con el botón de entrar con Google y el aviso de que el acceso depende de esa cuenta; verificar manualmente el flujo completo de entrada
+- [x] 5.2 Mostrar en la aplicación quién tiene la sesión iniciada y permitir cerrarla; verificar manualmente que al salir se pierde el acceso a los datos
+- [x] 5.3 Implementar la pantalla de identidades enlazadas, con enlazar y desenlazar; verificar manualmente que no deja quitar la última
+- [x] 5.4 Llevar a la pantalla de acceso cuando la sesión caduque, en lugar de fallar con un error técnico; verificar manualmente forzando la caducidad
 
 ## 6. Preparación de Apple
 
-- [ ] 6.1 Comprobar que el modelo y el flujo admiten un proveedor adicional sin cambios de esquema; verificar con un proveedor de prueba que se enlaza y resuelve como Google
-- [ ] 6.2 Dejar documentado en el README qué hace falta para activar Apple —cuenta de desarrollador, credenciales y configuración— sin implementarlo
+- [x] 6.1 Comprobar que el modelo y el flujo admiten un proveedor adicional sin cambios de esquema; verificar con un proveedor de prueba que se enlaza y resuelve como Google
+- [x] 6.2 Dejar documentado en el README qué hace falta para activar Apple —cuenta de desarrollador, credenciales y configuración— sin implementarlo

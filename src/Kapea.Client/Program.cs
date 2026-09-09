@@ -20,7 +20,21 @@ builder.Services.AddFluentUIComponents();
 
 // La API sirve además estos estáticos, así que su dirección es la del propio
 // documento: un solo origen, sin CORS y sin nada que configurar por entorno.
-builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddScoped<KapeaApiClient>();
+// El estado de sesión va con un HttpClient desnudo, sin el manejador de caducidad:
+// es ese manejador el que lo consulta, y compartirlo cerraría el círculo.
+// Se registra a mano y no con AddHttpClient<SessionState> porque aquel lo dejaría
+// transitorio: cada pantalla tendría su propia sesión y el encabezado no se enteraría
+// de los cambios. Uno solo para toda la aplicación.
+builder.Services.AddHttpClient("sesion", client =>
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress));
+
+builder.Services.AddScoped(services =>
+    new SessionState(services.GetRequiredService<IHttpClientFactory>().CreateClient("sesion")));
+
+builder.Services.AddScoped<SessionExpiryHandler>();
+
+builder.Services.AddHttpClient<KapeaApiClient>(client =>
+        client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddHttpMessageHandler<SessionExpiryHandler>();
 
 await builder.Build().RunAsync();

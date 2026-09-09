@@ -19,3 +19,6 @@ public sealed record LinkedIdentityResponse(
     string Provider,
     DateTimeOffset LinkedAt,
     DateTimeOffset? LastSignedInAt);
+
+/// <summary>Proveedor con el que se puede entrar en esta instalación.</summary>
+public sealed record AuthProviderResponse(string Name, string DisplayName);

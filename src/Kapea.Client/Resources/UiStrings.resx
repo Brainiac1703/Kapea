@@ -490,4 +490,70 @@
   <data name="Results_Incomplete" xml:space="preserve">
     <value>Estas cifras están incompletas: quedan movimientos sin clasificar.</value>
   </data>
+  <data name="SignIn_Title" xml:space="preserve">
+    <value>Acceder</value>
+  </data>
+  <data name="SignIn_Heading" xml:space="preserve">
+    <value>Entra en Kapea</value>
+  </data>
+  <data name="SignIn_Intro" xml:space="preserve">
+    <value>Kapea no guarda contraseñas. Entras con una cuenta que ya tienes.</value>
+  </data>
+  <data name="SignIn_With" xml:space="preserve">
+    <value>Entrar con {0}</value>
+  </data>
+  <data name="SignIn_Warning" xml:space="preserve">
+    <value>El acceso depende de esa cuenta. Cuando estés dentro, enlaza una segunda para no quedarte fuera si la pierdes.</value>
+  </data>
+  <data name="SignIn_Failed" xml:space="preserve">
+    <value>No se ha podido completar el acceso.</value>
+  </data>
+  <data name="SignIn_Development" xml:space="preserve">
+    <value>No hay proveedor externo configurado: se entra como un usuario fijo de desarrollo.</value>
+  </data>
+  <data name="Session_SignOut" xml:space="preserve">
+    <value>Cerrar sesión</value>
+  </data>
+  <data name="Session_Expired" xml:space="preserve">
+    <value>La sesión ha caducado. Vuelve a entrar.</value>
+  </data>
+  <data name="Nav_Identities" xml:space="preserve">
+    <value>Tu cuenta</value>
+  </data>
+  <data name="Identities_Title" xml:space="preserve">
+    <value>Tu cuenta</value>
+  </data>
+  <data name="Identities_Heading" xml:space="preserve">
+    <value>Cómo entras en Kapea</value>
+  </data>
+  <data name="Identities_Intro" xml:space="preserve">
+    <value>Los proveedores enlazados a tu cuenta. Cualquiera de ellos sirve para entrar.</value>
+  </data>
+  <data name="Identities_Warning" xml:space="preserve">
+    <value>Con un solo proveedor, perder esa cuenta es perder el acceso a tu histórico. Enlaza otro.</value>
+  </data>
+  <data name="Identities_Provider" xml:space="preserve">
+    <value>Proveedor</value>
+  </data>
+  <data name="Identities_LinkedAt" xml:space="preserve">
+    <value>Enlazado</value>
+  </data>
+  <data name="Identities_LastSignIn" xml:space="preserve">
+    <value>Último acceso</value>
+  </data>
+  <data name="Identities_Link" xml:space="preserve">
+    <value>Enlazar {0}</value>
+  </data>
+  <data name="Identities_Unlink" xml:space="preserve">
+    <value>Quitar</value>
+  </data>
+  <data name="Identities_Unlink_Title" xml:space="preserve">
+    <value>Quitar el proveedor</value>
+  </data>
+  <data name="Identities_Unlink_Message" xml:space="preserve">
+    <value>Dejarás de poder entrar con ese proveedor. Los datos no se tocan.</value>
+  </data>
+  <data name="Identities_AppleSoon" xml:space="preserve">
+    <value>Apple llegará más adelante: exige una cuenta de desarrollador de pago.</value>
+  </data>
 </root>

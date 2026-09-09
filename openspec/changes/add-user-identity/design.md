@@ -63,6 +63,8 @@ Es una decisión de conveniencia y solo vale porque hoy hay una sola persona. Se
 
 Poder levantar el entorno con `docker compose up` sin dar de alta credenciales de Google sigue siendo valioso. Se conserva la regla actual: solo en Development, solo si no hay proveedor configurado, y fuera de desarrollo la aplicación se niega a arrancar sin identidad.
 
+Lo que cambia es la forma. Antes era un esquema de autenticación aparte que atribuía toda petición a un usuario fijo, y con él no se podía ni cerrar sesión ni provocar una caducidad: el entorno de desarrollo no ejercitaba el camino que sí existe en producción. Ahora es un proveedor más en la lista de disponibles, que no sale a ningún sitio pero registra, reconoce y emite la misma cookie de sesión que emitiría Google.
+
 ## Risks / Trade-offs
 
 - **Perder el acceso al proveedor es perder el acceso a Kapea** → Mitigado con identidades múltiples: enlazar una segunda cuenta da una vía alternativa. No se elimina del todo, y conviene decírselo al usuario en la pantalla de acceso.

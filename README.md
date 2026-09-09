@@ -36,17 +36,37 @@ que sincronizar.
 ### Identidad en desarrollo
 
 Kapea no guarda contraseñas: se entra con un proveedor externo. Sin
-`GOOGLE_CLIENT_ID` configurado, la API arranca con autenticación de desarrollo y
-atribuye toda petición a un usuario fijo. Es deliberado que esto **solo** valga en
-`Development`: fuera de él la API se niega a arrancar sin identidad configurada, en
-lugar de abrirse a cualquiera.
+`GOOGLE_CLIENT_ID` configurado, la pantalla de acceso ofrece entrar como un usuario
+fijo de desarrollo. No es un modo sin sesión: emite la misma cookie que emitiría
+Google, así que cerrar sesión, caducar y volver a entrar recorren el mismo camino que
+en producción. Es deliberado que esto **solo** valga en `Development`: fuera de él la
+API se niega a arrancar sin identidad configurada, en lugar de abrirse a cualquiera.
 
 Para activar Google, crea un ID de cliente de OAuth en Google Cloud con la URI de
 redirección `http://localhost:8082/signin-google` y rellena `GOOGLE_CLIENT_ID` y
 `GOOGLE_CLIENT_SECRET` en el `.env`.
 
-Apple queda preparado y sin implementar: el modelo admite varios proveedores por
-usuario, pero «Sign in with Apple» exige una cuenta de Apple Developer de pago.
+#### Activar Apple
+
+Apple queda preparado y sin implementar. El modelo ya admite varios proveedores por
+usuario —una identidad es un par de proveedor y sujeto—, así que activarlo no toca el
+esquema de la base de datos ni los datos existentes. Lo que hace falta:
+
+1. Una cuenta de Apple Developer, que es de pago y de renovación anual. Es el único
+   motivo por el que esto no está hecho ya.
+2. En el portal de Apple: un identificador de aplicación con «Sign in with Apple»
+   habilitado, un identificador de servicio para el acceso web, y una clave privada
+   para generar el secreto de cliente.
+3. En Kapea: el paquete de autenticación de Apple para ASP.NET Core, una entrada
+   `Apple` junto a la de Google en `KapeaAuthentication`, y sus credenciales en la
+   configuración con la misma forma que las de Google.
+
+El secreto de cliente de Apple no es una cadena fija: es un JWT firmado con esa clave
+privada y caduca como mucho a los seis meses, así que hay que renovarlo. Conviene
+resolverlo al arrancar y no dejarlo escrito en el `.env`.
+
+La pantalla de acceso no necesita ningún cambio: pinta un botón por cada proveedor que
+la API declara disponible.
 
 ### Secretos de los brokers
 

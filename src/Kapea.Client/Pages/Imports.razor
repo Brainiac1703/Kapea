@@ -53,7 +53,7 @@ else
         catch (KapeaApiException exception)
         {
             _runs = null;
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 
@@ -93,7 +93,7 @@ else
         {
             // La API bloquea el borrado si algún movimiento participa en un traspaso
             // confirmado, y enumera las dependencias en el mensaje.
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
 
         await ReloadAsync();

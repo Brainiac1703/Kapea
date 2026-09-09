@@ -77,7 +77,7 @@ else
         catch (KapeaApiException exception)
         {
             _portfolio = null;
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 
@@ -89,7 +89,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
 
         await ReloadAsync();

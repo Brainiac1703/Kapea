@@ -10,8 +10,8 @@ public interface IUserRepository
 
     Task<User?> FindAsync(UserId userId, CancellationToken cancellationToken = default);
 
-    /// <summary>Indica si ya existe algún usuario. Se usa para la reasignación de los datos de desarrollo.</summary>
-    Task<bool> AnyAsync(CancellationToken cancellationToken = default);
+    /// <summary>Cuántos usuarios hay. La adopción de datos de desarrollo solo es inocua si hay uno.</summary>
+    Task<int> CountAsync(CancellationToken cancellationToken = default);
 
     Task AddAsync(User user, CancellationToken cancellationToken = default);
 

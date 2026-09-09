@@ -51,7 +51,7 @@ services:
       # identidad configurada, en lugar de abrirse a cualquiera.
       Authentication__Google__ClientId: '${GOOGLE_CLIENT_ID:-}'
       Authentication__Google__ClientSecret: '${GOOGLE_CLIENT_SECRET:-}'
-      Authentication__DevelopmentUser__Id: '${DEV_USER_ID:-00000000-0000-0000-0000-000000000001}'
+      Authentication__DevelopmentUser__LegacyOwnerId: '${LEGACY_OWNER_ID:-00000000-0000-0000-0000-000000000001}'
 
       ApplicationInsights__ConnectionString: '${APPLICATIONINSIGHTS_CONNECTION_STRING:-}'
 

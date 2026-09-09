@@ -10,6 +10,10 @@ namespace Kapea.Client.Services;
 /// </summary>
 public sealed class KapeaApiClient(HttpClient http)
 {
+    public Task<IReadOnlyList<AuthProviderResponse>> GetAuthProvidersAsync(
+        CancellationToken cancellationToken = default) =>
+        GetListAsync<AuthProviderResponse>("auth/providers", cancellationToken);
+
     public Task<IReadOnlyList<AccountResponse>> GetAccountsAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<AccountResponse>("api/accounts", cancellationToken);
 
@@ -164,6 +168,31 @@ public sealed class KapeaApiClient(HttpClient http)
         var response = await http.GetAsync($"api/results/{taxYear}", cancellationToken);
 
         return await ReadAsync<TaxYearResultsResponse>(response, cancellationToken);
+    }
+
+    /// <summary>
+    /// Quién tiene la sesión. Devuelve null si no hay ninguna, en lugar de fallar: no
+    /// estar autenticado no es un error, es el estado inicial de cualquier visita.
+    /// </summary>
+    public async Task<CurrentUserResponse?> GetCurrentUserAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/me", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
+
+        return await ReadAsync<CurrentUserResponse>(response, cancellationToken);
+    }
+
+    public async Task<CurrentUserResponse> UnlinkIdentityAsync(
+        Guid identityId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/me/identities/{identityId}", cancellationToken);
+
+        return await ReadAsync<CurrentUserResponse>(response, cancellationToken);
     }
 
     private async Task<IReadOnlyList<T>> GetListAsync<T>(string url, CancellationToken cancellationToken)

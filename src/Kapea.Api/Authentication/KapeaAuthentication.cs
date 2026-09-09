@@ -13,6 +13,28 @@ public static class IdentityProviders
 
     /// <summary>Preparado, no implementado: exige una cuenta de Apple Developer de pago.</summary>
     public const string Apple = "Apple";
+
+    /// <summary>Acceso local sin proveedor externo. Solo existe en desarrollo.</summary>
+    public const string Development = "Development";
+}
+
+/// <summary>Cómo se llama un proveedor y cómo se le nombra en pantalla.</summary>
+public sealed record AuthProvider(string Name, string DisplayName);
+
+/// <summary>
+/// Proveedores con los que se puede entrar en esta instalación.
+/// </summary>
+/// <remarks>
+/// Se resuelve al arrancar y la pantalla de acceso lo consulta, en lugar de traer los
+/// botones escritos a mano. Añadir Apple es añadir una entrada aquí: ni el cliente ni
+/// el esquema de la base de datos se enteran.
+/// </remarks>
+public sealed class AvailableProviders(IReadOnlyList<AuthProvider> providers)
+{
+    public IReadOnlyList<AuthProvider> All { get; } = providers;
+
+    public bool AllowsDevelopmentSignIn =>
+        All.Any(provider => provider.Name == IdentityProviders.Development);
 }
 
 /// <summary>
@@ -50,8 +72,16 @@ public static class KapeaAuthentication
                 "Falta Authentication:Google:ClientId. Fuera de desarrollo la API no arranca sin identidad configurada.");
         }
 
+        // Se registran siempre: el identificador del usuario de desarrollo lo necesita
+        // también la adopción de datos, con proveedor configurado o sin él.
+        services.Configure<DevelopmentUserOptions>(
+            configuration.GetSection(DevelopmentUserOptions.SectionName));
+
+        // La sesión es siempre la cookie, haya proveedor externo o no. Con un esquema
+        // distinto para desarrollo, cerrar sesión no cerraba nada y la caducidad no se
+        // podía ni provocar: se probaba un camino que en producción no existe.
         var builder = services
-            .AddAuthentication(hasGoogle ? SessionScheme : DevelopmentAuthenticationHandler.SchemeName)
+            .AddAuthentication(SessionScheme)
             .AddCookie(SessionScheme, options =>
             {
                 options.Cookie.Name = "kapea.session";
@@ -84,14 +114,10 @@ public static class KapeaAuthentication
                 options.SaveTokens = false;
             });
         }
-        else
-        {
-            services.Configure<DevelopmentUserOptions>(
-                configuration.GetSection(DevelopmentUserOptions.SectionName));
 
-            builder.AddScheme<AuthenticationSchemeOptions, DevelopmentAuthenticationHandler>(
-                DevelopmentAuthenticationHandler.SchemeName, _ => { });
-        }
+        services.AddSingleton(new AvailableProviders(hasGoogle
+            ? [new AuthProvider(IdentityProviders.Google, "Google")]
+            : [new AuthProvider(IdentityProviders.Development, "usuario de desarrollo")]));
 
         return builder;
     }

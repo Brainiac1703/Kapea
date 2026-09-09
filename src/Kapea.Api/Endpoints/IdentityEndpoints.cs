@@ -3,8 +3,10 @@ using Kapea.Api.Authentication;
 using Kapea.Application.Abstractions;
 using Kapea.Application.Identity;
 using Kapea.Domain.Identity;
+using Kapea.Domain.ValueObjects;
 using Kapea.Shared.Contracts;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
 
 namespace Kapea.Api.Endpoints;
 
@@ -19,9 +21,49 @@ public static class IdentityEndpoints
 
         var identity = app.MapGroup("/auth");
 
+        // Con qué se puede entrar aquí. Sin sesión, claro: es lo primero que se pregunta.
+        identity.MapGet("/providers", (AvailableProviders providers) =>
+            Results.Ok(providers.All
+                .Select(provider => new AuthProviderResponse(provider.Name, provider.DisplayName))
+                .ToArray()));
+
         // Inicio del flujo. No requiere sesión: es justamente lo que la crea.
-        identity.MapGet("/signin/{provider}", (string provider, string? returnUrl, HttpContext context) =>
+        identity.MapGet("/signin/{provider}", async (
+            string provider,
+            string? returnUrl,
+            HttpContext context,
+            AvailableProviders providers,
+            UserSignInService signIn,
+            DevelopmentDataAdoption adoption,
+            IOptions<DevelopmentUserOptions> developmentUser,
+            CancellationToken token) =>
         {
+            // El acceso de desarrollo no sale a ningún sitio, pero de ahí en adelante
+            // recorre lo mismo que la vuelta de un proveedor: se registra o se reconoce,
+            // queda anotado el acceso y la sesión sale en la misma cookie. Un atajo que
+            // se saltara todo eso probaría un camino que en producción no existe.
+            if (string.Equals(provider, IdentityProviders.Development, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!providers.AllowsDevelopmentSignIn)
+                {
+                    return Results.NotFound();
+                }
+
+                await CompleteSignInAsync(
+                    context,
+                    signIn,
+                    adoption,
+                    developmentUser.Value,
+                    new ExternalPrincipal(
+                        IdentityProviders.Development,
+                        DevelopmentUserOptions.Subject,
+                        developmentUser.Value.DisplayName,
+                        Email: null),
+                    token);
+
+                return Results.Redirect(returnUrl ?? "/");
+            }
+
             var properties = new AuthenticationProperties { RedirectUri = $"/auth/callback?returnUrl={Uri.EscapeDataString(returnUrl ?? "/")}" };
 
             return Results.Challenge(properties, [provider]);
@@ -41,6 +83,8 @@ public static class IdentityEndpoints
             string? returnUrl,
             HttpContext context,
             UserSignInService signIn,
+            DevelopmentDataAdoption adoption,
+            IOptions<DevelopmentUserOptions> developmentUser,
             ICurrentUser currentUser,
             CancellationToken token) =>
         {
@@ -63,13 +107,17 @@ public static class IdentityEndpoints
                 return Results.Redirect(returnUrl ?? "/identities");
             }
 
-            var signedIn = await signIn.SignInAsync(principal, token);
-
-            // La cookie se reemite con el identificador interno: a partir de aquí la
-            // sesión identifica a un usuario de Kapea, no a una cuenta de Google.
-            await context.SignInAsync(KapeaAuthentication.SessionScheme, Session(signedIn.User, provider));
+            await CompleteSignInAsync(context, signIn, adoption, developmentUser.Value, principal, token);
 
             return Results.Redirect(returnUrl ?? "/");
+        });
+
+        // Cierre desde el navegador: cierra la sesión y devuelve a la pantalla de acceso.
+        identity.MapGet("/signout-redirect", async (HttpContext context) =>
+        {
+            await context.SignOutAsync(KapeaAuthentication.SessionScheme);
+
+            return Results.Redirect("/signin");
         });
 
         identity.MapPost("/signout", async (HttpContext context) =>
@@ -97,6 +145,31 @@ public static class IdentityEndpoints
 
             return Results.Ok(ToResponse((await users.FindAsync(currentUser.Id, token))!));
         });
+    }
+
+    /// <summary>Registra o reconoce a quien entra y le deja la sesión en la cookie.</summary>
+    private static async Task CompleteSignInAsync(
+        HttpContext context,
+        UserSignInService signIn,
+        DevelopmentDataAdoption adoption,
+        DevelopmentUserOptions developmentUser,
+        ExternalPrincipal principal,
+        CancellationToken token)
+    {
+        var signedIn = await signIn.SignInAsync(principal, token);
+
+        if (signedIn.Outcome == SignInOutcome.Registered)
+        {
+            // Lo importado antes de que hubiera usuarios está a nombre de un propietario
+            // que ya no existe. El primero que entra lo adopta, para no perder el
+            // histórico de pruebas.
+            await adoption.AdoptAsync(signedIn.User, new UserId(developmentUser.LegacyOwnerId), token);
+        }
+
+        // La cookie se emite con el identificador interno: a partir de aquí la sesión
+        // identifica a un usuario de Kapea, no a una cuenta del proveedor.
+        await context.SignInAsync(
+            KapeaAuthentication.SessionScheme, Session(signedIn.User, principal.Provider));
     }
 
     private static ClaimsPrincipal Session(User user, string provider)

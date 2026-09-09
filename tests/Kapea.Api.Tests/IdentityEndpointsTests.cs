@@ -3,12 +3,77 @@ using System.Net.Http.Json;
 using Kapea.Api.Authentication;
 using Kapea.Shared.Contracts;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kapea.Api.Tests;
 
 [Collection(ApiCollection.Name)]
 public class IdentityEndpointsTests(KapeaApiFactory factory)
 {
+    [Fact]
+    public async Task Anyone_can_ask_with_which_providers_they_may_enter()
+    {
+        // Sin sesión: es lo primero que consulta la pantalla de acceso, y quien la abre
+        // por definición todavía no ha entrado.
+        var providers = await factory.CreateAnonymousClient()
+            .GetFromJsonAsync<IReadOnlyList<AuthProviderResponse>>("/auth/providers");
+
+        Assert.NotEmpty(providers!);
+        Assert.All(providers!, provider => Assert.False(string.IsNullOrWhiteSpace(provider.DisplayName)));
+    }
+
+    [Fact]
+    public async Task Entering_through_a_provider_this_installation_does_not_offer_leads_nowhere()
+    {
+        var response = await factory.CreateAnonymousClient()
+            .GetAsync("/auth/signin/Apple");
+
+        // Sin el proveedor registrado no hay a dónde mandar a nadie. Lo que no puede
+        // pasar es que devuelva una sesión.
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.DoesNotContain(
+            response.Headers.TryGetValues("Set-Cookie", out var cookies) ? cookies : [],
+            cookie => cookie.Contains("kapea.session", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_second_provider_registers_and_resolves_exactly_like_the_first()
+    {
+        // Sirve de comprobación para Apple sin implementarlo: si otro proveedor entra y
+        // se reconoce sin tocar el esquema, añadirlo será configuración y no migración.
+        var subject = Guid.NewGuid().ToString("N");
+
+        var (_, firstUserId) = await factory.CreateSignedInClientAsync("Apple", subject);
+        var (client, secondUserId) = await factory.CreateSignedInClientAsync("Apple", subject);
+
+        var me = await client.GetFromJsonAsync<CurrentUserResponse>("/api/me");
+
+        Assert.Equal(firstUserId, secondUserId);
+        Assert.Equal("Apple", Assert.Single(me!.Identities).Provider);
+    }
+
+    [Fact]
+    public async Task The_same_person_reaches_one_account_through_two_providers()
+    {
+        var (client, userId) = await factory.CreateSignedInClientAsync("Google");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            await scope.ServiceProvider
+                .GetRequiredService<Application.Identity.UserSignInService>()
+                .LinkAsync(
+                    new Domain.ValueObjects.UserId(userId),
+                    new Application.Identity.ExternalPrincipal(
+                        "Apple", Guid.NewGuid().ToString("N"), "Persona de prueba", null));
+        }
+
+        var me = await client.GetFromJsonAsync<CurrentUserResponse>("/api/me");
+
+        Assert.Equal(
+            ["Apple", "Google"],
+            me!.Identities.Select(identity => identity.Provider).OrderBy(name => name, StringComparer.Ordinal));
+    }
+
     [Fact]
     public async Task Without_a_session_there_is_no_user()
     {

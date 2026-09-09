@@ -109,3 +109,19 @@
 .loss {
     color: var(--error);
 }
+
+.brand {
+    font-weight: 600;
+}
+
+.session-user {
+    opacity: 0.85;
+    font-size: 0.9rem;
+}
+
+.signin {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 520px;
+}

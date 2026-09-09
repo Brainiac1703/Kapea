@@ -40,8 +40,8 @@ public sealed class UserRepository(KapeaDbContext context) : IUserRepository
             .SingleOrDefaultAsync(user => user.Id == userId, cancellationToken)
             .ConfigureAwait(false);
 
-    public async Task<bool> AnyAsync(CancellationToken cancellationToken = default) =>
-        await context.Users.IgnoreQueryFilters().AnyAsync(cancellationToken).ConfigureAwait(false);
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default) =>
+        await context.Users.IgnoreQueryFilters().CountAsync(cancellationToken).ConfigureAwait(false);
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default) =>
         await context.Users.AddAsync(user, cancellationToken).ConfigureAwait(false);

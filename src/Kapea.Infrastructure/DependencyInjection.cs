@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<IPortfolioQueries, PortfolioQueries>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<UserSignInService>();
+        services.AddScoped<DevelopmentDataAdoption>();
         services.AddScoped<IInternalTransferRepository, InternalTransferRepository>();
         services.AddScoped<InternalTransferService>();
         services.AddScoped<ImportPipeline>();

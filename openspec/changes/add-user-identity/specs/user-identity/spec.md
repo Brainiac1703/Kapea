@@ -119,14 +119,21 @@ La aplicación DEBE mostrar quién tiene la sesión iniciada y DEBE permitir cer
 
 ### Requirement: Acceso de desarrollo acotado
 
-En desarrollo, y solo cuando no haya ningún proveedor configurado, el sistema PUEDE atribuir toda petición a un usuario fijo para poder trabajar sin depender de un proveedor externo.
+En desarrollo, y solo cuando no haya ningún proveedor configurado, el sistema PUEDE ofrecer entrar como un usuario fijo para poder trabajar sin depender de un proveedor externo.
+
+Ese acceso DEBE establecer la sesión igual que un proveedor externo, de modo que cerrar sesión, la caducidad y el nuevo acceso se comporten como en producción.
 
 Esa vía NO DEBE estar disponible fuera de desarrollo bajo ninguna configuración.
 
 #### Scenario: Desarrollo sin proveedor
 
 - **WHEN** la aplicación arranca en desarrollo sin proveedor configurado
-- **THEN** funciona atribuyendo todo a un usuario fijo y avisa de que la autenticación de desarrollo está activa
+- **THEN** la pantalla de acceso ofrece entrar como el usuario fijo y avisa de que no hay proveedor externo configurado
+
+#### Scenario: Sin sesión en desarrollo
+
+- **WHEN** alguien abre la aplicación en desarrollo sin haber entrado
+- **THEN** no ve ningún dato y se le lleva a la pantalla de acceso
 
 #### Scenario: Desarrollo con proveedor configurado
 

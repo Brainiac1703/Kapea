@@ -1,0 +1,103 @@
+@page "/identities"
+@inject KapeaApiClient Api
+@inject SessionState Session
+@inject NavigationManager Navigation
+@inject IDialogService Dialogs
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Identities_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Identities_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Identities_Intro"]</FluentLabel>
+
+@if (Session.User is not { } user)
+{
+    <FluentProgressRing />
+}
+else
+{
+    @if (user.Identities.Count == 1)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">@Ui["Identities_Warning"]</FluentMessageBar>
+    }
+
+    <FluentDataGrid Items="@user.Identities.AsQueryable()"
+                    TGridItem="LinkedIdentityResponse"
+                    GridTemplateColumns="1fr 1fr 1fr auto">
+        <PropertyColumn Property="@(identity => identity.Provider)" Title="@Ui["Identities_Provider"]" />
+        <TemplateColumn Title="@Ui["Identities_LinkedAt"]">@context.LinkedAt.ToLocalTime().ToString("d")</TemplateColumn>
+        <TemplateColumn Title="@Ui["Identities_LastSignIn"]">
+            @(context.LastSignedInAt is { } moment ? moment.ToLocalTime().ToString("g") : Ui["Common_Never"].Value)
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Actions"]" Align="Align.End">
+            <FluentButton Appearance="Appearance.Stealth"
+                          Disabled="@(user.Identities.Count == 1)"
+                          OnClick="@(() => UnlinkAsync(context))">
+                @Ui["Identities_Unlink"]
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+
+    @* Los proveedores los da el servidor, igual que en la pantalla de acceso: los que
+       ya están enlazados no vuelven a ofrecerse. *@
+    <FluentToolbar Class="section">
+        @foreach (var provider in Linkable(user))
+        {
+            <FluentButton OnClick="@(() => Link(provider.Name))">
+                @string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["Identities_Link"], provider.DisplayName)
+            </FluentButton>
+        }
+    </FluentToolbar>
+
+    <FluentLabel Typo="Typography.Body">@Ui["Identities_AppleSoon"]</FluentLabel>
+}
+
+@code {
+    private IReadOnlyList<AuthProviderResponse> _providers = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session.EnsureLoadedAsync();
+
+        try
+        {
+            _providers = await Api.GetAuthProvidersAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private IEnumerable<AuthProviderResponse> Linkable(CurrentUserResponse user) =>
+        _providers.Where(provider =>
+            !user.Identities.Any(identity => identity.Provider == provider.Name));
+
+    private void Link(string provider) => Navigation.NavigateTo($"auth/link/{provider}", forceLoad: true);
+
+    private async Task UnlinkAsync(LinkedIdentityResponse identity)
+    {
+        var confirmation = await Dialogs.ShowConfirmationAsync(
+            Ui["Identities_Unlink_Message"],
+            Ui["Identities_Unlink"],
+            Ui["Common_Cancel"],
+            $"{Ui["Identities_Unlink_Title"]}: {identity.Provider}");
+
+        if ((await confirmation.Result).Cancelled)
+        {
+            return;
+        }
+
+        try
+        {
+            await Api.UnlinkIdentityAsync(identity.Id);
+            await Session.RefreshAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            // La API impide quitar la última: su mensaje explica por qué mejor que
+            // cualquier texto genérico.
+            Toasts.ShowApiError(exception);
+        }
+    }
+}

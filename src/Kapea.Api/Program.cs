@@ -44,7 +44,7 @@ if (app.Environment.IsDevelopment())
     if (string.IsNullOrWhiteSpace(builder.Configuration["Authentication:Google:ClientId"]))
     {
         app.Logger.LogWarning(
-            "Autenticación de desarrollo activa: toda petición se atribuye al usuario fijo de desarrollo.");
+            "Sin proveedor configurado: la pantalla de acceso ofrece entrar como el usuario fijo de desarrollo.");
     }
 }
 

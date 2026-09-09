@@ -1,10 +1,29 @@
 @inherits LayoutComponentBase
 
+@implements IDisposable
+@inject SessionState Session
+@inject NavigationManager Navigation
+
 <FluentLayout>
-    <FluentHeader>@Ui["App_Name"]</FluentHeader>
+    <FluentHeader>
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Width="100%">
+            <span class="brand">@Ui["App_Name"]</span>
+            <FluentSpacer />
+            @if (Session.User is { } usuario)
+            {
+                <span class="session-user">@usuario.DisplayName</span>
+                <FluentButton Appearance="Appearance.Stealth" OnClick="SignOut">@Ui["Session_SignOut"]</FluentButton>
+            }
+        </FluentStack>
+    </FluentHeader>
 
     <FluentStack Class="main" Orientation="Orientation.Horizontal" Width="100%">
-        <NavMenu />
+        @* El menú solo aparece con sesión: sin ella todos sus destinos devuelven al
+           acceso, y ofrecer puertas que no abren se lee como que algo va mal. *@
+        @if (Session.IsSignedIn)
+        {
+            <NavMenu />
+        }
 
         <FluentBodyContent Class="body-content">
             <div class="content">
@@ -16,6 +35,42 @@
 
 @* Proveedores de Fluent UI: sin ellos los diálogos y los mensajes no tienen dónde
    pintarse y las acciones fallan en silencio. Van una sola vez, en el layout. *@
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Session.Changed += StateHasChanged;
+
+        await Session.EnsureLoadedAsync();
+
+        // Sin sesión no hay nada que enseñar: la aplicación entera son datos de alguien.
+        if (!Session.IsSignedIn && !EstaEnAcceso)
+        {
+            Navigation.NavigateTo("signin", forceLoad: false);
+        }
+
+        // Y con sesión, la pantalla de acceso no tiene nada que ofrecer: quien vuelve a
+        // ella desde un enlace guardado esperaría entrar, no que le pidan entrar otra vez.
+        if (Session.IsSignedIn && EstaEnAcceso)
+        {
+            Navigation.NavigateTo(string.Empty, forceLoad: false);
+        }
+    }
+
+    private bool EstaEnAcceso =>
+        Navigation.ToBaseRelativePath(Navigation.Uri).StartsWith("signin", StringComparison.OrdinalIgnoreCase);
+
+    private void SignOut()
+    {
+        Session.Clear();
+
+        // Navegación completa: la sesión vive en una cookie del servidor, y cerrarla es
+        // cosa suya. El enrutador del cliente no la puede tocar.
+        Navigation.NavigateTo("auth/signout-redirect", forceLoad: true);
+    }
+
+    public void Dispose() => Session.Changed -= StateHasChanged;
+}
+
 <FluentToastProvider />
 <FluentDialogProvider />
 <FluentTooltipProvider />

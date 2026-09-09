@@ -90,7 +90,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 
@@ -117,7 +117,7 @@ else
         {
             // El adaptador rechaza el fichero entero cuando no reconoce el formato, y
             // su mensaje enumera las columnas esperadas: es justo lo que hace falta.
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
         finally
         {
@@ -142,7 +142,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
         finally
         {
@@ -167,7 +167,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
         finally
         {
