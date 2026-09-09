@@ -28,6 +28,7 @@ public static class PortfolioEndpoints
         var api = app.MapGroup("/api").RequireAuthorization();
 
         api.MapAccounts();
+        api.MapImportProfileEndpoints();
         api.MapCredentials();
         api.MapImports();
         api.MapPortfolio();

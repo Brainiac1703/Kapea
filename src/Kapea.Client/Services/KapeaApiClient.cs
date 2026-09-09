@@ -33,6 +33,38 @@ public sealed class KapeaApiClient(HttpClient http)
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public Task<IReadOnlyList<ImportProfileResponse>> GetProfilesAsync(CancellationToken cancellationToken = default) =>
+        GetListAsync<ImportProfileResponse>("api/profiles", cancellationToken);
+
+    public Task<IReadOnlyList<ImportFieldResponse>> GetImportFieldsAsync(CancellationToken cancellationToken = default) =>
+        GetListAsync<ImportFieldResponse>("api/profiles/fields", cancellationToken);
+
+    public async Task<ImportProfileResponse> CreateProfileAsync(
+        CreateImportProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/profiles", request, cancellationToken);
+
+        return await ReadAsync<ImportProfileResponse>(response, cancellationToken);
+    }
+
+    public async Task<ImportProfileResponse> ReviseProfileAsync(
+        Guid profileId,
+        ReviseImportProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync($"api/profiles/{profileId}/versions", request, cancellationToken);
+
+        return await ReadAsync<ImportProfileResponse>(response, cancellationToken);
+    }
+
+    public async Task DeleteProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/profiles/{profileId}", cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public Task<IReadOnlyList<AccountResponse>> GetAccountsAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<AccountResponse>("api/accounts", cancellationToken);
 

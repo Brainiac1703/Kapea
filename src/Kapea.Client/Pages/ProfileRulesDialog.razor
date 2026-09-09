@@ -1,0 +1,95 @@
+@implements IDialogContentComponent<ProfileRulesModel>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="18">
+
+    <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">@Ui["Profiles_EditNote"]</FluentMessageBar>
+
+    <FluentTextField @bind-Value="Content.Name" Label="@Ui["Common_Name"]" Style="width: 100%" />
+
+    <FluentTextField @bind-Value="Content.RecognizedHeaders"
+                     Label="@Ui["Profiles_Headers"]"
+                     Required="true"
+                     Style="width: 100%" />
+    <FluentLabel Typo="Typography.Body">@Ui["Profiles_HeadersHelp"]</FluentLabel>
+
+    <FluentSelect TOption="string"
+                  Label="@Ui["Profiles_RowShape"]"
+                  Items="@RowShapes"
+                  OptionValue="@(shape => shape)"
+                  OptionText="@(shape => Ui[$"Profiles_RowShape_{shape}"].Value)"
+                  @bind-Value="Content.RowShape" />
+
+    <FluentSelect TOption="string"
+                  Label="@Ui["Profiles_AmountSource"]"
+                  Items="@AmountSources"
+                  OptionValue="@(source => source)"
+                  OptionText="@(source => Ui[$"Profiles_AmountSource_{source}"].Value)"
+                  @bind-Value="Content.AmountSource" />
+
+    <FluentSelect TOption="string"
+                  Label="@Ui["Profiles_Decimal"]"
+                  Items="@Conventions"
+                  OptionValue="@(convention => convention)"
+                  OptionText="@(convention => Ui[$"Profiles_Decimal_{convention}"].Value)"
+                  @bind-Value="Content.DecimalConvention" />
+
+    <FluentTextField @bind-Value="Content.Delimiter" Label="@Ui["Profiles_Delimiter"]" />
+    <FluentLabel Typo="Typography.Body">@Ui["Profiles_DelimiterHelp"]</FluentLabel>
+
+    <FluentTextField @bind-Value="Content.DateFormats" Label="@Ui["Profiles_DateFormats"]" Style="width: 100%" />
+    <FluentLabel Typo="Typography.Body">@Ui["Profiles_DateFormatsHelp"]</FluentLabel>
+
+    <FluentTextField @bind-Value="Content.TimeZoneId" Label="@Ui["Profiles_TimeZone"]" Style="width: 100%" />
+
+    <FluentTextField @bind-Value="Content.FixedCurrency" Label="@Ui["Profiles_FixedCurrency"]" />
+
+    <FluentTextField @bind-Value="Content.FixedAssetClass" Label="@Ui["Profiles_AssetClass"]" />
+
+    <FluentCheckbox @bind-Value="Content.AmountIsAlwaysPositive" Label="@Ui["Profiles_AmountPositive"]" />
+    <FluentLabel Typo="Typography.Body">@Ui["Profiles_AmountPositiveHelp"]</FluentLabel>
+
+    <FluentLabel Typo="Typography.H6">@Ui["Profiles_Columns"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@Ui["Profiles_ColumnsHelp"]</FluentLabel>
+
+    @* Columnas del fichero a la izquierda, campo del movimiento a la derecha: es el
+       mapeo que el perfil guarda, escrito tal cual. *@
+    @foreach (var field in Fields)
+    {
+        <FluentTextField Value="@Column(field.Field)"
+                         ValueChanged="@(value => SetColumn(field.Field, value))"
+                         Label="@($"{field.Label}{(field.Required ? " *" : string.Empty)}")"
+                         Style="width: 100%" />
+    }
+
+    <FluentLabel Typo="Typography.H6">@Ui["Profiles_Concepts"]</FluentLabel>
+    <FluentTextArea @bind-Value="Content.Concepts" Rows="8" Style="width: 100%" />
+    <FluentLabel Typo="Typography.Body">@Ui["Profiles_ConceptsHelp"]</FluentLabel>
+
+    <FluentTextField @bind-Value="Content.NonFinancialConcepts"
+                     Label="@Ui["Profiles_NonFinancial"]"
+                     Style="width: 100%" />
+    <FluentLabel Typo="Typography.Body">@Ui["Profiles_NonFinancialHelp"]</FluentLabel>
+
+</FluentStack>
+
+@code {
+    private static readonly string[] RowShapes = ["SingleMovement", "OpenPosition", "OpenAndClosePosition"];
+    private static readonly string[] AmountSources = ["Column", "QuantityTimesPrice"];
+    private static readonly string[] Conventions = ["European", "Invariant"];
+
+    [Parameter]
+    public ProfileRulesModel Content { get; set; } = new();
+
+    /// <summary>
+    /// Los campos disponibles los da el servidor y viajan dentro del modelo.
+    /// </summary>
+    /// <remarks>
+    /// El diálogo de Fluent UI solo recibe su Content: cualquier otro parámetro llegaría
+    /// sin asignar y la lista de campos saldría vacía sin que nada fallara.
+    /// </remarks>
+    private IReadOnlyList<ImportFieldResponse> Fields => Content.AvailableFields;
+
+    private string Column(string field) => Content.Columns.GetValueOrDefault(field, string.Empty);
+
+    private void SetColumn(string field, string value) => Content.Columns[field] = value;
+}

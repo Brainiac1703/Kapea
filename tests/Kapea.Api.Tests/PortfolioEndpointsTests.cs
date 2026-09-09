@@ -407,6 +407,89 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         Assert.Contains(run.Rejected, rejected => rejected.Reason.Length > 0);
     }
 
+    [Fact]
+    public async Task Correcting_a_profile_creates_a_version_and_leaves_the_previous_one_reachable()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var profiles = await client.GetFromJsonAsync<List<ImportProfileResponse>>("/api/profiles") ?? [];
+        var profile = profiles.Single(entry => entry.Name == "XTB · Operaciones de efectivo");
+        var before = profile.Versions.Single(version => version.Number == profile.CurrentVersion);
+
+        var corrected = before with
+        {
+            RecognizedHeaders = [.. before.RecognizedHeaders, "Comment"],
+        };
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/profiles/{profile.Id}/versions",
+            new ReviseImportProfileRequest(null, Rules(corrected)));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var revised = (await response.Content.ReadFromJsonAsync<ImportProfileResponse>())!;
+
+        Assert.Equal(profile.CurrentVersion + 1, revised.CurrentVersion);
+        Assert.Contains(revised.Versions, version => version.Number == before.Number);
+        Assert.Contains("Comment", revised.Versions.Single(v => v.Number == revised.CurrentVersion).RecognizedHeaders);
+
+        // La versión anterior sigue tal cual: los movimientos que se importaron con ella
+        // apuntan ahí, y reescribirla cambiaría en silencio cómo se explican sus cifras.
+        var kept = revised.Versions.Single(version => version.Number == before.Number);
+
+        Assert.Equal(before.RecognizedHeaders, kept.RecognizedHeaders);
+        Assert.DoesNotContain("Comment", kept.RecognizedHeaders);
+    }
+
+    [Fact]
+    public async Task A_profile_that_comes_built_in_cannot_be_deleted()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var profiles = await client.GetFromJsonAsync<List<ImportProfileResponse>>("/api/profiles") ?? [];
+        var profile = profiles.First(entry => entry.BuiltIn);
+
+        var response = await client.DeleteAsync($"/api/profiles/{profile.Id}");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_profile_without_a_date_column_is_refused_saying_what_is_missing()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var response = await client.PostAsJsonAsync(
+            "/api/profiles",
+            new CreateImportProfileRequest(
+                "Xtb",
+                "Sin fecha",
+                new ImportProfileRulesRequest(
+                    ";", "European", "Europe/Madrid", "EUR", "SingleMovement", "Column", null, false,
+                    ["Importe"], ["dd/MM/yyyy"], [],
+                    new Dictionary<string, string> { ["GrossAmount"] = "Importe" },
+                    new Dictionary<string, string>())));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains("la fecha", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    private static ImportProfileRulesRequest Rules(ImportProfileVersionResponse version) =>
+        new(
+            version.Delimiter,
+            version.DecimalConvention,
+            version.TimeZoneId,
+            version.FixedCurrency,
+            version.RowShape,
+            version.AmountSource,
+            version.FixedAssetClass,
+            version.AmountIsAlwaysPositive,
+            version.RecognizedHeaders,
+            version.DateFormats,
+            version.NonFinancialConcepts,
+            version.Columns,
+            version.Concepts);
+
     private static async Task<ImportPreviewResponse?> UploadAsync(HttpClient client, Guid accountId, string csv)
     {
         using var content = new MultipartFormDataContent

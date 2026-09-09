@@ -613,4 +613,133 @@
   <data name="Platforms_CodeExample" xml:space="preserve">
     <value>DeGiro</value>
   </data>
+  <data name="Nav_Profiles" xml:space="preserve">
+    <value>Perfiles</value>
+  </data>
+  <data name="Profiles_Title" xml:space="preserve">
+    <value>Perfiles de importación</value>
+  </data>
+  <data name="Profiles_Heading" xml:space="preserve">
+    <value>Perfiles de importación</value>
+  </data>
+  <data name="Profiles_Intro" xml:space="preserve">
+    <value>La receta con la que se lee cada formato de fichero: qué columna es la fecha, cómo vienen los números y qué significa cada concepto del bróker.</value>
+  </data>
+  <data name="Profiles_Empty" xml:space="preserve">
+    <value>No hay ningún perfil. Los tres de XTB se dan de alta solos al arrancar.</value>
+  </data>
+  <data name="Profiles_New" xml:space="preserve">
+    <value>Nuevo perfil</value>
+  </data>
+  <data name="Profiles_Version" xml:space="preserve">
+    <value>Versión</value>
+  </data>
+  <data name="Profiles_Versions" xml:space="preserve">
+    <value>Versiones</value>
+  </data>
+  <data name="Profiles_CurrentVersion" xml:space="preserve">
+    <value>Versión en uso</value>
+  </data>
+  <data name="Profiles_Edit" xml:space="preserve">
+    <value>Corregir</value>
+  </data>
+  <data name="Profiles_EditTitle" xml:space="preserve">
+    <value>Corregir el perfil</value>
+  </data>
+  <data name="Profiles_EditNote" xml:space="preserve">
+    <value>Al guardar se crea una versión nueva. La anterior se conserva, y los movimientos ya importados siguen apuntando a la suya.</value>
+  </data>
+  <data name="Profiles_Save" xml:space="preserve">
+    <value>Guardar como versión nueva</value>
+  </data>
+  <data name="Profiles_Headers" xml:space="preserve">
+    <value>Cabeceras que lo reconocen</value>
+  </data>
+  <data name="Profiles_HeadersHelp" xml:space="preserve">
+    <value>Separadas por punto y coma. El fichero puede traer más columnas; basta con que estén estas.</value>
+  </data>
+  <data name="Profiles_Delimiter" xml:space="preserve">
+    <value>Separador de columnas</value>
+  </data>
+  <data name="Profiles_DelimiterHelp" xml:space="preserve">
+    <value>Escribe \t para el tabulador.</value>
+  </data>
+  <data name="Profiles_Decimal" xml:space="preserve">
+    <value>Cómo vienen los números</value>
+  </data>
+  <data name="Profiles_Decimal_European" xml:space="preserve">
+    <value>Europea: 1.234,56</value>
+  </data>
+  <data name="Profiles_Decimal_Invariant" xml:space="preserve">
+    <value>Con punto decimal: 1234.56</value>
+  </data>
+  <data name="Profiles_DateFormats" xml:space="preserve">
+    <value>Formatos de fecha</value>
+  </data>
+  <data name="Profiles_DateFormatsHelp" xml:space="preserve">
+    <value>Separados por punto y coma, se prueban en orden. Por ejemplo dd/MM/yyyy;dd.MM.yyyy HH:mm:ss</value>
+  </data>
+  <data name="Profiles_TimeZone" xml:space="preserve">
+    <value>Zona horaria del extracto</value>
+  </data>
+  <data name="Profiles_FixedCurrency" xml:space="preserve">
+    <value>Divisa, si el fichero no la trae</value>
+  </data>
+  <data name="Profiles_RowShape" xml:space="preserve">
+    <value>Qué es cada fila</value>
+  </data>
+  <data name="Profiles_RowShape_SingleMovement" xml:space="preserve">
+    <value>Un apunte</value>
+  </data>
+  <data name="Profiles_RowShape_OpenPosition" xml:space="preserve">
+    <value>Una posición abierta: solo la compra</value>
+  </data>
+  <data name="Profiles_RowShape_OpenAndClosePosition" xml:space="preserve">
+    <value>Una posición cerrada: compra y venta</value>
+  </data>
+  <data name="Profiles_AmountSource" xml:space="preserve">
+    <value>De dónde sale el importe</value>
+  </data>
+  <data name="Profiles_AmountSource_Column" xml:space="preserve">
+    <value>De su columna</value>
+  </data>
+  <data name="Profiles_AmountSource_QuantityTimesPrice" xml:space="preserve">
+    <value>De multiplicar cantidad por precio</value>
+  </data>
+  <data name="Profiles_AmountPositive" xml:space="preserve">
+    <value>Guardar el importe siempre en positivo</value>
+  </data>
+  <data name="Profiles_AmountPositiveHelp" xml:space="preserve">
+    <value>La dirección del dinero la lleva el tipo del movimiento, así que conservar además el signo la contaría dos veces.</value>
+  </data>
+  <data name="Profiles_AssetClass" xml:space="preserve">
+    <value>Clase de activo, si todo el fichero es la misma</value>
+  </data>
+  <data name="Profiles_Columns" xml:space="preserve">
+    <value>Qué columna alimenta cada campo</value>
+  </data>
+  <data name="Profiles_ColumnsHelp" xml:space="preserve">
+    <value>Deja en blanco lo que el fichero no traiga.</value>
+  </data>
+  <data name="Profiles_Concepts" xml:space="preserve">
+    <value>Qué significa cada concepto</value>
+  </data>
+  <data name="Profiles_ConceptsHelp" xml:space="preserve">
+    <value>Una línea por concepto, con el texto del bróker, un signo igual y el tipo. Lo que no esté aquí entra sin clasificar y aparece en Revisión.</value>
+  </data>
+  <data name="Profiles_NonFinancial" xml:space="preserve">
+    <value>Conceptos sin efecto financiero</value>
+  </data>
+  <data name="Profiles_NonFinancialHelp" xml:space="preserve">
+    <value>Separados por punto y coma. Se cuentan y se descartan, no se rechazan.</value>
+  </data>
+  <data name="Profiles_DeleteConfirm_Title" xml:space="preserve">
+    <value>Borrar perfil</value>
+  </data>
+  <data name="Profiles_DeleteConfirm_Message" xml:space="preserve">
+    <value>Los movimientos que se importaron con él no cambian, pero dejarán de poder explicar con qué reglas se leyeron.</value>
+  </data>
+  <data name="Profiles_BuiltInNote" xml:space="preserve">
+    <value>Viene de serie. Puedes corregirlo; no puedes borrarlo, porque se volvería a crear en el siguiente arranque.</value>
+  </data>
 </root>
