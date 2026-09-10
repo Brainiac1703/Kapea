@@ -15,6 +15,21 @@ public class KrakenImportAdapterTests
     private static readonly DateTimeOffset To = new(2024, 12, 31, 0, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task An_amount_of_crypto_is_never_taken_for_an_amount_of_euros()
+    {
+        // El libro de Kraken no valora en euros lo que no es dinero: solo dice cuántas
+        // unidades entran o salen. Tomando esa cantidad como importe, una recompensa de
+        // trescientas mil unidades parecía costar trescientos mil euros.
+        var result = await ReadFullHistory();
+
+        var staking = result.Records.First(record =>
+            record.Type == TransactionType.Reward && record.AssetSymbol is { Length: > 0 });
+
+        Assert.True(staking.Quantity > 0m);
+        Assert.Equal(0m, staking.GrossAmount);
+    }
+
+    [Fact]
     public async Task An_instant_purchase_from_the_app_becomes_a_buy_with_its_cost()
     {
         // Comprar desde la aplicación de Kraken no genera una operación de mercado, así

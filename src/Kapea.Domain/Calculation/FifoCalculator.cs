@@ -88,6 +88,21 @@ public static class FifoCalculator
                         valued.OccurredAt,
                         valued.GrossAmountInEuros,
                         valued.WithholdingInEuros ?? Money.Euros(0m)));
+
+                    // Un rendimiento cobrado en especie —una recompensa de staking, un
+                    // dividendo en acciones— además de tributar entrega unidades que
+                    // pasan a ser tuyas. Su coste de adquisición es el valor por el que
+                    // ya se ha tributado, de modo que venderlas después no vuelve a
+                    // gravar lo mismo. Sin esto, esas unidades no existían en la cartera
+                    // y al venderlas el resultado salía inflado por su importe entero.
+                    if (valued.Transaction.Quantity.Value > 0m)
+                    {
+                        var earned = CreateLot(userId, assetId, valued, ++sequence);
+
+                        lots.Add(earned);
+                        openLots.Add(earned);
+                    }
+
                     break;
 
                 default:

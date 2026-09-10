@@ -126,7 +126,11 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
             AssetClass: isFiat ? null : AssetClass.Crypto,
             Quantity: isFiat ? 0m : Math.Abs(entry.Amount),
             UnitPrice: null,
-            GrossAmount: Math.Abs(entry.Amount),
+            // El libro de Kraken no valora en euros lo que no es dinero: solo dice
+            // cuántas unidades entran o salen. Poner esa cantidad como importe hacía que
+            // una recompensa de trescientas mil unidades pareciera costar trescientos mil
+            // euros. Sin valoración, el importe se queda a cero y se ve como pendiente.
+            GrossAmount: isFiat ? Math.Abs(entry.Amount) : 0m,
             Currency: isFiat ? Currency.FromCode(canonical) : Currency.Euro,
             Fee: Math.Abs(entry.Fee),
             Withholding: null,

@@ -326,14 +326,47 @@ public class FifoCalculatorTests
     }
 
     [Fact]
-    public void A_reward_is_capital_income_and_does_not_create_a_lot()
+    public void A_reward_is_capital_income_and_also_delivers_the_units_it_pays()
     {
+        // Una recompensa de staking tributa por su valor al cobrarla, y esas unidades
+        // pasan a ser tuyas. Sin el lote no existían en la cartera.
         var result = new Ledger()
             .Reward("2024-04-01", quantity: 0.5m, grossEuros: 20m)
             .Calculate();
 
         Assert.Equal(Money.Euros(20m), Assert.Single(result.CapitalIncomes).GrossAmountInEuros);
-        Assert.Empty(result.OpenLots);
+
+        var lot = Assert.Single(result.OpenLots);
+
+        Assert.Equal(0.5m, lot.RemainingQuantity.Value);
+
+        // Su coste es el valor por el que ya se tributó: venderlas a ese precio no
+        // puede volver a gravar lo mismo.
+        Assert.Equal(Money.Euros(20m), lot.AcquisitionCost);
+    }
+
+    [Fact]
+    public void Selling_what_a_reward_delivered_is_not_taxed_twice()
+    {
+        var result = new Ledger()
+            .Reward("2024-04-01", quantity: 0.5m, grossEuros: 20m)
+            .Sell("2024-06-01", quantity: 0.5m, grossEuros: 20m)
+            .Calculate();
+
+        Assert.Equal(Money.Euros(0m), Assert.Single(result.RealizedResults).ResultInEuros);
+    }
+
+    [Fact]
+    public void A_dividend_paid_in_cash_delivers_no_units()
+    {
+        // Un rendimiento sin cantidad no entrega nada: no hay lote que crear.
+        var result = new Ledger()
+            .Buy("2024-01-10", quantity: 10m, grossEuros: 100m)
+            .Dividend("2024-04-01", grossEuros: 20m)
+            .Calculate();
+
+        Assert.Equal(10m, result.OpenLots.Sum(lot => lot.RemainingQuantity.Value));
+        Assert.Single(result.CapitalIncomes);
     }
 
     [Fact]

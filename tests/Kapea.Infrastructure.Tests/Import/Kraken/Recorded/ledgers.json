@@ -78,8 +78,19 @@
         "amount": "1.00000000",
         "fee": "0.00000000",
         "balance": "1.00000000"
+      },
+      "LGRSTK-PEPE-0001": {
+        "refid": "QSTAKE-0001",
+        "time": 1705600000.0,
+        "type": "staking",
+        "subtype": "",
+        "aclass": "currency",
+        "asset": "PEPE",
+        "amount": "314601.58000000",
+        "fee": "0.00000000",
+        "balance": "314601.58000000"
       }
     },
-    "count": 7
+    "count": 8
   }
 }
