@@ -195,8 +195,19 @@ public static class PortfolioEndpoints
 
             var platform = parsed.Value;
 
+            // La cuenta se lee con el filtro por usuario puesto. Una cuenta ajena no
+            // aparece, así que llega aquí como inexistente en lugar de como una cuenta
+            // de otro sobre la que se podría escribir.
+            var account = await context.Accounts
+                .SingleOrDefaultAsync(entity => entity.Id == request.AccountId, token);
+
+            if (account is null)
+            {
+                return Results.NotFound();
+            }
+
             var credential = await service.RegisterAsync(
-                request.AccountId, platform, request.Alias, new ApiSecret(request.ApiKey, request.ApiSecret), token);
+                account, platform, request.Alias, new ApiSecret(request.ApiKey, request.ApiSecret), token);
 
             context.BrokerCredentials.Add(credential);
             await context.SaveChangesAsync(token);

@@ -35,6 +35,25 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task A_credential_cannot_be_registered_on_the_account_of_another_person()
+    {
+        // La cuenta ajena no existe para quien pregunta, así que la petición se responde
+        // como inexistente en lugar de dejar escribir sobre ella.
+        var (mine, _) = await factory.CreateSignedInClientAsync();
+        var theirs = await (await mine.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Kraken de otro", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        var (attacker, _) = await factory.CreateSignedInClientAsync();
+
+        var response = await attacker.PostAsJsonAsync(
+            "/api/credentials",
+            new RegisterBrokerCredentialRequest(theirs!.Id, "Kraken", "Mía", "clave", "secreto"));
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task A_file_platform_given_a_row_becomes_available_without_touching_code()
     {
         // Es lo que persigue el cambio entero: un bróker que exporta un fichero se da
