@@ -96,9 +96,14 @@ public static class DependencyInjection
             // haga falta configurarlo para producción y no al revés: un despliegue sin
             // configurar debe fallar por falta de vault, no guardar secretos en claro.
             var secretsId = configuration["UserSecrets:Id"] ?? "kapea-local";
+            var store = new UserSecretsSecretStore(UserSecretsSecretStore.DefaultPathFor(secretsId));
 
-            services.AddSingleton<ISecretStore>(
-                new UserSecretsSecretStore(UserSecretsSecretStore.DefaultPathFor(secretsId)));
+            // Se comprueba al componer y no al guardar la primera credencial: un almacén
+            // de solo lectura hace fallar el alta con una ruta denegada, mucho después y
+            // sin decir qué hay que arreglar.
+            store.EnsureWritable();
+
+            services.AddSingleton<ISecretStore>(store);
 
             return;
         }

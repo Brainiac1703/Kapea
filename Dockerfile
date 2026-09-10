@@ -53,6 +53,13 @@ EXPOSE 8080
 
 COPY --from=build /app/api .
 
+# El almacén de secretos de desarrollo se crea aquí, a nombre del usuario que ejecuta
+# la aplicación. Docker copia estos permisos al crear el volumen que se monta encima;
+# sin el directorio en la imagen, el volumen nace de root y la aplicación no puede
+# guardar ninguna credencial.
+RUN mkdir -p /home/app/.microsoft/usersecrets \
+    && chown -R $APP_UID:$APP_UID /home/app/.microsoft
+
 USER $APP_UID
 
 ENTRYPOINT ["dotnet", "Kapea.Api.dll"]
@@ -66,6 +73,13 @@ FROM mcr.microsoft.com/dotnet/runtime:10.0 AS sync
 WORKDIR /app
 
 COPY --from=build /app/sync .
+
+# El almacén de secretos de desarrollo se crea aquí, a nombre del usuario que ejecuta
+# la aplicación. Docker copia estos permisos al crear el volumen que se monta encima;
+# sin el directorio en la imagen, el volumen nace de root y la aplicación no puede
+# guardar ninguna credencial.
+RUN mkdir -p /home/app/.microsoft/usersecrets \
+    && chown -R $APP_UID:$APP_UID /home/app/.microsoft
 
 USER $APP_UID
 

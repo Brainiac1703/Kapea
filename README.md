@@ -96,7 +96,17 @@ preguntar. Sale a configuración porque el valor bueno solo se sabe usándolo.
 ### Secretos de los brokers
 
 Sin `KEYVAULT_URI` se usa el almacén de desarrollo, un fichero de User Secrets en un
-volumen del contenedor. Guarda en claro, como todo User Secrets: no pongas ahí claves
+volumen del contenedor. La API comprueba al arrancar que puede escribir ahí y se niega
+a levantar si no: un almacén de solo lectura haría fallar el alta de una credencial
+mucho después, con una ruta denegada que no dice qué arreglar. Si eso ocurre, el
+volumen se creó con otro propietario y se resuelve así:
+
+```
+docker compose down
+docker volume rm kapea_broker-secrets
+docker compose up -d --build
+```
+ Guarda en claro, como todo User Secrets: no pongas ahí claves
 de una cuenta con dinero real. En producción manda Key Vault.
 
 ## Desarrollo sin contenedores
