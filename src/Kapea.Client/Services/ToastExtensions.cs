@@ -23,6 +23,9 @@ public static class ToastExtensions
             return;
         }
 
-        toasts.ShowError(exception.Message);
+        // Sin caducidad y con su aspa: un rechazo de la plataforma explica qué hay que
+        // corregir, y un aviso que se va solo obliga a repetir la operación solo para
+        // volver a leerlo.
+        toasts.ShowError(exception.Message, timeout: 0);
     }
 }

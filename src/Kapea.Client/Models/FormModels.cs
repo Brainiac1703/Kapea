@@ -79,6 +79,16 @@ public sealed class BrokerCredentialModel
     /// <summary>En una rotación el alias no se pide: se conserva el de la credencial.</summary>
     public bool IsRotation { get; set; }
 
+    /// <summary>
+    /// Por qué se rechazó el último intento.
+    /// </summary>
+    /// <remarks>
+    /// Va en el modelo para poder reabrir el formulario con lo ya escrito y el motivo
+    /// encima. Cerrarlo y avisar aparte obliga a teclear la clave y el secreto otra vez
+    /// para corregir una sola cosa.
+    /// </remarks>
+    public string? Error { get; set; }
+
     public bool IsComplete => Missing.Count == 0;
 
     /// <summary>
