@@ -26,6 +26,11 @@ public static class KrakenSymbols
         ["XZEC"] = "ZEC",
         ["XETC"] = "ETC",
         ["XREP"] = "REP",
+
+        // Kraken llama XDG a Dogecoin. Sin traducirlo, sus recompensas quedaban a nombre
+        // de un activo que no existe en ningún proveedor de precios.
+        ["XDG"] = "DOGE",
+        ["XXDG"] = "DOGE",
         ["ZEUR"] = "EUR",
         ["ZUSD"] = "USD",
         ["ZGBP"] = "GBP",

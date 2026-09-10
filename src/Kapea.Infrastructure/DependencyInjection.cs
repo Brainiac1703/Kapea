@@ -134,8 +134,27 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(configuration["CoinGecko:BaseAddress"] ?? "https://api.coingecko.com/"))
             .AddStandardResilienceHandler();
 
-        services.AddScoped<IMarketPriceProvider>(
-            provider => provider.GetRequiredService<CoinGeckoMarketPriceProvider>());
+        services.AddHttpClient<YahooMarketPriceProvider>(client =>
+        {
+            client.BaseAddress = new Uri(configuration["Yahoo:BaseAddress"] ?? "https://query1.finance.yahoo.com/");
+
+            // Yahoo rechaza las peticiones sin agente de usuario reconocible.
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (compatible; Kapea/1.0)");
+        }).AddStandardResilienceHandler();
+
+        services.AddMemoryCache();
+        services.AddScoped<IAssetClassLookup, AssetClassLookup>();
+
+        // Cada clase de activo con su proveedor: una acción y una criptomoneda no se
+        // cotizan en el mismo sitio, y preguntar a los dos por todo gastaría el doble de
+        // peticiones para tirar la mitad.
+        services.AddScoped(provider => new ClassifiedPriceProvider(
+            Domain.Assets.AssetClass.Crypto, provider.GetRequiredService<CoinGeckoMarketPriceProvider>()));
+
+        services.AddScoped(provider => new ClassifiedPriceProvider(
+            Domain.Assets.AssetClass.Equity, provider.GetRequiredService<YahooMarketPriceProvider>()));
+
+        services.AddScoped<IMarketPriceProvider, MarketPriceDispatcher>();
     }
 
     /// <summary>

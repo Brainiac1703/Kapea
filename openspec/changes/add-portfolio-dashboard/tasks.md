@@ -8,12 +8,12 @@
 
 ## 2. Precios de renta variable
 
-- [ ] 2.1 Implementar la conversión del símbolo del bróker al del proveedor con la regla general —sufijo de mercado estadounidense fuera, resto tal cual— y una tabla de excepciones por activo; verificar con tests de ambos casos y de una excepción
-- [ ] 2.2 Implementar el proveedor de precios de renta variable contra respuestas grabadas, pidiendo varios símbolos en una sola llamada; verificar que un símbolo desconocido no impide obtener el resto
-- [ ] 2.3 Implementar el despachador que elige proveedor por clase de activo; verificar con test que una cartera con acciones y criptos obtiene precios de ambos y que una clase sin proveedor no rompe la consulta
-- [ ] 2.4 Añadir a la tabla de CoinGecko los identificadores que faltan, entre ellos TAO, B2M y PAXG; verificar con test que la cartera del usuario queda cubierta por completo
-- [ ] 2.5 Implementar la caché breve de precios en el servidor; verificar con test que dos consultas seguidas producen una sola llamada al proveedor y que pasada la ventana se vuelve a consultar
-- [ ] 2.6 Implementar la degradación cuando el proveedor falla o agota su cuota; verificar con test que la consulta de cartera responde igual sin precios
+- [x] 2.1 Implementar la conversión del símbolo del bróker al del proveedor con la regla general —sufijo de mercado estadounidense fuera, resto tal cual— y una tabla de excepciones por activo; verificar con tests de ambos casos y de una excepción
+- [x] 2.2 Implementar el proveedor de precios de renta variable contra respuestas grabadas, pidiendo varios símbolos en una sola llamada; verificar que un símbolo desconocido no impide obtener el resto
+- [x] 2.3 Implementar el despachador que elige proveedor por clase de activo; verificar con test que una cartera con acciones y criptos obtiene precios de ambos y que una clase sin proveedor no rompe la consulta
+- [x] 2.4 Añadir a la tabla de CoinGecko los identificadores que faltan, entre ellos TAO, B2M y PAXG; verificar con test que la cartera del usuario queda cubierta por completo
+- [x] 2.5 Implementar la caché breve de precios en el servidor; verificar con test que dos consultas seguidas producen una sola llamada al proveedor y que pasada la ventana se vuelve a consultar
+- [x] 2.6 Implementar la degradación cuando el proveedor falla o agota su cuota; verificar con test que la consulta de cartera responde igual sin precios
 
 ## 3. Cartera ampliada
 
