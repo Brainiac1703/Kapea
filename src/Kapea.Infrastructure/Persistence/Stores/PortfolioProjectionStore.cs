@@ -1,5 +1,6 @@
 using Kapea.Application.Abstractions;
 using Kapea.Domain.Calculation;
+using Kapea.Domain.Lots;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -36,6 +37,13 @@ public sealed class PortfolioProjectionStore(KapeaDbContext context, ILogger<Por
             await context.CapitalIncomes.Where(income => income.AssetId == assetId)
                 .ExecuteDeleteAsync(token).ConfigureAwait(false);
 
+            // ExecuteDelete borra en la base pero no descarta lo que el contexto ya tenía
+            // en memoria. Sin soltarlo, añadir la proyección nueva choca con la vieja por
+            // clave repetida, que es lo que pasa al recalcular justo después de importar.
+            Forget<Lot>(assetId);
+            Forget<RealizedResult>(assetId);
+            Forget<CapitalIncome>(assetId);
+
             context.Lots.AddRange(result.Lots);
             context.RealizedResults.AddRange(result.RealizedResults);
             context.CapitalIncomes.AddRange(result.CapitalIncomes);
@@ -46,5 +54,20 @@ public sealed class PortfolioProjectionStore(KapeaDbContext context, ILogger<Por
         logger.LogInformation(
             "Proyección del activo {Activo} reemplazada: {Lotes} lotes, {Resultados} resultados, {Rendimientos} rendimientos.",
             assetId, result.Lots.Count, result.RealizedResults.Count, result.CapitalIncomes.Count);
+    }
+
+    /// <summary>Suelta del contexto la proyección de un activo que ya se ha borrado.</summary>
+    private void Forget<T>(Guid assetId)
+        where T : class
+    {
+        var stale = context.ChangeTracker
+            .Entries<T>()
+            .Where(entry => entry.Property("AssetId").CurrentValue is Guid tracked && tracked == assetId)
+            .ToList();
+
+        foreach (var entry in stale)
+        {
+            entry.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+        }
     }
 }
