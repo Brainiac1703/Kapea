@@ -78,6 +78,10 @@ public static class DependencyInjection
         services.AddScoped<IApiImportAdapter, Bit2MeImportAdapter>();
         services.AddScoped<IImportAdapterRegistry, ImportAdapterRegistry>();
 
+        services.AddScoped<IRecordReinterpreter, Bit2MeRecordReinterpreter>();
+        services.AddScoped<IReinterpretationRepository, Persistence.Stores.ReinterpretationRepository>();
+        services.AddScoped<TransactionReinterpretationService>();
+
         services.AddMappingProposals(configuration);
 
         services.AddScoped<ICredentialVerifier, KrakenCredentialVerifier>();

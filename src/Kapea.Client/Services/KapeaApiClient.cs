@@ -61,6 +61,13 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<MappingProposalResponse>(response, cancellationToken);
     }
 
+    public async Task<ReinterpretationResponse> ReinterpretAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync("api/transactions/reinterpret", content: null, cancellationToken);
+
+        return await ReadAsync<ReinterpretationResponse>(response, cancellationToken);
+    }
+
     public Task<IReadOnlyList<ImportProfileResponse>> GetProfilesAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<ImportProfileResponse>("api/profiles", cancellationToken);
 

@@ -799,4 +799,16 @@
   <data name="Form_Missing" xml:space="preserve">
     <value>Faltan datos: {0}</value>
   </data>
+  <data name="Review_Reinterpret" xml:space="preserve">
+    <value>Releer con las reglas actuales</value>
+  </data>
+  <data name="Review_ReinterpretHelp" xml:space="preserve">
+    <value>Vuelve a interpretar los movimientos sin clasificar usando lo que Kapea sabe hoy. No pide nada a la plataforma ni cambia ninguna cifra.</value>
+  </data>
+  <data name="Review_Reinterpreted" xml:space="preserve">
+    <value>{0} movimientos clasificados. {1} siguen sin reconocerse y {2} no se pueden releer.</value>
+  </data>
+  <data name="Review_ReinterpretedNone" xml:space="preserve">
+    <value>Ninguno ha cambiado: hoy Kapea tampoco sabe qué son.</value>
+  </data>
 </root>

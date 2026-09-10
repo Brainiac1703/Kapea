@@ -171,3 +171,8 @@ public sealed record InternalTransferResponse(
 
 /// <summary>Resultado de subir un fichero: lo que se importaría si se confirma.</summary>
 public sealed record ImportPreviewResponse(ImportRunResponse Run, IReadOnlyList<string> Warnings);
+
+/// <summary>Qué ha pasado al releer los movimientos sin clasificar.</summary>
+/// <param name="NotSupported">Los que no se pueden releer, porque su origen no conserva forma de hacerlo.</param>
+public sealed record ReinterpretationResponse(int Reclassified, int StillUnknown, int NotSupported);
+

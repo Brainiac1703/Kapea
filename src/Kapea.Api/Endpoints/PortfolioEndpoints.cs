@@ -389,6 +389,26 @@ public static class PortfolioEndpoints
                 ? Results.Ok(result)
                 : Results.NotFound());
 
+        // Relee lo que quedó sin clasificar con las reglas de hoy. No pide nada a la
+        // plataforma: cada movimiento guarda el texto con el que entró.
+        api.MapPost("/transactions/reinterpret", async (
+            TransactionReinterpretationService reinterpretation,
+            PortfolioCalculationService calculation,
+            CancellationToken token) =>
+        {
+            var result = await reinterpretation.ReinterpretAsync(token);
+
+            // Un movimiento sin clasificar está fuera del cálculo. En cuanto pasa a
+            // significar algo, la cartera cambia y hay que rehacerla.
+            if (result.Reclassified > 0)
+            {
+                await calculation.RecalculateAsync(cancellationToken: token);
+            }
+
+            return Results.Ok(new ReinterpretationResponse(
+                result.Reclassified, result.StillUnknown, result.NotSupported));
+        });
+
         api.MapPost("/portfolio/recalculate", async (
             PortfolioCalculationService calculation, IPortfolioQueries queries, CancellationToken token) =>
         {

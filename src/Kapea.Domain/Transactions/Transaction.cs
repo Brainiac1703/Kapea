@@ -69,7 +69,7 @@ public sealed class Transaction
 
     public Guid AccountId { get; }
 
-    public TransactionType Type { get; }
+    public TransactionType Type { get; private set; }
 
     /// <summary>Activo operado. Nulo en movimientos puramente dinerarios (una comisión de cuenta, un ingreso).</summary>
     public Guid? AssetId { get; }
@@ -137,6 +137,36 @@ public sealed class Transaction
         return new Transaction(Guid.NewGuid(), userId, accountId, type, assetId, quantity, unitPrice, grossAmount,
             fee, withholdingTax, occurredAt, TransactionOrigin.Imported, source, adjustmentReason: null,
             appliedExchangeRate);
+    }
+
+    /// <summary>
+    /// Vuelve a clasificar un movimiento que quedó sin clasificar.
+    /// </summary>
+    /// <remarks>
+    /// Solo desde <see cref="TransactionType.Unknown"/>, y a propósito. Un movimiento ya
+    /// clasificado puede haber entrado en un ejercicio presentado, y cambiarle el tipo
+    /// alteraría cifras que alguien ya dio por buenas. Uno sin clasificar está fuera del
+    /// cálculo, así que interpretarlo mejor no reescribe nada.
+    ///
+    /// Las cifras no se tocan: son las que trajo el origen, y lo que se corrige aquí es
+    /// solo qué significan.
+    /// </remarks>
+    public void Reinterpret(TransactionType type)
+    {
+        if (Type != TransactionType.Unknown)
+        {
+            throw new DomainException(
+                "Solo se reinterpreta un movimiento sin clasificar: cambiar uno ya clasificado alteraría cifras dadas por buenas.");
+        }
+
+        if (type == TransactionType.Unknown)
+        {
+            return;
+        }
+
+        EnsureConsistent(type, AssetId, Quantity, UnitPrice, GrossAmount, Fee, WithholdingTax);
+
+        Type = type;
     }
 
     public static Transaction FromManualAdjustment(

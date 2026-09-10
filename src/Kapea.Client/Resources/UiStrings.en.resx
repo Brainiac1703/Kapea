@@ -799,4 +799,16 @@
   <data name="Form_Missing" xml:space="preserve">
     <value>Missing details: {0}</value>
   </data>
+  <data name="Review_Reinterpret" xml:space="preserve">
+    <value>Re-read with current rules</value>
+  </data>
+  <data name="Review_ReinterpretHelp" xml:space="preserve">
+    <value>Re-interprets unclassified movements using what Kapea knows today. It asks the platform for nothing and changes no figures.</value>
+  </data>
+  <data name="Review_Reinterpreted" xml:space="preserve">
+    <value>{0} movements classified. {1} are still unrecognised and {2} cannot be re-read.</value>
+  </data>
+  <data name="Review_ReinterpretedNone" xml:space="preserve">
+    <value>None changed: Kapea does not know what they are either.</value>
+  </data>
 </root>

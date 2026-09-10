@@ -164,6 +164,17 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
     /// enlazadas por el identificador de la transacción. Tratarla como un único
     /// movimiento escondería el hecho imponible de la pata de salida.
     /// </summary>
+    /// <summary>
+    /// Vuelve a leer una transacción de monedero ya guardada.
+    /// </summary>
+    /// <remarks>
+    /// Se usa para reinterpretar movimientos que quedaron sin clasificar cuando el
+    /// adaptador todavía no entendía su forma. Es el mismo camino que sigue una
+    /// importación, así que lo reinterpretado y lo importado no pueden divergir.
+    /// </remarks>
+    internal static IReadOnlyList<ImportRecord> ReadWalletTransaction(Bit2MeWalletTransaction transaction) =>
+        FromWalletTransaction(transaction);
+
     private static IReadOnlyList<ImportRecord> FromWalletTransaction(Bit2MeWalletTransaction transaction)
     {
         var candidates = transaction.Operations
