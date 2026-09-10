@@ -29,7 +29,28 @@ public sealed class NewAccountModel
 
     public string BaseCurrency { get; set; } = "EUR";
 
-    public bool IsComplete => !string.IsNullOrWhiteSpace(Alias);
+    public bool IsComplete => Missing.Count == 0;
+
+    /// <summary>Qué falta por rellenar, con la clave de su etiqueta.</summary>
+    public IReadOnlyList<string> Missing
+    {
+        get
+        {
+            var missing = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(Platform))
+            {
+                missing.Add("Common_Platform");
+            }
+
+            if (string.IsNullOrWhiteSpace(Alias))
+            {
+                missing.Add("Common_Alias");
+            }
+
+            return missing;
+        }
+    }
 }
 
 /// <summary>Alta o rotación de una credencial. El secreto vive solo mientras dura el envío.</summary>
@@ -58,8 +79,43 @@ public sealed class BrokerCredentialModel
     /// <summary>En una rotación el alias no se pide: se conserva el de la credencial.</summary>
     public bool IsRotation { get; set; }
 
-    public bool IsComplete =>
-        !string.IsNullOrWhiteSpace(ApiKey)
-        && !string.IsNullOrWhiteSpace(ApiSecret)
-        && (IsRotation || (!string.IsNullOrWhiteSpace(Alias) && AccountId != Guid.Empty));
+    public bool IsComplete => Missing.Count == 0;
+
+    /// <summary>
+    /// Qué falta por rellenar, con la clave de su etiqueta.
+    /// </summary>
+    /// <remarks>
+    /// Se enumera en lugar de devolver solo un sí o un no porque un formulario que se
+    /// cierra sin hacer nada y sin decir por qué es indistinguible de uno que ha
+    /// funcionado: se ve que no aparece el resultado, pero no qué faltaba.
+    /// </remarks>
+    public IReadOnlyList<string> Missing
+    {
+        get
+        {
+            var missing = new List<string>();
+
+            if (!IsRotation && AccountId == Guid.Empty)
+            {
+                missing.Add("Credentials_Account");
+            }
+
+            if (!IsRotation && string.IsNullOrWhiteSpace(Alias))
+            {
+                missing.Add("Common_Alias");
+            }
+
+            if (string.IsNullOrWhiteSpace(ApiKey))
+            {
+                missing.Add("Credentials_ApiKey");
+            }
+
+            if (string.IsNullOrWhiteSpace(ApiSecret))
+            {
+                missing.Add("Credentials_ApiSecret");
+            }
+
+            return missing;
+        }
+    }
 }

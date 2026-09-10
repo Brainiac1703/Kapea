@@ -11,6 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Kapea.Api.Tests/Kapea.Api.Tests.csproj" />
     <Project Path="tests/Kapea.Application.Tests/Kapea.Application.Tests.csproj" />
+    <Project Path="tests/Kapea.Client.Tests/Kapea.Client.Tests.csproj" />
     <Project Path="tests/Kapea.Domain.Tests/Kapea.Domain.Tests.csproj" />
     <Project Path="tests/Kapea.Infrastructure.Tests/Kapea.Infrastructure.Tests.csproj" />
   </Folder>

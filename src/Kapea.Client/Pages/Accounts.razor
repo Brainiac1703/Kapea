@@ -104,8 +104,15 @@ else
 
         var result = await dialog.Result;
 
-        if (result.Cancelled || result.Data is not NewAccountModel model || !model.IsComplete)
+        if (result.Cancelled || result.Data is not NewAccountModel model)
         {
+            return;
+        }
+
+        if (!model.IsComplete)
+        {
+            Toasts.ShowMissing(Ui, model.Missing);
+
             return;
         }
 

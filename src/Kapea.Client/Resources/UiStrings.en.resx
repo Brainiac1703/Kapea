@@ -796,4 +796,7 @@
   <data name="Mapping_NoService" xml:space="preserve">
     <value>No proposal service is configured. Map it by hand.</value>
   </data>
+  <data name="Form_Missing" xml:space="preserve">
+    <value>Missing details: {0}</value>
+  </data>
 </root>

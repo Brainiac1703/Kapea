@@ -796,4 +796,7 @@
   <data name="Mapping_NoService" xml:space="preserve">
     <value>No hay servicio de propuestas configurado. Mapéalo a mano.</value>
   </data>
+  <data name="Form_Missing" xml:space="preserve">
+    <value>Faltan datos: {0}</value>
+  </data>
 </root>
