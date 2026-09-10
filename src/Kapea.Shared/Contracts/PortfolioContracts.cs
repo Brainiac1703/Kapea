@@ -184,3 +184,19 @@ public sealed record SynchronizationResponse(
     int NewRecords,
     IReadOnlyList<string> Problems);
 
+/// <summary>
+/// Una página de movimientos con lo que hace falta para navegarlos.
+/// </summary>
+/// <remarks>
+/// Van por páginas porque un histórico de cripto son miles de apuntes: dos mil de ellos
+/// pueden ser recompensas diarias de un mismo producto, y traerlos todos para enseñar
+/// veinte deja la pantalla en blanco mientras llegan.
+/// </remarks>
+public sealed record TransactionPageResponse(
+    IReadOnlyList<TransactionResponse> Items,
+    int Total,
+    int Page,
+    int PageSize,
+    IReadOnlyList<string> Types,
+    IReadOnlyList<int> Years);
+

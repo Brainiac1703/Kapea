@@ -2,6 +2,18 @@ using Kapea.Shared.Contracts;
 
 namespace Kapea.Application.Portfolio;
 
+/// <summary>Qué movimientos se piden.</summary>
+/// <param name="Search">Busca en el activo y en el contenido original de la fila.</param>
+public sealed record TransactionQuery(
+    Guid? AccountId = null,
+    string? AssetSymbol = null,
+    string? Type = null,
+    int? Year = null,
+    bool OnlyRequiringReview = false,
+    string? Search = null,
+    int Page = 1,
+    int PageSize = 50);
+
 /// <summary>
 /// Consultas de lectura que devuelven directamente los contratos del cliente.
 /// </summary>
@@ -23,6 +35,11 @@ public interface IPortfolioQueries
         CancellationToken cancellationToken = default);
 
     Task<ImportRunResponse?> FindImportRunAsync(Guid runId, CancellationToken cancellationToken = default);
+
+    /// <summary>Una página de movimientos, con los filtros ya aplicados.</summary>
+    Task<TransactionPageResponse> SearchTransactionsAsync(
+        TransactionQuery query,
+        CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<TransactionResponse>> ListTransactionsAsync(
         Guid? accountId,

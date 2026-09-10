@@ -61,6 +61,48 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<MappingProposalResponse>(response, cancellationToken);
     }
 
+    public async Task<TransactionPageResponse> SearchTransactionsAsync(
+        Guid? accountId = null,
+        string? asset = null,
+        string? type = null,
+        int? year = null,
+        string? search = null,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
+
+        if (accountId is { } id)
+        {
+            query.Add($"accountId={id}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(asset))
+        {
+            query.Add($"asset={Uri.EscapeDataString(asset)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            query.Add($"type={Uri.EscapeDataString(type)}");
+        }
+
+        if (year is { } chosen)
+        {
+            query.Add($"year={chosen}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query.Add($"search={Uri.EscapeDataString(search)}");
+        }
+
+        var response = await http.GetAsync("api/transactions/search?" + string.Join('&', query), cancellationToken);
+
+        return await ReadAsync<TransactionPageResponse>(response, cancellationToken);
+    }
+
     public async Task<SynchronizationResponse> SynchroniseAsync(CancellationToken cancellationToken = default)
     {
         var response = await http.PostAsync("api/sync", content: null, cancellationToken);

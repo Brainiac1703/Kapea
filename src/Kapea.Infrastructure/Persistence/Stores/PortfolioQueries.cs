@@ -85,6 +85,85 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
         return run is null ? null : ToResponse(run, await ProfileNameAsync(run, cancellationToken).ConfigureAwait(false));
     }
 
+    public async Task<TransactionPageResponse> SearchTransactionsAsync(
+        TransactionQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var symbols = await SymbolsAsync(cancellationToken).ConfigureAwait(false);
+
+        var assetIds = query.AssetSymbol is { Length: > 0 } wanted
+            ? symbols
+                .Where(entry => entry.Value.Contains(wanted, StringComparison.OrdinalIgnoreCase))
+                .Select(entry => entry.Key)
+                .ToHashSet()
+            : null;
+
+        var filtered = context.Transactions
+            .Where(transaction => query.AccountId == null || transaction.AccountId == query.AccountId)
+            .Where(transaction => !query.OnlyRequiringReview || transaction.Type == TransactionType.Unknown)
+            .Where(transaction => query.Year == null || transaction.OccurredAt.Instant.Year == query.Year);
+
+        if (query.Type is { Length: > 0 } type
+            && Enum.TryParse<TransactionType>(type, ignoreCase: true, out var parsedType))
+        {
+            filtered = filtered.Where(transaction => transaction.Type == parsedType);
+        }
+
+        if (assetIds is not null)
+        {
+            filtered = filtered.Where(transaction =>
+                transaction.AssetId != null && assetIds.Contains(transaction.AssetId.Value));
+        }
+
+        if (query.Search is { Length: > 0 } search)
+        {
+            filtered = filtered.Where(transaction =>
+                transaction.Source.RawContent != null && transaction.Source.RawContent.Contains(search));
+        }
+
+        var total = await filtered.CountAsync(cancellationToken).ConfigureAwait(false);
+
+        // Los años y los tipos salen de todo el histórico y no de la página: un
+        // desplegable que solo ofreciera lo que ya se ve no serviría para llegar a lo
+        // que no se ve.
+        var years = await context.Transactions
+            .Select(transaction => transaction.OccurredAt.Instant.Year)
+            .Distinct()
+            .OrderByDescending(year => year)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var types = await context.Transactions
+            .Select(transaction => transaction.Type)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var page = Math.Max(1, query.Page);
+        var size = Math.Clamp(query.PageSize, 1, 200);
+
+        var items = await filtered
+            .OrderByDescending(transaction => transaction.OccurredAt.Instant)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var profileNames = await context.ImportProfiles
+            .ToDictionaryAsync(profile => profile.Id, profile => profile.Name, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new TransactionPageResponse(
+            [.. items.Select(transaction => ToResponse(transaction, symbols, profileNames))],
+            total,
+            page,
+            size,
+            [.. types.Select(entry => entry.ToString()).Order(StringComparer.Ordinal)],
+            years);
+    }
+
     public async Task<IReadOnlyList<TransactionResponse>> ListTransactionsAsync(
         Guid? accountId,
         bool onlyRequiringReview,
@@ -108,7 +187,16 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
         [
             .. transactions
                 .OrderByDescending(transaction => transaction.OccurredAt.Instant)
-                .Select(transaction => new TransactionResponse(
+                .Select(transaction => ToResponse(transaction, symbols, profileNames)),
+        ];
+    }
+
+    /// <summary>Un movimiento con su rastro hasta el origen, en la forma que lee el cliente.</summary>
+    private static TransactionResponse ToResponse(
+        Transaction transaction,
+        IReadOnlyDictionary<Guid, string> symbols,
+        IReadOnlyDictionary<Guid, string> profileNames) =>
+        new(
                     transaction.Id,
                     transaction.AccountId,
                     transaction.AssetId,
@@ -134,9 +222,7 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
                     transaction.Source.ProfileId is { } profileId
                         ? profileNames.GetValueOrDefault(profileId)
                         : null,
-                    transaction.Source.ProfileVersion)),
-        ];
-    }
+                    transaction.Source.ProfileVersion);
 
     public async Task<PortfolioResponse> GetPortfolioAsync(CancellationToken cancellationToken = default)
     {

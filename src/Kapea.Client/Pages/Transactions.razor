@@ -1,0 +1,188 @@
+@page "/transactions"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Transactions_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Transactions_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Transactions_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentSelect TOption="AccountResponse"
+                  Items="@_accounts"
+                  OptionValue="@(account => account.Id.ToString())"
+                  OptionText="@(account => account.Alias)"
+                  Value="@(_accountId?.ToString() ?? string.Empty)"
+                  ValueChanged="OnAccountChanged"
+                  Placeholder="@Ui["Transactions_AllAccounts"]" />
+
+    <FluentSelect TOption="string"
+                  Items="@_types"
+                  OptionValue="@(type => type)"
+                  OptionText="@(type => type)"
+                  Value="@_type"
+                  ValueChanged="OnTypeChanged"
+                  Placeholder="@Ui["Transactions_AllTypes"]" />
+
+    <FluentSelect TOption="int"
+                  Items="@_years"
+                  OptionValue="@(year => year.ToString())"
+                  OptionText="@(year => year.ToString())"
+                  Value="@(_year?.ToString() ?? string.Empty)"
+                  ValueChanged="OnYearChanged"
+                  Placeholder="@Ui["Transactions_AllYears"]" />
+
+    <FluentTextField Value="@_asset" ValueChanged="OnAssetChanged" Placeholder="@Ui["Transactions_Asset"]" />
+
+    <FluentSearch Value="@_search" ValueChanged="OnSearchChanged" Placeholder="@Ui["Transactions_Search"]" />
+</FluentToolbar>
+
+@if (_page is null)
+{
+    <FluentProgressRing />
+}
+else
+{
+    <FluentLabel Typo="Typography.Body">
+        @string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["Transactions_Count"].Value, _page.Total)
+    </FluentLabel>
+
+    @if (_page.Items.Count == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Ui["Transactions_Empty"]</FluentMessageBar>
+    }
+    else
+    {
+        <FluentDataGrid Items="@_page.Items.AsQueryable()"
+                        TGridItem="TransactionResponse"
+                        GridTemplateColumns="1fr 1fr 1fr 1.2fr 1.2fr 1fr 1.5fr">
+            <TemplateColumn Title="@Ui["Common_Date"]">@context.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
+            <PropertyColumn Property="@(t => t.Type)" Title="@Ui["Common_Type"]" />
+            <PropertyColumn Property="@(t => t.AssetSymbol)" Title="@Ui["Common_Asset"]" />
+            <TemplateColumn Title="@Ui["Common_Quantity"]" Align="Align.End">
+                @(context.Quantity == 0m ? string.Empty : Format.Quantity(context.Quantity))
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Amount"]" Align="Align.End">
+                @* Un movimiento sin valorar se dice, no se enseña como cero: cero es una
+                   cifra y esto es la ausencia de una. *@
+                @(context.GrossAmount == 0m && context.AssetSymbol is { Length: > 0 }
+                    ? Ui["Transactions_Unvalued"].Value
+                    : Format.Money(context.GrossAmount, context.Currency))
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Fee"]" Align="Align.End">
+                @(context.Fee == 0m ? string.Empty : Format.Money(context.Fee, context.Currency))
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Transactions_ReadWith"]">
+                @if (context.ProfileName is { Length: > 0 } profile)
+                {
+                    <span>@profile @(context.ProfileVersion is { } v ? $"· v{v}" : string.Empty)</span>
+                }
+                else
+                {
+                    <span>@context.Origin</span>
+                }
+            </TemplateColumn>
+        </FluentDataGrid>
+
+        <FluentToolbar Class="section">
+            <FluentButton Disabled="@(_page.Page <= 1)" OnClick="@(() => GoAsync(_page.Page - 1))">
+                @Ui["Transactions_Previous"]
+            </FluentButton>
+            <FluentLabel Typo="Typography.Body">
+                @string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["Transactions_Page"].Value, _page.Page, Pages)
+            </FluentLabel>
+            <FluentButton Disabled="@(_page.Page >= Pages)" OnClick="@(() => GoAsync(_page.Page + 1))">
+                @Ui["Transactions_Next"]
+            </FluentButton>
+        </FluentToolbar>
+    }
+}
+
+@code {
+    private TransactionPageResponse? _page;
+    private IReadOnlyList<AccountResponse> _accounts = [];
+    private IReadOnlyList<string> _types = [];
+    private IReadOnlyList<int> _years = [];
+
+    private Guid? _accountId;
+    private string _type = string.Empty;
+    private int? _year;
+    private string _asset = string.Empty;
+    private string _search = string.Empty;
+
+    private int Pages => _page is null || _page.PageSize == 0
+        ? 1
+        : Math.Max(1, (int)Math.Ceiling(_page.Total / (double)_page.PageSize));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _accounts = await Api.GetAccountsAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+
+        await GoAsync(1);
+    }
+
+    private async Task GoAsync(int page)
+    {
+        try
+        {
+            _page = await Api.SearchTransactionsAsync(
+                _accountId,
+                _asset,
+                _type,
+                _year,
+                _search,
+                page);
+
+            // Los tipos y los años vienen de todo el histórico, no de la página: un
+            // desplegable que solo ofreciera lo visible no llevaría a lo que no se ve.
+            _types = _page.Types;
+            _years = _page.Years;
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private Task OnAccountChanged(string? value)
+    {
+        _accountId = Guid.TryParse(value, out var id) ? id : null;
+
+        return GoAsync(1);
+    }
+
+    private Task OnTypeChanged(string? value)
+    {
+        _type = value ?? string.Empty;
+
+        return GoAsync(1);
+    }
+
+    private Task OnYearChanged(string? value)
+    {
+        _year = int.TryParse(value, out var year) ? year : null;
+
+        return GoAsync(1);
+    }
+
+    private Task OnAssetChanged(string? value)
+    {
+        _asset = value ?? string.Empty;
+
+        return GoAsync(1);
+    }
+
+    private Task OnSearchChanged(string? value)
+    {
+        _search = value ?? string.Empty;
+
+        return GoAsync(1);
+    }
+}

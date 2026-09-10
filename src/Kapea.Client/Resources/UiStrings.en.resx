@@ -823,4 +823,52 @@
   <data name="Credentials_SyncedNothing" xml:space="preserve">
     <value>No new movements.</value>
   </data>
+  <data name="Nav_Transactions" xml:space="preserve">
+    <value>Movements</value>
+  </data>
+  <data name="Transactions_Title" xml:space="preserve">
+    <value>Movements</value>
+  </data>
+  <data name="Transactions_Heading" xml:space="preserve">
+    <value>Movements</value>
+  </data>
+  <data name="Transactions_Intro" xml:space="preserve">
+    <value>Everything that came in, from wherever. Each one keeps what read it and the original row.</value>
+  </data>
+  <data name="Transactions_Empty" xml:space="preserve">
+    <value>None match what you are looking for.</value>
+  </data>
+  <data name="Transactions_Search" xml:space="preserve">
+    <value>Search the original content</value>
+  </data>
+  <data name="Transactions_AllAccounts" xml:space="preserve">
+    <value>All accounts</value>
+  </data>
+  <data name="Transactions_AllTypes" xml:space="preserve">
+    <value>All types</value>
+  </data>
+  <data name="Transactions_AllYears" xml:space="preserve">
+    <value>All years</value>
+  </data>
+  <data name="Transactions_Asset" xml:space="preserve">
+    <value>Asset</value>
+  </data>
+  <data name="Transactions_Count" xml:space="preserve">
+    <value>{0} movements</value>
+  </data>
+  <data name="Transactions_Page" xml:space="preserve">
+    <value>Page {0} of {1}</value>
+  </data>
+  <data name="Transactions_Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Transactions_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Transactions_ReadWith" xml:space="preserve">
+    <value>Read with</value>
+  </data>
+  <data name="Transactions_Unvalued" xml:space="preserve">
+    <value>Not valued</value>
+  </data>
 </root>

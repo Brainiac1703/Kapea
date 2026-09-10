@@ -823,4 +823,52 @@
   <data name="Credentials_SyncedNothing" xml:space="preserve">
     <value>Sin movimientos nuevos.</value>
   </data>
+  <data name="Nav_Transactions" xml:space="preserve">
+    <value>Movimientos</value>
+  </data>
+  <data name="Transactions_Title" xml:space="preserve">
+    <value>Movimientos</value>
+  </data>
+  <data name="Transactions_Heading" xml:space="preserve">
+    <value>Movimientos</value>
+  </data>
+  <data name="Transactions_Intro" xml:space="preserve">
+    <value>Todo lo que ha entrado, venga de donde venga. Cada uno guarda con qué se leyó y la fila original.</value>
+  </data>
+  <data name="Transactions_Empty" xml:space="preserve">
+    <value>Ninguno encaja con lo que buscas.</value>
+  </data>
+  <data name="Transactions_Search" xml:space="preserve">
+    <value>Buscar en el contenido original</value>
+  </data>
+  <data name="Transactions_AllAccounts" xml:space="preserve">
+    <value>Todas las cuentas</value>
+  </data>
+  <data name="Transactions_AllTypes" xml:space="preserve">
+    <value>Todos los tipos</value>
+  </data>
+  <data name="Transactions_AllYears" xml:space="preserve">
+    <value>Todos los años</value>
+  </data>
+  <data name="Transactions_Asset" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Transactions_Count" xml:space="preserve">
+    <value>{0} movimientos</value>
+  </data>
+  <data name="Transactions_Page" xml:space="preserve">
+    <value>Página {0} de {1}</value>
+  </data>
+  <data name="Transactions_Previous" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="Transactions_Next" xml:space="preserve">
+    <value>Siguiente</value>
+  </data>
+  <data name="Transactions_ReadWith" xml:space="preserve">
+    <value>Leído con</value>
+  </data>
+  <data name="Transactions_Unvalued" xml:space="preserve">
+    <value>Sin valorar</value>
+  </data>
 </root>

@@ -595,6 +595,57 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
             version.Columns,
             version.Concepts);
 
+    [Fact]
+    public async Task Movements_come_by_pages_with_their_filters()
+    {
+        // Un histórico de cripto son miles de apuntes. Traerlos todos para enseñar veinte
+        // deja la pantalla en blanco mientras llegan.
+        var (client, userId) = await factory.CreateSignedInClientAsync();
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB páginas", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        for (var i = 0; i < 3; i++)
+        {
+            await SeedTransactionAsync(userId, account!.Id);
+        }
+
+        var page = await client.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account!.Id}&pageSize=2&page=1");
+
+        Assert.Equal(3, page!.Total);
+        Assert.Equal(2, page.Items.Count);
+        Assert.Equal(1, page.Page);
+
+        var second = await client.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account.Id}&pageSize=2&page=2");
+
+        Assert.Single(second!.Items);
+
+        // Los tipos y los años salen de todo el histórico y no de la página: un filtro
+        // que solo ofreciera lo visible no llevaría a lo que no se ve.
+        Assert.NotEmpty(page.Types);
+        Assert.NotEmpty(page.Years);
+    }
+
+    [Fact]
+    public async Task Searching_movements_never_reaches_the_ones_of_another_person()
+    {
+        var (mine, _) = await factory.CreateSignedInClientAsync();
+        var (theirs, theirId) = await factory.CreateSignedInClientAsync();
+
+        var account = await (await theirs.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB ajena", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(theirId, account!.Id);
+
+        var page = await mine.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account.Id}");
+
+        Assert.Equal(0, page!.Total);
+    }
+
     private static async Task<ImportPreviewResponse?> UploadAsync(HttpClient client, Guid accountId, string csv)
     {
         using var content = new MultipartFormDataContent

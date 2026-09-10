@@ -379,6 +379,24 @@ public static class PortfolioEndpoints
             Guid? accountId, bool? requiresReview, IPortfolioQueries queries, CancellationToken token) =>
             queries.ListTransactionsAsync(accountId, requiresReview ?? false, token));
 
+        // Búsqueda paginada. Un histórico de cripto son miles de apuntes, y traerlos
+        // todos para enseñar veinte deja la pantalla en blanco mientras llegan.
+        api.MapGet("/transactions/search", (
+            Guid? accountId,
+            string? asset,
+            string? type,
+            int? year,
+            bool? requiresReview,
+            string? search,
+            int? page,
+            int? pageSize,
+            IPortfolioQueries queries,
+            CancellationToken token) =>
+            queries.SearchTransactionsAsync(
+                new TransactionQuery(
+                    accountId, asset, type, year, requiresReview ?? false, search, page ?? 1, pageSize ?? 50),
+                token));
+
         api.MapGet("/portfolio", (IPortfolioQueries queries, CancellationToken token) =>
             queries.GetPortfolioAsync(token));
 
