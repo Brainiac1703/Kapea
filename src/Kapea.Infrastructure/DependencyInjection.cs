@@ -131,16 +131,16 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(configuration["Bit2Me:BaseAddress"] ?? "https://gateway.bit2me.com/"));
 
         services.AddHttpClient<CoinGeckoMarketPriceProvider>(client =>
-            client.BaseAddress = new Uri(configuration["CoinGecko:BaseAddress"] ?? "https://api.coingecko.com/"))
+            CoinGeckoMarketPriceProvider.Configure(
+                client,
+                new Uri(configuration["CoinGecko:BaseAddress"] ?? "https://api.coingecko.com/")))
             .AddStandardResilienceHandler();
 
         services.AddHttpClient<YahooMarketPriceProvider>(client =>
-        {
-            client.BaseAddress = new Uri(configuration["Yahoo:BaseAddress"] ?? "https://query1.finance.yahoo.com/");
-
-            // Yahoo rechaza las peticiones sin agente de usuario reconocible.
-            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (compatible; Kapea/1.0)");
-        }).AddStandardResilienceHandler();
+            YahooMarketPriceProvider.Configure(
+                client,
+                new Uri(configuration["Yahoo:BaseAddress"] ?? "https://query1.finance.yahoo.com/")))
+            .AddStandardResilienceHandler();
 
         services.AddMemoryCache();
         services.AddScoped<IAssetClassLookup, AssetClassLookup>();

@@ -71,6 +71,21 @@ public sealed class CoinGeckoMarketPriceProvider(
         ["DAI"] = "dai",
         };
 
+    /// <summary>Deja el cliente listo para hablar con CoinGecko.</summary>
+    /// <remarks>
+    /// CoinGecko responde 403 a quien no se identifica, y HttpClient no manda agente de
+    /// usuario si nadie se lo pone. Sin esta cabecera la cartera sale entera sin precio
+    /// y el motivo solo aparece en el registro del servidor.
+    /// </remarks>
+    public static void Configure(HttpClient client, Uri baseAddress)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+
+        client.BaseAddress = baseAddress;
+        client.DefaultRequestHeaders.Add("User-Agent", "Kapea/1.0 (cartera personal)");
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    }
+
     public async Task<IReadOnlyDictionary<string, MarketPrice>> GetPricesAsync(
         IReadOnlyCollection<string> canonicalSymbols,
         CancellationToken cancellationToken = default)

@@ -19,6 +19,17 @@ public sealed class YahooMarketPriceProvider(
     TimeProvider timeProvider,
     ILogger<YahooMarketPriceProvider> logger) : IMarketPriceProvider
 {
+    /// <summary>Deja el cliente listo para hablar con Yahoo.</summary>
+    /// <remarks>Yahoo rechaza las peticiones sin agente de usuario reconocible.</remarks>
+    public static void Configure(HttpClient client, Uri baseAddress)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+
+        client.BaseAddress = baseAddress;
+        client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (compatible; Kapea/1.0)");
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    }
+
     public async Task<IReadOnlyDictionary<string, MarketPrice>> GetPricesAsync(
         IReadOnlyCollection<string> canonicalSymbols,
         CancellationToken cancellationToken = default)

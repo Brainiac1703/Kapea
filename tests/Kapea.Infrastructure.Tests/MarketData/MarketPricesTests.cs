@@ -288,3 +288,28 @@ public class MarketPriceCacheExpiryTests
     }
 
 }
+
+public class PriceClientConfigurationTests
+{
+    [Fact]
+    public void The_client_of_coingecko_identifies_itself()
+    {
+        // CoinGecko responde 403 a quien no manda agente de usuario, y HttpClient no
+        // manda ninguno por su cuenta: la cartera salía entera sin precio.
+        using var client = new HttpClient();
+
+        CoinGeckoMarketPriceProvider.Configure(client, new Uri("https://api.coingecko.com/"));
+
+        Assert.NotEmpty(client.DefaultRequestHeaders.UserAgent);
+    }
+
+    [Fact]
+    public void The_client_of_yahoo_identifies_itself()
+    {
+        using var client = new HttpClient();
+
+        YahooMarketPriceProvider.Configure(client, new Uri("https://query1.finance.yahoo.com/"));
+
+        Assert.NotEmpty(client.DefaultRequestHeaders.UserAgent);
+    }
+}
