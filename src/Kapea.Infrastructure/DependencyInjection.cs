@@ -73,6 +73,7 @@ public static class DependencyInjection
         // Los ficheros ya no tienen un adaptador por plataforma: hay uno solo que aplica
         // el perfil que reconoce las cabeceras.
         services.AddScoped<IFileImporter, Import.Tabular.FileImporter>();
+        services.AddScoped<IFileInspector, Import.Tabular.FileInspector>();
         services.AddScoped<IApiImportAdapter, KrakenImportAdapter>();
         services.AddScoped<IApiImportAdapter, Bit2MeImportAdapter>();
         services.AddScoped<IImportAdapterRegistry, ImportAdapterRegistry>();

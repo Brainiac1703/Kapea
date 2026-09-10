@@ -766,4 +766,34 @@
   <data name="Common_Fee" xml:space="preserve">
     <value>Fee</value>
   </data>
+  <data name="Mapping_NoColumn" xml:space="preserve">
+    <value>— not in the file —</value>
+  </data>
+  <data name="Mapping_Unknown" xml:space="preserve">
+    <value>No profile recognises this file</value>
+  </data>
+  <data name="Mapping_UnknownHelp" xml:space="preserve">
+    <value>Kapea does not know how to read this format yet. Create a profile saying which column is which, and from then on it will import it on its own.</value>
+  </data>
+  <data name="Mapping_Create" xml:space="preserve">
+    <value>Create the profile</value>
+  </data>
+  <data name="Mapping_Propose" xml:space="preserve">
+    <value>Propose the mapping</value>
+  </data>
+  <data name="Mapping_WhatIsSent" xml:space="preserve">
+    <value>What is sent when asking for the proposal</value>
+  </data>
+  <data name="Mapping_WhatIsSentHelp" xml:space="preserve">
+    <value>Only the headers and these rows. The rest of the file never leaves your server. The proposal says which column is which; Kapea calculates the amounts.</value>
+  </data>
+  <data name="Mapping_Proposed" xml:space="preserve">
+    <value>Proposal applied. Review it before saving.</value>
+  </data>
+  <data name="Mapping_NeedsReview" xml:space="preserve">
+    <value>The proposal is not conclusive. Check these points:</value>
+  </data>
+  <data name="Mapping_NoService" xml:space="preserve">
+    <value>No proposal service is configured. Map it by hand.</value>
+  </data>
 </root>

@@ -2,9 +2,11 @@ using Kapea.Application.Import;
 using Kapea.Domain.Accounts;
 using Kapea.Domain.Common;
 using Kapea.Domain.ImportProfiles;
+using Kapea.Infrastructure.Import.Mapping;
 using Kapea.Infrastructure.Persistence;
 using Kapea.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Kapea.Api.Endpoints;
 
@@ -106,6 +108,85 @@ public static class ImportProfileEndpoints
             await context.SaveChangesAsync(token);
 
             return Results.Ok(ImportProfileRules.ToResponse(profile));
+        });
+
+        // Mira el fichero sin importar nada: es lo primero que hace falta cuando ningún
+        // perfil lo reconoce y hay que darlo de alta.
+        profiles.MapPost("/inspect", async (
+            Guid accountId,
+            IFormFile file,
+            KapeaDbContext context,
+            IFileInspector inspector,
+            IMappingProposer proposer,
+            CancellationToken token) =>
+        {
+            var account = await context.Accounts.SingleOrDefaultAsync(entity => entity.Id == accountId, token);
+
+            if (account is null)
+            {
+                return Results.NotFound();
+            }
+
+            await using var content = file.OpenReadStream();
+            var inspection = await inspector.InspectAsync(account.Platform, content, file.FileName, token);
+
+            return Results.Ok(new FileInspectionResponse(
+                inspection.Headers,
+                inspection.SampleRows,
+                inspection.MatchedProfileId,
+                inspection.MatchedProfileName,
+                proposer.IsAvailable));
+        }).DisableAntiforgery();
+
+        // La propuesta se pide aparte y a mano. Pedirla sola al mirar el fichero
+        // enviaría las filas antes de que nadie haya visto el aviso de qué sale.
+        profiles.MapPost("/propose", async (
+            string platform,
+            MappingSampleRequest request,
+            IMappingProposer proposer,
+            IOptions<AzureOpenAiOptions> options,
+            CancellationToken token) =>
+        {
+            if (!PlatformCode.TryParse(platform, out var code))
+            {
+                return Results.Problem(
+                    $"Plataforma '{platform}' no reconocida.", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            if (!proposer.IsAvailable)
+            {
+                return Results.Problem(
+                    "No hay servicio de propuestas configurado. El mapeo se hace a mano.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            var sample = new MappingSample(
+                request.Headers ?? [],
+                [.. (request.Rows ?? []).Select(row => (IReadOnlyList<string>)row)]);
+
+            var proposal = await proposer.ProposeAsync(code.Value, sample, token);
+
+            if (proposal is null)
+            {
+                return Results.Problem(
+                    "No se ha podido obtener una propuesta. Puedes mapearlo a mano.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            var review = MappingReview.Review(proposal, sample, options.Value.ConfidenceThreshold);
+
+            return Results.Ok(new MappingProposalResponse(
+                proposal.Fields.ToDictionary(field => field.Field.ToString(), field => field.Column),
+                proposal.Fields.ToDictionary(field => field.Field.ToString(), field => field.Confidence),
+                proposal.Concepts.ToDictionary(concept => concept.Concept, concept => concept.Type.ToString()),
+                proposal.DecimalConvention.ToString(),
+                proposal.DateFormats,
+                proposal.RowShape.ToString(),
+                proposal.AmountSource.ToString(),
+                proposal.Delimiter.ToString(),
+                proposal.FixedCurrency,
+                review.IsConclusive,
+                [.. review.Doubts.Select(doubt => doubt.Explanation)]));
         });
 
         profiles.MapDelete("/{profileId:guid}", async (

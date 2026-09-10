@@ -766,4 +766,34 @@
   <data name="Common_Fee" xml:space="preserve">
     <value>Comisión</value>
   </data>
+  <data name="Mapping_NoColumn" xml:space="preserve">
+    <value>— no está en el fichero —</value>
+  </data>
+  <data name="Mapping_Unknown" xml:space="preserve">
+    <value>Ningún perfil reconoce este fichero</value>
+  </data>
+  <data name="Mapping_UnknownHelp" xml:space="preserve">
+    <value>Kapea no sabe todavía leer este formato. Dale de alta un perfil diciendo qué columna es cuál, y a partir de ahí lo importará solo.</value>
+  </data>
+  <data name="Mapping_Create" xml:space="preserve">
+    <value>Crear el perfil</value>
+  </data>
+  <data name="Mapping_Propose" xml:space="preserve">
+    <value>Proponer el mapeo</value>
+  </data>
+  <data name="Mapping_WhatIsSent" xml:space="preserve">
+    <value>Qué se envía al pedir la propuesta</value>
+  </data>
+  <data name="Mapping_WhatIsSentHelp" xml:space="preserve">
+    <value>Solo las cabeceras y estas filas. El resto del fichero no sale de tu servidor. La propuesta dice qué columna es cuál; los importes los calcula Kapea.</value>
+  </data>
+  <data name="Mapping_Proposed" xml:space="preserve">
+    <value>Propuesta aplicada. Revísala antes de guardar.</value>
+  </data>
+  <data name="Mapping_NeedsReview" xml:space="preserve">
+    <value>La propuesta no es concluyente. Revisa estos puntos:</value>
+  </data>
+  <data name="Mapping_NoService" xml:space="preserve">
+    <value>No hay servicio de propuestas configurado. Mapéalo a mano.</value>
+  </data>
 </root>

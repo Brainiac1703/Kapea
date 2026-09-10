@@ -22,6 +22,54 @@ public sealed class ProfileRulesModel
     /// </remarks>
     public IReadOnlyList<ImportFieldResponse> AvailableFields { get; init; } = [];
 
+    /// <summary>
+    /// Cabeceras del fichero que se está mapeando, si venimos de uno.
+    /// </summary>
+    /// <remarks>
+    /// Con ellas, cada campo se elige de una lista en lugar de escribirse a mano: una
+    /// columna mal tecleada produce un perfil que no lee nada y no dice por qué.
+    /// </remarks>
+    public IReadOnlyList<string> FileColumns { get; init; } = [];
+
+    /// <summary>Filas de ejemplo del fichero, para poder ver qué hay en cada columna al mapear.</summary>
+    public IReadOnlyList<IReadOnlyList<string>> SampleRows { get; init; } = [];
+
+    /// <summary>Hay servicio de propuestas y hay fichero del que proponer.</summary>
+    public bool CanPropose { get; init; }
+
+    /// <summary>
+    /// Pide la propuesta y rellena estas reglas con ella. Devuelve los motivos de duda.
+    /// </summary>
+    /// <remarks>
+    /// Va como función en el modelo porque el diálogo de Fluent UI solo recibe su
+    /// Content, y la llamada necesita el cliente de la API, que vive en la pantalla.
+    /// </remarks>
+    public Func<ProfileRulesModel, Task<IReadOnlyList<string>>>? OnPropose { get; init; }
+
+    /// <summary>Sustituye estas reglas por las propuestas, conservando el nombre y la plataforma.</summary>
+    public void ApplyProposal(MappingProposalResponse proposal)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+
+        Delimiter = proposal.Delimiter == "\t" ? "\\t" : proposal.Delimiter;
+        DecimalConvention = proposal.DecimalConvention;
+        RowShape = proposal.RowShape;
+        AmountSource = proposal.AmountSource;
+        FixedCurrency = proposal.FixedCurrency ?? string.Empty;
+        DateFormats = string.Join("; ", proposal.DateFormats);
+        RecognizedHeaders = string.Join("; ", FileColumns);
+
+        Columns.Clear();
+
+        foreach (var (field, column) in proposal.Columns)
+        {
+            Columns[field] = column;
+        }
+
+        Concepts = string.Join(
+            "\n", proposal.Concepts.Select(entry => $"{entry.Key} = {entry.Value}"));
+    }
+
     public string Name { get; set; } = string.Empty;
 
     public string Platform { get; set; } = string.Empty;

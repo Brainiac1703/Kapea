@@ -125,3 +125,47 @@
     gap: 1rem;
     max-width: 520px;
 }
+
+/* Lo que sale del servidor al pedir una propuesta, escrito tal cual. Se enmarca para
+   que se lea como una cita del fichero y no como una explicación más. */
+.what-is-sent {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 1px solid var(--neutral-stroke-divider-rest);
+    border-radius: 4px;
+}
+
+.what-is-sent .payload {
+    margin: 0;
+    padding: 8px 10px;
+    background: var(--neutral-fill-secondary-rest);
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* Las filas de ejemplo mientras se mapea: se desplazan solas si hay muchas columnas. */
+table.sample {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: 12px;
+    max-width: 100%;
+}
+
+table.sample th,
+table.sample td {
+    padding: 4px 10px;
+    border: 1px solid var(--neutral-stroke-divider-rest);
+    white-space: nowrap;
+    text-align: left;
+}
+
+table.sample th {
+    background: var(--neutral-fill-secondary-rest);
+    font-weight: 600;
+}

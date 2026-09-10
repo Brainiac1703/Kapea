@@ -39,13 +39,13 @@
 ## 6. Interfaz
 
 - [x] 6.1 Ampliar la vista previa con las primeras filas ya interpretadas —fecha, tipo, activo, cantidad e importe—; verificar manualmente que un mapeo equivocado se aprecia antes de confirmar
-- [ ] 6.2 Implementar la pantalla de mapeo: columnas del fichero a la izquierda, campos del movimiento a la derecha, con la propuesta rellenada cuando la haya; verificar manualmente el mapeo manual completo sin IA
-- [ ] 6.3 Mostrar en esa pantalla qué se envía al servicio de IA antes de pedir una propuesta; verificar manualmente que el aviso aparece y es comprensible
+- [x] 6.2 Implementar la pantalla de mapeo: columnas del fichero a la izquierda, campos del movimiento a la derecha, con la propuesta rellenada cuando la haya; verificar manualmente el mapeo manual completo sin IA
+- [x] 6.3 Mostrar en esa pantalla qué se envía al servicio de IA antes de pedir una propuesta; verificar manualmente que el aviso aparece y es comprensible
 - [x] 6.4 Implementar la gestión de perfiles: listado, edición y creación de versión; verificar manualmente que editar un perfil no altera los movimientos ya importados
 - [x] 6.5 Mostrar el perfil y la versión aplicados en el detalle de una importación y en el de un movimiento; verificar manualmente la trazabilidad de una cifra hasta el perfil que la interpretó
 
 ## 7. Validación de extremo a extremo
 
-- [ ] 7.1 Importar un CSV de una plataforma no soportada hasta ahora usando solo la propuesta de IA y la pantalla de mapeo; verificar que los movimientos entran correctamente sin haber escrito código
-- [ ] 7.2 Repetir la importación anterior; verificar que no se llama al servicio de IA y que todo se descarta como duplicado
-- [ ] 7.3 Corregir el perfil de esa plataforma y reimportar; verificar que solo entran los movimientos que la corrección altera y que los anteriores conservan su versión
+- [x] 7.1 Importar un CSV de una plataforma no soportada hasta ahora usando solo la propuesta de IA y la pantalla de mapeo; verificar que los movimientos entran correctamente sin haber escrito código
+- [x] 7.2 Repetir la importación anterior; verificar que no se llama al servicio de IA y que todo se descarta como duplicado
+- [x] 7.3 Corregir el perfil de esa plataforma y reimportar; verificar que solo entran los movimientos que la corrección altera y que los anteriores conservan su versión

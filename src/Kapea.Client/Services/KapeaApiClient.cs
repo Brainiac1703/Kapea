@@ -33,6 +33,34 @@ public sealed class KapeaApiClient(HttpClient http)
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task<FileInspectionResponse> InspectFileAsync(
+        Guid accountId,
+        Stream content,
+        string fileName,
+        CancellationToken cancellationToken = default)
+    {
+        using var form = new MultipartFormDataContent
+        {
+            { new StreamContent(content), "file", fileName },
+        };
+
+        var response = await http.PostAsync(
+            $"api/profiles/inspect?accountId={accountId}", form, cancellationToken);
+
+        return await ReadAsync<FileInspectionResponse>(response, cancellationToken);
+    }
+
+    public async Task<MappingProposalResponse> ProposeMappingAsync(
+        string platform,
+        MappingSampleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            $"api/profiles/propose?platform={Uri.EscapeDataString(platform)}", request, cancellationToken);
+
+        return await ReadAsync<MappingProposalResponse>(response, cancellationToken);
+    }
+
     public Task<IReadOnlyList<ImportProfileResponse>> GetProfilesAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<ImportProfileResponse>("api/profiles", cancellationToken);
 
