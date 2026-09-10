@@ -176,3 +176,11 @@ public sealed record ImportPreviewResponse(ImportRunResponse Run, IReadOnlyList<
 /// <param name="NotSupported">Los que no se pueden releer, porque su origen no conserva forma de hacerlo.</param>
 public sealed record ReinterpretationResponse(int Reclassified, int StillUnknown, int NotSupported);
 
+/// <summary>Qué ha dado una sincronización lanzada a mano.</summary>
+public sealed record SynchronizationResponse(
+    int Accounts,
+    int Imported,
+    int Failed,
+    int NewRecords,
+    IReadOnlyList<string> Problems);
+

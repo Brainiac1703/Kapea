@@ -68,9 +68,20 @@ public sealed class SynchronizationService(
     /// </summary>
     public static readonly DateTimeOffset EarliestHistory = new(2010, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    public async Task<SynchronizationReport> RunAsync(CancellationToken cancellationToken = default)
+    /// <param name="owner">
+    /// Limita la sincronización a las cuentas de una persona. Lo usa quien la lanza a
+    /// mano desde la aplicación: pedirla no puede servir para mover los datos de otro.
+    /// Nulo en la ejecución programada, que recorre todas.
+    /// </param>
+    public async Task<SynchronizationReport> RunAsync(
+        Domain.ValueObjects.UserId? owner = null,
+        CancellationToken cancellationToken = default)
     {
-        var targets = await repository.ListTargetsAsync(cancellationToken).ConfigureAwait(false);
+        var all = await repository.ListTargetsAsync(cancellationToken).ConfigureAwait(false);
+
+        var targets = owner is { } only
+            ? [.. all.Where(candidate => candidate.Account.UserId == only)]
+            : all;
         var results = new List<AccountSynchronizationResult>();
 
         logger.LogInformation("Sincronización iniciada para {Cuentas} cuentas.", targets.Count);
@@ -87,12 +98,12 @@ public sealed class SynchronizationService(
         // Importar no basta: la cartera y los resultados son proyecciones de los
         // movimientos, y sin recalcularlas la sincronización deja las cifras como
         // estaban. Se hace por usuario, porque el cálculo mira solo lo suyo.
-        foreach (var owner in results
+        foreach (var affected in results
             .Where(result => result.Outcome == SynchronizationOutcome.Imported && result.ImportedRecords > 0)
             .Select(result => result.Owner)
             .Distinct())
         {
-            await RefreshAsync(owner, cancellationToken).ConfigureAwait(false);
+            await RefreshAsync(affected, cancellationToken).ConfigureAwait(false);
         }
 
         var report = new SynchronizationReport(results);

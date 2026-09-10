@@ -811,4 +811,16 @@
   <data name="Review_ReinterpretedNone" xml:space="preserve">
     <value>None changed: Kapea does not know what they are either.</value>
   </data>
+  <data name="Credentials_SyncNow" xml:space="preserve">
+    <value>Synchronise now</value>
+  </data>
+  <data name="Credentials_SyncHelp" xml:space="preserve">
+    <value>Automatic synchronisation runs every few hours. This starts it now, useful right after adding a credential.</value>
+  </data>
+  <data name="Credentials_Synced" xml:space="preserve">
+    <value>{0} new movements from {1} accounts.</value>
+  </data>
+  <data name="Credentials_SyncedNothing" xml:space="preserve">
+    <value>No new movements.</value>
+  </data>
 </root>

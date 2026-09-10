@@ -35,6 +35,28 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task Asking_for_a_synchronisation_never_touches_the_accounts_of_another_person()
+    {
+        // Se lanza a mano desde la aplicación, así que tiene que quedarse en lo propio:
+        // pedirla no puede servir para mover los datos de otro.
+        var (mine, _) = await factory.CreateSignedInClientAsync();
+        var (theirs, _) = await factory.CreateSignedInClientAsync();
+
+        await theirs.PostAsJsonAsync(
+            "/api/accounts", new CreateAccountRequest("Kraken", "Kraken ajena", "EUR"));
+
+        var response = await mine.PostAsync("/api/sync", content: null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var report = await response.Content.ReadFromJsonAsync<SynchronizationResponse>();
+
+        // Sin credenciales propias no hay nada que sincronizar, y desde luego no la
+        // cuenta del otro.
+        Assert.Equal(0, report!.Accounts);
+    }
+
+    [Fact]
     public async Task A_credential_cannot_be_registered_on_the_account_of_another_person()
     {
         // La cuenta ajena no existe para quien pregunta, así que la petición se responde

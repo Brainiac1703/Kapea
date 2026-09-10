@@ -74,6 +74,17 @@ resolverlo al arrancar y no dejarlo escrito en el `.env`.
 La pantalla de acceso no necesita ningún cambio: pinta un botón por cada proveedor que
 la API declara disponible.
 
+### Cada cuándo se sincroniza
+
+El proceso de sincronización corre al arrancar y después cada `SYNC_INTERVAL`, que en
+docker compose son quince minutos y en producción seis horas. Solo mira las cuentas cuya
+credencial está activa: una revocada o rechazada por la plataforma queda fuera hasta que
+se rote.
+
+Tras dar de alta una credencial no hace falta esperar al siguiente ciclo: el botón
+«Sincronizar ahora» de la pantalla de credenciales la lanza en el momento, y solo sobre
+las cuentas de quien la pide.
+
 ### Propuesta automática del mapeo
 
 Cuando aparece un formato de fichero que ningún perfil reconoce, Kapea puede pedir a

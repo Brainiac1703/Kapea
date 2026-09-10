@@ -389,6 +389,35 @@ public static class PortfolioEndpoints
                 ? Results.Ok(result)
                 : Results.NotFound());
 
+        // Sincronización a petición. La programada corre cada pocas horas, y esperar a
+        // que toque después de dar de alta una credencial no tiene por qué.
+        api.MapPost("/sync", async (
+            Kapea.Application.Synchronization.SynchronizationService synchronization,
+            InternalTransferService transfers,
+            PortfolioCalculationService calculation,
+            ICurrentUser user,
+            CancellationToken token) =>
+        {
+            // Solo las cuentas de quien la pide: lanzarla no puede servir para mover los
+            // datos de otro.
+            var report = await synchronization.RunAsync(user.Id, token);
+
+            if (report.Results.Any(result => result.ImportedRecords > 0))
+            {
+                await transfers.ProposeAsync(cancellationToken: token);
+                await calculation.RecalculateAsync(cancellationToken: token);
+            }
+
+            return Results.Ok(new SynchronizationResponse(
+                report.Results.Count,
+                report.ImportedAccounts,
+                report.FailedAccounts,
+                report.Results.Sum(result => result.ImportedRecords),
+                [.. report.Results
+                    .Where(result => result.Detail is { Length: > 0 })
+                    .Select(result => $"{result.Platform}: {result.Detail}")]));
+        });
+
         // Relee lo que quedó sin clasificar con las reglas de hoy. No pide nada a la
         // plataforma: cada movimiento guarda el texto con el que entró.
         api.MapPost("/transactions/reinterpret", async (
