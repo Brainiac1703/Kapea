@@ -101,19 +101,22 @@ else
     {
         try
         {
-            // Qué plataformas se importan por fichero lo dice el catálogo, no una lista
-            // escrita aquí: dar de alta un bróker que exporta CSV tiene que bastar para
-            // que sus cuentas aparezcan en esta pantalla.
+            // Se ofrecen las plataformas de fichero y también las de API que ya tengan
+            // algún perfil: su API es la vía cómoda, pero puede no devolverlo todo, y
+            // entonces el extracto descargado es la única forma de completar lo que falta.
             var platforms = await Api.GetPlatformsAsync();
-            var filePlatforms = platforms
+            var profiles = await Api.GetProfilesAsync();
+
+            var importables = platforms
                 .Where(platform => platform.ImportKind == "File")
                 .Select(platform => platform.Code)
+                .Concat(profiles.Select(profile => profile.Platform))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             _fields = await Api.GetImportFieldsAsync();
 
             var accounts = await Api.GetAccountsAsync();
-            _accounts = [.. accounts.Where(account => filePlatforms.Contains(account.Platform))];
+            _accounts = [.. accounts.Where(account => importables.Contains(account.Platform))];
             _accountId = _accounts.Count == 1 ? _accounts[0].Id : null;
         }
         catch (KapeaApiException exception)

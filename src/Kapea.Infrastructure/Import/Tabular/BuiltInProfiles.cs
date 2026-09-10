@@ -63,7 +63,58 @@ public static class BuiltInProfiles
         CashOperations(createdAt),
         ClosedPositions(createdAt),
         OpenPositions(createdAt),
+        Bit2MeSummary(createdAt),
     ];
+
+    /// <summary>
+    /// Resumen anual de movimientos que exporta Bit2Me desde su web.
+    /// </summary>
+    /// <remarks>
+    /// Existe porque su API no devuelve todo lo que este fichero sí trae: las ventas de
+    /// cripto a euros no aparecen por ninguna de sus rutas de histórico. Poder importarlo
+    /// es lo que permite cuadrar una cartera que la sincronización deja incompleta.
+    ///
+    /// Lo que cada fila significa lo dicen sus dos monedas, no su texto: pagar con euros
+    /// es comprar y cobrar euros es vender. El concepto solo manda para lo que el par no
+    /// puede decir, como que una entrega fue una recompensa.
+    /// </remarks>
+    private static ImportProfile Bit2MeSummary(DateTimeOffset createdAt) =>
+        ImportProfile.Create(
+            PlatformCode.Bit2Me,
+            "Bit2Me · Resumen de movimientos",
+            number => ImportProfileVersion.Create(
+                number,
+                createdAt,
+                delimiter: ',',
+                DecimalConvention.Invariant,
+                TimeZone,
+                ["Tipo de operación", "Cantidad de destino", "Moneda de destino", "Cantidad de origen", "Moneda de origen"],
+                new Dictionary<ImportField, string>
+                {
+                    [ImportField.Concept] = "Tipo de operación",
+                    [ImportField.Date] = "Fecha",
+                    [ImportField.DestinationAmount] = "Cantidad de destino",
+                    [ImportField.DestinationCurrency] = "Moneda de destino",
+                    [ImportField.OriginAmount] = "Cantidad de origen",
+                    [ImportField.OriginCurrency] = "Moneda de origen",
+                    [ImportField.Fee] = "Comisión de la operación",
+                    [ImportField.NaturalId] = "Descripción",
+                },
+                ["yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"],
+                new Dictionary<string, TransactionType>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Staking"] = TransactionType.Reward,
+                    ["Deposit"] = TransactionType.Deposit,
+                    ["Withdrawal"] = TransactionType.Withdrawal,
+                },
+                nonFinancialConcepts: null,
+                fixedCurrency: "EUR",
+                RowShape.ExchangePair,
+                AmountSource.Column,
+                fixedAssetClass: "Crypto",
+                amountIsAlwaysPositive: true,
+                fiatCurrencies: ["EUR", "USD", "GBP", "CHF"]),
+            builtIn: true);
 
     private static ImportProfile CashOperations(DateTimeOffset createdAt) =>
         ImportProfile.Create(

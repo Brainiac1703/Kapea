@@ -396,8 +396,11 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
 
         var response = await client.PostAsync($"/api/imports/file?accountId={account!.Id}", content);
 
+        // Bit2Me sí admite fichero, porque trae un perfil de serie que sabe leer su
+        // resumen de movimientos. Kraken no tiene ninguno, así que su fichero se rechaza
+        // diciendo por qué.
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("por su API", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("ningún perfil", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
     }
 
     [Fact]

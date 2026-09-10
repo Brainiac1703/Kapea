@@ -1,0 +1,6 @@
+Tipo de operación,Cantidad de destino,Moneda de destino,Cantidad de origen,Moneda de origen,Comisión de la operación,Moneda de la comisión,Exchange,Grupo,Descripción,Fecha
+Trade,49.591735,XRP,100,EUR,1.99,EUR,Bit2Me,apple-pay,op-0001,2025-05-04 10:15
+Deposit,100,EUR,100,EUR,0,EUR,Bit2Me,bank,op-0002,2025-05-05 14:25
+Staking,0.79504755,B2M,,,0,EUR,Bit2Me,earn,op-0003,2025-05-06 11:02
+Trade,98.10821983,EUR,99.0595,EURC,0.94,EUR,Bit2Me,pocket,op-0004,2025-05-06 18:14
+Trade,0.01234836,ETH,254.54242979,POL,0.39,EUR,Bit2Me,pocket,op-0005,2025-10-23 16:39

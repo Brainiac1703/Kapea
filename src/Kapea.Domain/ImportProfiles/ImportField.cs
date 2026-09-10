@@ -47,6 +47,16 @@ public enum ImportField
 
     /// <summary>Precio de cierre, en un informe de posiciones ya transmitidas.</summary>
     ClosePrice = 15,
+
+    /// <summary>Lo que sale en un intercambio: cantidad y moneda.</summary>
+    OriginAmount = 16,
+
+    OriginCurrency = 17,
+
+    /// <summary>Lo que entra en un intercambio: cantidad y moneda.</summary>
+    DestinationAmount = 18,
+
+    DestinationCurrency = 19,
 }
 
 /// <summary>
@@ -67,6 +77,16 @@ public enum RowShape
 
     /// <summary>Una posición ya cerrada: su adquisición y su transmisión.</summary>
     OpenAndClosePosition = 3,
+
+    /// <summary>
+    /// Un intercambio: algo que sale y algo que entra.
+    /// </summary>
+    /// <remarks>
+    /// Es la forma de los extractos de los exchanges de cripto. Lo que la fila significa
+    /// no lo dice un texto sino las dos monedas: pagar con euros es comprar, cobrar
+    /// euros es vender, y cambiar una cripto por otra son las dos cosas a la vez.
+    /// </remarks>
+    ExchangePair = 4,
 }
 
 /// <summary>De dónde sale el importe de la operación.</summary>

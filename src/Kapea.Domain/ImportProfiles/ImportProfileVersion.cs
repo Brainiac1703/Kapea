@@ -19,6 +19,7 @@ public sealed class ImportProfileVersion
     private readonly Dictionary<string, TransactionType> _concepts = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _nonFinancialConcepts = [];
     private readonly List<string> _dateFormats = [];
+    private readonly List<string> _fiatCurrencies = [];
 
     private ImportProfileVersion(Guid id, int number, DateTimeOffset createdAt)
     {
@@ -59,6 +60,24 @@ public sealed class ImportProfileVersion
     /// </remarks>
     public bool AmountIsAlwaysPositive { get; private set; }
 
+    /// <summary>
+    /// Monedas que son dinero y no activos.
+    /// </summary>
+    /// <remarks>
+    /// En un intercambio deciden qué se compra y qué se vende. Se declaran en el perfil
+    /// y no se deducen: una stablecoin se comporta como dinero para quien la usa así, y
+    /// como un activo más para quien la declara. Esa es una decisión de quien importa,
+    /// no del programa.
+    /// </remarks>
+    public IReadOnlyList<string> FiatCurrencies =>
+        _fiatCurrencies.Count > 0 ? new ReadOnlyCollection<string>(_fiatCurrencies) : DefaultFiat;
+
+    private static readonly IReadOnlyList<string> DefaultFiat = ["EUR", "USD", "GBP", "CHF"];
+
+    public bool IsFiat(string? currency) =>
+        currency is { Length: > 0 }
+        && FiatCurrencies.Any(fiat => string.Equals(fiat, currency, StringComparison.OrdinalIgnoreCase));
+
     public DecimalConvention DecimalConvention { get; private set; } = DecimalConvention.European;
 
     /// <summary>Zona con la que se interpreta una fecha sin desfase, que es lo que trae casi todo CSV.</summary>
@@ -97,7 +116,8 @@ public sealed class ImportProfileVersion
         RowShape rowShape = RowShape.SingleMovement,
         AmountSource amountSource = AmountSource.Column,
         string? fixedAssetClass = null,
-        bool amountIsAlwaysPositive = false)
+        bool amountIsAlwaysPositive = false,
+        IEnumerable<string>? fiatCurrencies = null)
     {
         ArgumentNullException.ThrowIfNull(recognizedHeaders);
         ArgumentNullException.ThrowIfNull(columns);
@@ -117,6 +137,10 @@ public sealed class ImportProfileVersion
 
         version._recognizedHeaders.AddRange(recognizedHeaders.Where(header => !string.IsNullOrWhiteSpace(header)).Select(header => header.Trim()));
         version._dateFormats.AddRange(dateFormats.Where(format => !string.IsNullOrWhiteSpace(format)).Select(format => format.Trim()));
+        version._fiatCurrencies.AddRange(
+            (fiatCurrencies ?? []).Where(code => !string.IsNullOrWhiteSpace(code))
+                .Select(code => code.Trim().ToUpperInvariant()));
+
         version._nonFinancialConcepts.AddRange(
             (nonFinancialConcepts ?? []).Where(concept => !string.IsNullOrWhiteSpace(concept)).Select(concept => concept.Trim()));
 
@@ -168,6 +192,13 @@ public sealed class ImportProfileVersion
                 "El perfil no dice en qué formato vienen las fechas, y una fecha ambigua se leería mal sin avisar.");
         }
 
+        if (RowShape == RowShape.ExchangePair)
+        {
+            // El par ya trae sus monedas: exigir además una columna de divisa dejaría
+            // fuera el formato para el que existe esta forma.
+            return;
+        }
+
         if (!_columns.ContainsKey(ImportField.Currency) && FixedCurrency is null)
         {
             throw new DomainException(
@@ -191,6 +222,13 @@ public sealed class ImportProfileVersion
                 yield return ImportField.OpenDate;
                 yield return ImportField.Quantity;
                 yield return ImportField.OpenPrice;
+
+                break;
+
+            case RowShape.ExchangePair:
+                yield return ImportField.Date;
+                yield return ImportField.DestinationAmount;
+                yield return ImportField.DestinationCurrency;
 
                 break;
 
@@ -230,6 +268,8 @@ public sealed class ImportProfileVersion
         ImportField.ClosePrice => "el precio de cierre",
         ImportField.Quantity => "la cantidad",
         ImportField.UnitPrice => "el precio unitario",
+        ImportField.DestinationAmount => "la cantidad que entra",
+        ImportField.DestinationCurrency => "la moneda que entra",
         _ => field.ToString(),
     };
 }

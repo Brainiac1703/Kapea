@@ -65,9 +65,12 @@ public sealed class ProfileFileImportAdapter
 
             try
             {
-                records.AddRange(version.RowShape == RowShape.SingleMovement
-                    ? [Map(row, columns, version, values, unknownConcepts)]
-                    : MapPosition(row, columns, version, values));
+                records.AddRange(version.RowShape switch
+                {
+                    RowShape.SingleMovement => [Map(row, columns, version, values, unknownConcepts)],
+                    RowShape.ExchangePair => MapExchange(row, columns, version, values, unknownConcepts),
+                    _ => MapPosition(row, columns, version, values),
+                });
             }
             catch (ProfileValueException exception)
             {
@@ -123,6 +126,119 @@ public sealed class ProfileFileImportAdapter
 
         return resolved;
     }
+
+    /// <summary>
+    /// Convierte una fila que es un intercambio en sus movimientos.
+    /// </summary>
+    /// <remarks>
+    /// Lo que significa la fila no lo dice un texto sino las dos monedas: pagar con
+    /// euros es comprar, cobrar euros es vender, y cambiar una cripto por otra son las
+    /// dos cosas a la vez. El concepto solo manda cuando dice algo que el par no puede
+    /// decir, como que esto fue una recompensa y no una compra.
+    ///
+    /// Un intercambio entre dos activos no tiene importe en euros que leer, así que
+    /// entra sin valorar. Inventarlo con el cambio del día siguiente sería una cifra
+    /// fiscal fabricada.
+    /// </remarks>
+    private static IEnumerable<ImportRecord> MapExchange(
+        TabularRow row,
+        IReadOnlyDictionary<ImportField, int> columns,
+        ImportProfileVersion version,
+        ProfileValueReader values,
+        HashSet<string> unknownConcepts)
+    {
+        var concept = Cell(row, columns, ImportField.Concept);
+        var declared = ResolveType(concept, version, unknownConcepts, silent: true);
+
+        var date = values.Date(Cell(row, columns, ImportField.Date));
+
+        var inCurrency = Cell(row, columns, ImportField.DestinationCurrency);
+        var outCurrency = Cell(row, columns, ImportField.OriginCurrency);
+        var inAmount = values.OptionalDecimal(Cell(row, columns, ImportField.DestinationAmount)) ?? 0m;
+        var outAmount = values.OptionalDecimal(Cell(row, columns, ImportField.OriginAmount)) ?? 0m;
+        var fee = values.OptionalDecimal(Cell(row, columns, ImportField.Fee)) ?? 0m;
+        var reference = Cell(row, columns, ImportField.NaturalId);
+
+        // Un concepto que no es compraventa manda sobre el par: una recompensa entrega
+        // unidades igual que una compra, y confundirlas inventaría un coste que nadie pagó.
+        if (declared is not (TransactionType.Unknown or TransactionType.Buy or TransactionType.Sell))
+        {
+            var moved = inAmount != 0m ? inAmount : outAmount;
+
+            // Si lo que se mueve es dinero, esa cantidad es el importe. Si es un activo,
+            // la fila no dice cuánto valía y entra sin valorar.
+            yield return Exchange(
+                declared,
+                inCurrency ?? outCurrency,
+                moved,
+                version.IsFiat(inCurrency ?? outCurrency) ? moved : 0m,
+                reference);
+
+            yield break;
+        }
+
+        var paying = version.IsFiat(outCurrency);
+        var charging = version.IsFiat(inCurrency);
+
+        if (paying && !charging)
+        {
+            yield return Exchange(TransactionType.Buy, inCurrency, inAmount, outAmount, reference);
+
+            yield break;
+        }
+
+        if (charging && !paying)
+        {
+            yield return Exchange(TransactionType.Sell, outCurrency, outAmount, inAmount, reference);
+
+            yield break;
+        }
+
+        if (!paying && !charging && outCurrency is { Length: > 0 } && inCurrency is { Length: > 0 })
+        {
+            // Cada pata necesita su propio identificador: con el mismo, la segunda se
+            // descartaría como duplicado de la primera.
+            yield return Exchange(TransactionType.Sell, outCurrency, outAmount, euros: 0m, Suffix(reference, "out"));
+            yield return Exchange(TransactionType.Buy, inCurrency, inAmount, euros: 0m, Suffix(reference, "in"));
+
+            yield break;
+        }
+
+        // Dinero contra dinero, o una sola pata: no hay activo que mover.
+        yield return Exchange(
+            declared == TransactionType.Unknown ? TransactionType.Deposit : declared,
+            inCurrency ?? outCurrency,
+            0m,
+            inAmount != 0m ? inAmount : outAmount,
+            reference);
+
+        ImportRecord Exchange(TransactionType type, string? asset, decimal quantity, decimal euros, string? naturalId)
+        {
+            var isMoney = version.IsFiat(asset);
+
+            return new ImportRecord(
+                NaturalId: naturalId,
+                RowNumber: row.Number,
+                Type: type,
+                AssetSymbol: isMoney ? null : asset?.Trim().ToUpperInvariant(),
+                AssetClass: isMoney ? null : AssetClassOf(version),
+                Quantity: isMoney ? 0m : Math.Abs(quantity),
+                UnitPrice: null,
+                GrossAmount: Math.Abs(euros),
+                Currency: Currency.FromCode(
+                    isMoney && asset is { Length: > 0 } ? asset.Trim() : version.FixedCurrency ?? "EUR"),
+                Fee: Math.Abs(fee),
+                Withholding: null,
+                OccurredAt: null,
+                NaiveOccurredAt: date,
+                SourceTimeZoneId: version.TimeZoneId,
+                SplitRatio: null,
+                RawContent: row.Raw);
+        }
+    }
+
+    private static string? Suffix(string? reference, string leg) =>
+        reference is { Length: > 0 } ? $"{reference}:{leg}" : null;
 
     /// <summary>
     /// Convierte una fila que es una posición entera en sus movimientos.
@@ -263,7 +379,8 @@ public sealed class ProfileFileImportAdapter
     private static TransactionType ResolveType(
         string? concept,
         ImportProfileVersion version,
-        HashSet<string> unknownConcepts)
+        HashSet<string> unknownConcepts,
+        bool silent = false)
     {
         if (string.IsNullOrWhiteSpace(concept))
         {
@@ -279,7 +396,13 @@ public sealed class ProfileFileImportAdapter
 
         // Sin traducción entra como desconocido, no bloquea el fichero. La revisión
         // recoge después estos movimientos, y el perfil se corrige una vez.
-        unknownConcepts.Add(text);
+        //
+        // En un intercambio no se avisa: ahí el par de monedas dice lo que la fila es, y
+        // que el concepto no esté traducido no significa que falte nada.
+        if (!silent)
+        {
+            unknownConcepts.Add(text);
+        }
 
         return TransactionType.Unknown;
     }

@@ -292,16 +292,18 @@ public static class PortfolioEndpoints
                 return Results.NotFound();
             }
 
-            // Subir un fichero a una plataforma que se lee por API no es un formato
-            // desconocido, es una operación que no tiene sentido. Decirlo así evita que
-            // el usuario se ponga a buscar el perfil que le falta.
+            // Una plataforma de API también admite fichero cuando hay un perfil que sepa
+            // leerlo. Su API es la vía cómoda, pero puede no devolverlo todo, y entonces
+            // el extracto que el usuario se descarga es la única forma de completarlo.
             var platform = await context.Platforms
                 .SingleOrDefaultAsync(entity => entity.Code == account.Platform, token);
 
-            if (platform is not null && platform.ImportKind != PlatformImportKind.File)
+            if (platform is not null
+                && platform.ImportKind != PlatformImportKind.File
+                && !await context.ImportProfiles.AnyAsync(profile => profile.Platform == account.Platform, token))
             {
                 return Results.Problem(
-                    $"Los movimientos de {platform.Name} llegan por su API, no por fichero. Registra su credencial en Credenciales.",
+                    $"Los movimientos de {platform.Name} llegan por su API y no hay ningún perfil que sepa leer sus ficheros.",
                     statusCode: StatusCodes.Status400BadRequest);
             }
 
