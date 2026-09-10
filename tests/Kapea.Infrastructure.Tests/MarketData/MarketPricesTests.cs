@@ -218,7 +218,7 @@ public class CoinGeckoCoverageTests
     /// deducida de la propia tabla, que se aprobaría a sí misma.
     /// </remarks>
     private static readonly string[] Portfolio =
-        ["BTC", "ETH", "XRP", "SOL", "ADA", "DOGE", "B2M", "TAO", "PAXG", "PEPE", "XDC", "POL", "EURC", "USDG"];
+        ["ATOM", "AVAX", "B2M", "BTC", "DOGE", "ETH", "EURC", "LINK", "PAXG", "PEPE", "POL", "SOL", "TAO", "USDG", "XDC", "XRP"];
 
     [Fact]
     public void Every_crypto_in_the_portfolio_has_an_identifier()
