@@ -134,23 +134,39 @@ public sealed record Bit2MeWalletTransaction(
 public sealed record Bit2MeEarnWallet(string WalletId, string Currency);
 
 /// <summary>Movimiento de un monedero Earn: aportaciones, retiradas y recompensas.</summary>
+/// <param name="ValueInEuros">
+/// Lo que valía al cobrarlo, que es por lo que tributa y lo que cuesta lo entregado.
+/// </param>
+/// <remarks>
+/// Bit2Me lo manda en «convertedAmount». Sin él, la cantidad de cripto acababa usada
+/// como importe: dos mil setecientos B2M de recompensa parecían dos mil setecientos
+/// euros de rendimiento y de coste.
+/// </remarks>
 public sealed record Bit2MeEarnMovement(
     string MovementId,
     string Type,
     string WalletId,
     Bit2MeAmount Amount,
+    decimal? ValueInEuros,
     DateTimeOffset CreatedAt,
     string RawContent)
 {
     public static Bit2MeEarnMovement From(JsonElement element)
     {
         var amount = Bit2MeJson.Amount(element, "amount") ?? new Bit2MeAmount(0m, string.Empty);
+        var converted = Bit2MeJson.Amount(element, "convertedAmount");
+
+        var euros = converted is { } value
+            && string.Equals(value.Currency, "EUR", StringComparison.OrdinalIgnoreCase)
+                ? Math.Abs(value.Value)
+                : amount.ValueInEuros;
 
         return new Bit2MeEarnMovement(
             Bit2MeJson.String(element, "movementId"),
             Bit2MeJson.String(element, "type"),
             Bit2MeJson.String(element, "walletId"),
             amount,
+            euros,
             Bit2MeJson.Time(element, "createdAt"),
             element.GetRawText());
     }

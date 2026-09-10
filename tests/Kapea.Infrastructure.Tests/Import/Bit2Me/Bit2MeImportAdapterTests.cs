@@ -119,6 +119,21 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task A_reward_is_worth_what_it_was_worth_and_not_how_many_units_it_paid()
+    {
+        // Bit2Me manda el valor en euros de cada movimiento de rendimiento. Sin usarlo,
+        // la cantidad de cripto acababa de importe: dos mil setecientos B2M de recompensa
+        // parecían dos mil setecientos euros de rendimiento, y con ellos de coste.
+        var result = await ReadFullHistory();
+
+        var reward = result.Records.Single(record => record.NaturalId == "em-0001");
+
+        Assert.Equal(0.0042m, reward.Quantity);
+        Assert.Equal(12.50m, reward.GrossAmount);
+        Assert.Equal("EUR", reward.Currency.Code);
+    }
+
+    [Fact]
     public async Task Earn_rewards_and_contributions_are_told_apart()
     {
         var result = await ReadFullHistory();

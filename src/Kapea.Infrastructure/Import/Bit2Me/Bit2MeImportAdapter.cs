@@ -264,7 +264,10 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             AssetClass: isFiat ? null : AssetClass.Crypto,
             Quantity: isFiat ? 0m : Math.Abs(movement.Amount.Value),
             UnitPrice: null,
-            GrossAmount: Math.Abs(movement.Amount.Value),
+            // Lo que valía al cobrarlo, no cuántas unidades eran. Usar la cantidad como
+            // importe hacía que dos mil setecientos B2M de recompensa parecieran dos mil
+            // setecientos euros de rendimiento, y con ellos de coste.
+            GrossAmount: isFiat ? Math.Abs(movement.Amount.Value) : movement.ValueInEuros ?? 0m,
             Currency: isFiat ? Currency.FromCode(movement.Amount.Currency) : Currency.Euro,
             Fee: 0m,
             Withholding: null,
