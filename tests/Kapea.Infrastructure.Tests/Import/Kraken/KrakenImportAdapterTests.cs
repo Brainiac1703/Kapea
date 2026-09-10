@@ -15,6 +15,41 @@ public class KrakenImportAdapterTests
     private static readonly DateTimeOffset To = new(2024, 12, 31, 0, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task An_instant_purchase_from_the_app_becomes_a_buy_with_its_cost()
+    {
+        // Comprar desde la aplicación de Kraken no genera una operación de mercado, así
+        // que no sale por TradesHistory. En el libro quedan dos apuntes con la misma
+        // referencia, y leídos por separado parecían dos traspasos: la compra no creaba
+        // ninguna posición y la cartera salía vacía.
+        var result = await ReadFullHistory();
+
+        var purchase = result.Records.Single(record => record.NaturalId == "LGRINS-RECV-0001");
+
+        Assert.Equal(TransactionType.Buy, purchase.Type);
+        Assert.Equal("PAXG", purchase.AssetSymbol);
+        Assert.Equal(0.1m, purchase.Quantity);
+        Assert.Equal(250m, purchase.GrossAmount);
+        Assert.Equal(2500m, purchase.UnitPrice);
+        Assert.Equal("EUR", purchase.Currency.Code);
+        Assert.Equal(1.25m, purchase.Fee);
+
+        // La pata en dinero viaja dentro de la compra: importarla aparte la contaría dos veces.
+        Assert.DoesNotContain(result.Records, record => record.NaturalId == "LGRINS-SPEND-0001");
+    }
+
+    [Fact]
+    public async Task A_half_of_an_instant_purchase_is_not_turned_into_a_price_out_of_nowhere()
+    {
+        // Sin las dos patas no se sabe qué costó. Se deja como llegó y se ve en revisión,
+        // que es un hueco visible en lugar de una cifra inventada.
+        var result = await ReadFullHistory();
+
+        var orphan = result.Records.Single(record => record.NaturalId == "LGRINS-RECV-0002");
+
+        Assert.NotEqual(TransactionType.Buy, orphan.Type);
+    }
+
+    [Fact]
     public async Task A_paginated_history_is_walked_to_the_end()
     {
         var handler = new RecordedResponseHandler()
