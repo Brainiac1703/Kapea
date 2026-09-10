@@ -124,6 +124,34 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task Moving_funds_to_and_from_Earn_is_a_transfer_and_not_a_withdrawal()
+    {
+        // Bit2Me reparte el significado entre dos campos: una retirada hacia Earn llega
+        // como type «withdrawal» y subtype «earn», y no es sacar dinero de la cuenta sino
+        // moverlo a otro producto del mismo usuario. Leyendo solo uno de los dos, estos
+        // movimientos entraban sin clasificar.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-earn.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var byId = result.Records.ToDictionary(record => record.NaturalId!);
+
+
+        Assert.Equal(TransactionType.Transfer, byId["we-0001"].Type);
+        Assert.Equal(TransactionType.Transfer, byId["we-0002"].Type);
+
+        // Sin subtipo siguen siendo lo que dicen ser: dinero que entra o sale de verdad.
+        Assert.Equal(TransactionType.Withdrawal, byId["we-0003"].Type);
+        Assert.Equal(TransactionType.Deposit, byId["we-0004"].Type);
+
+        Assert.DoesNotContain(result.Records, record => record.Type == TransactionType.Unknown);
+    }
+
+    [Fact]
     public async Task An_inaccessible_product_is_recorded_and_the_rest_is_still_imported()
     {
         var handler = new RecordedResponseHandler()

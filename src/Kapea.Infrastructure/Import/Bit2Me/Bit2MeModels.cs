@@ -58,16 +58,45 @@ public sealed record Bit2MeWalletTransaction(
 {
     public bool IsCompleted => string.Equals(Status, "completed", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Nombres posibles de la operación, del más específico al más general.
+    /// </summary>
+    /// <remarks>
+    /// Bit2Me reparte el significado entre dos campos y no siempre igual. A veces
+    /// 'subtype' es la operación entera ('swap', 'purchase') y 'type' solo la familia;
+    /// otras veces hace falta leer los dos juntos, como en una retirada hacia Earn, que
+    /// llega como type 'withdrawal' y subtype 'earn' y no es una retirada de verdad sino
+    /// un traspaso entre productos del mismo usuario.
+    ///
+    /// Quedarse con uno de los dos hacía que esos movimientos entraran sin clasificar.
+    /// </remarks>
+    public IReadOnlyList<string> Operations { get; private init; } = [];
+
     public static Bit2MeWalletTransaction From(JsonElement element)
     {
-        // El tipo efectivo está en subtype cuando existe: type es la familia ('transfer')
-        // y subtype la operación concreta ('purchase', 'swap'), que es la que importa.
+        var type = Bit2MeJson.String(element, "type");
         var subtype = Bit2MeJson.String(element, "subtype");
-        var operation = subtype.Length > 0 ? subtype : Bit2MeJson.String(element, "type");
+
+        List<string> operations = [];
+
+        if (type.Length > 0 && subtype.Length > 0)
+        {
+            operations.Add($"{type}-{subtype}");
+        }
+
+        if (subtype.Length > 0)
+        {
+            operations.Add(subtype);
+        }
+
+        if (type.Length > 0)
+        {
+            operations.Add(type);
+        }
 
         return new Bit2MeWalletTransaction(
             Bit2MeJson.String(element, "id"),
-            operation,
+            operations.FirstOrDefault() ?? string.Empty,
             Bit2MeJson.String(element, "status"),
             Bit2MeJson.Time(element, "completedAt") is var completed && completed != default
                 ? completed
@@ -76,7 +105,10 @@ public sealed record Bit2MeWalletTransaction(
             Bit2MeJson.Amount(element, "destination"),
             Bit2MeJson.Amount(element, "denomination"),
             ReadNetworkFee(element),
-            element.GetRawText());
+            element.GetRawText())
+        {
+            Operations = operations,
+        };
     }
 
     private static Bit2MeAmount? ReadNetworkFee(JsonElement element) =>

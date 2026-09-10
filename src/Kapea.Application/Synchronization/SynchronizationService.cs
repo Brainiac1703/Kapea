@@ -21,12 +21,14 @@ public enum SynchronizationOutcome
     Failed = 4,
 }
 
+/// <param name="Owner">De quién es la cuenta. Hace falta para rehacer su cartera después.</param>
 public sealed record AccountSynchronizationResult(
     Guid AccountId,
     PlatformCode Platform,
     SynchronizationOutcome Outcome,
     int ImportedRecords,
-    string? Detail);
+    string? Detail,
+    Domain.ValueObjects.UserId Owner = default);
 
 public sealed record SynchronizationReport(IReadOnlyList<AccountSynchronizationResult> Results)
 {
@@ -50,6 +52,8 @@ public sealed class SynchronizationService(
     IImportAdapterRegistry adapters,
     ImportPipeline pipeline,
     BrokerCredentialService credentials,
+    Portfolio.InternalTransferService transfers,
+    Portfolio.PortfolioCalculationService calculation,
     IAccountSyncLock accountLock,
     ICurrentUserScope currentUserScope,
     TimeProvider timeProvider,
@@ -80,6 +84,17 @@ public sealed class SynchronizationService(
 
         await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
+        // Importar no basta: la cartera y los resultados son proyecciones de los
+        // movimientos, y sin recalcularlas la sincronización deja las cifras como
+        // estaban. Se hace por usuario, porque el cálculo mira solo lo suyo.
+        foreach (var owner in results
+            .Where(result => result.Outcome == SynchronizationOutcome.Imported && result.ImportedRecords > 0)
+            .Select(result => result.Owner)
+            .Distinct())
+        {
+            await RefreshAsync(owner, cancellationToken).ConfigureAwait(false);
+        }
+
         var report = new SynchronizationReport(results);
 
         logger.LogInformation(
@@ -87,6 +102,30 @@ public sealed class SynchronizationService(
             report.ImportedAccounts, report.FailedAccounts);
 
         return report;
+    }
+
+    /// <summary>
+    /// Rehace la cartera y los resultados de un usuario tras importarle movimientos.
+    /// </summary>
+    /// <remarks>
+    /// Los traspasos se buscan antes del cálculo: mover una cripto de una cuenta a otra
+    /// no es una venta seguida de una compra, y contarlo así inventaría un resultado que
+    /// no existe. Un fallo aquí no invalida lo importado, que ya está guardado.
+    /// </remarks>
+    private async Task RefreshAsync(Domain.ValueObjects.UserId owner, CancellationToken cancellationToken)
+    {
+        currentUserScope.ActAs(owner);
+
+        try
+        {
+            await transfers.ProposeAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            await calculation.RecalculateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(
+                exception, "No se ha podido rehacer la cartera del usuario {Usuario} tras sincronizar.", owner.Value);
+        }
     }
 
     private async Task<AccountSynchronizationResult> SynchroniseAsync(
@@ -110,7 +149,7 @@ public sealed class SynchronizationService(
 
             return new AccountSynchronizationResult(
                 account.Id, account.Platform, SynchronizationOutcome.SkippedOverlapping, 0,
-                "Ya había una sincronización en curso.");
+                "Ya había una sincronización en curso.", account.UserId);
         }
 
         try
@@ -128,11 +167,12 @@ public sealed class SynchronizationService(
                 target.Credential.MarkInvalid(exception.Message);
 
                 return new AccountSynchronizationResult(
-                    account.Id, account.Platform, SynchronizationOutcome.CredentialInvalid, 0, exception.Message);
+                    account.Id, account.Platform, SynchronizationOutcome.CredentialInvalid, 0,
+                    exception.Message, account.UserId);
             }
 
             return new AccountSynchronizationResult(
-                account.Id, account.Platform, SynchronizationOutcome.Failed, 0, exception.Message);
+                account.Id, account.Platform, SynchronizationOutcome.Failed, 0, exception.Message, account.UserId);
         }
     }
 
@@ -170,7 +210,8 @@ public sealed class SynchronizationService(
             account.Id, confirmed.RecordsImported, confirmed.DuplicatesDiscarded);
 
         return new AccountSynchronizationResult(
-            account.Id, account.Platform, SynchronizationOutcome.Imported, confirmed.RecordsImported, null);
+            account.Id, account.Platform, SynchronizationOutcome.Imported, confirmed.RecordsImported,
+            null, account.UserId);
     }
 
     /// <summary>

@@ -216,6 +216,16 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
             new ImportAdapterRegistry(adapters),
             pipeline,
             credentialService,
+            new Kapea.Application.Portfolio.InternalTransferService(
+                new InternalTransferRepository(context),
+                user,
+                time,
+                NullLogger<Kapea.Application.Portfolio.InternalTransferService>.Instance),
+            new Kapea.Application.Portfolio.PortfolioCalculationService(
+                new PortfolioCalculationRepository(context),
+                new PortfolioProjectionStore(context, NullLogger<PortfolioProjectionStore>.Instance),
+                user,
+                NullLogger<Kapea.Application.Portfolio.PortfolioCalculationService>.Instance),
             new AccountSyncLock(context, time, NullLogger<AccountSyncLock>.Instance),
             user,
             time,

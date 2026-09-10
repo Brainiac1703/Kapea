@@ -166,9 +166,16 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
     /// </summary>
     private static IReadOnlyList<ImportRecord> FromWalletTransaction(Bit2MeWalletTransaction transaction)
     {
-        var operation = transaction.Operation.ToUpperInvariant();
+        var candidates = transaction.Operations
+            .Select(name => name.ToUpperInvariant())
+            .ToList();
 
-        if (operation is "SWAP" && transaction.Origin is { } origin && transaction.Destination is { } destination)
+        if (candidates.Count == 0)
+        {
+            candidates.Add(transaction.Operation.ToUpperInvariant());
+        }
+
+        if (candidates.Contains("SWAP") && transaction.Origin is { } origin && transaction.Destination is { } destination)
         {
             var valueInEuros = transaction.Denomination is { } denomination && IsEuro(denomination.Currency)
                 ? denomination.Value
@@ -181,7 +188,12 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             ];
         }
 
-        var type = MapOperation(operation);
+        // Gana el primero que se reconozca, que es el más específico: «withdrawal-earn»
+        // antes que «withdrawal», porque mover fondos a Earn no es sacarlos de la cuenta.
+        var type = candidates
+            .Select(MapOperation)
+            .FirstOrDefault(mapped => mapped != TransactionType.Unknown, TransactionType.Unknown);
+
         var amount = transaction.Destination ?? transaction.Origin ?? transaction.Denomination;
 
         if (amount is null)

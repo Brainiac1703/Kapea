@@ -1,0 +1,74 @@
+{
+  "data": [
+    {
+      "id": "we-0001",
+      "date": "2024-03-17T09:45:13.468Z",
+      "completedAt": "2024-03-17T09:45:13.468Z",
+      "concept": "",
+      "type": "withdrawal",
+      "subtype": "earn",
+      "status": "completed",
+      "origin": {
+        "currency": "ETH",
+        "amount": "0.50000000"
+      },
+      "denomination": {
+        "amount": "1200.00",
+        "currency": "EUR"
+      }
+    },
+    {
+      "id": "we-0002",
+      "date": "2024-04-04T17:26:45.890Z",
+      "completedAt": "2024-04-04T17:26:45.890Z",
+      "concept": "",
+      "type": "deposit",
+      "subtype": "earn",
+      "status": "completed",
+      "destination": {
+        "currency": "ETH",
+        "amount": "0.50000000"
+      },
+      "denomination": {
+        "amount": "1200.00",
+        "currency": "EUR"
+      }
+    },
+    {
+      "id": "we-0003",
+      "date": "2024-05-09T12:56:33.537Z",
+      "completedAt": "2024-05-09T12:56:33.537Z",
+      "concept": "Teller withdrawal",
+      "type": "withdrawal",
+      "status": "completed",
+      "origin": {
+        "currency": "EUR",
+        "amount": "300.00"
+      },
+      "denomination": {
+        "amount": "300.00",
+        "currency": "EUR"
+      }
+    },
+    {
+      "id": "we-0004",
+      "date": "2024-06-11T00:12:42.888Z",
+      "completedAt": "2024-06-11T00:12:42.888Z",
+      "concept": "Teller deposit",
+      "type": "deposit",
+      "status": "completed",
+      "destination": {
+        "currency": "EUR",
+        "amount": "500.00"
+      },
+      "denomination": {
+        "amount": "500.00",
+        "currency": "EUR"
+      }
+    }
+  ],
+  "pageInfo": {
+    "hasNextPage": false,
+    "endCursor": null
+  }
+}
