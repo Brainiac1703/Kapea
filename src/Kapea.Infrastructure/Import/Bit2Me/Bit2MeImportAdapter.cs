@@ -189,9 +189,13 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
         // Bit2Me valora el movimiento en «denomination», pero no siempre en euros: a
         // veces viene en la propia moneda del activo. Tomarlo sin mirar la divisa
         // convertía una cantidad de cripto en un importe en euros.
-        var valueInEuros = transaction.Denomination is { } denomination && IsEuro(denomination.Currency)
+        //
+        // Cuando sí viene en euros es lo que se pagó, y manda sobre cualquier cálculo:
+        // multiplicar la cantidad por el cambio da una cifra parecida pero no la real, y
+        // una compra de cien euros dejaría de costar cien euros.
+        decimal? paidInEuros = transaction.Denomination is { } denomination && IsEuro(denomination.Currency)
             ? denomination.Value
-            : 0m;
+            : null;
 
         if (candidates.Contains("SWAP") && transaction.Origin is { } origin && transaction.Destination is { } destination)
         {
@@ -199,8 +203,8 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             // a una permuta de cripto por cripto: lo que valora el movimiento entero
             // viene en la moneda de origen. Sin esto, la venta entraba con cero de
             // ingreso y el ejercicio salía con una pérdida que no existió.
-            var sold = origin.ValueInEuros ?? destination.ValueInEuros ?? valueInEuros;
-            var bought = destination.ValueInEuros ?? origin.ValueInEuros ?? valueInEuros;
+            var sold = origin.ValueInEuros ?? destination.ValueInEuros ?? paidInEuros ?? 0m;
+            var bought = destination.ValueInEuros ?? origin.ValueInEuros ?? paidInEuros ?? 0m;
 
             return
             [
@@ -222,7 +226,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             return [];
         }
 
-        return [Leg(type, amount, amount.ValueInEuros ?? valueInEuros, transaction.Id)];
+        return [Leg(type, amount, paidInEuros ?? amount.ValueInEuros ?? 0m, transaction.Id)];
 
         ImportRecord Leg(TransactionType type, Bit2MeAmount amount, decimal euros, string naturalId)
         {

@@ -124,6 +124,27 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task A_purchase_costs_what_was_paid_and_not_what_the_rate_recalculates()
+    {
+        // Comprar cien euros de cripto cuesta cien euros. Multiplicar la cantidad por el
+        // cambio da una cifra parecida y distinta, y el coste de adquisición dejaría de
+        // ser el de la operación.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-purchase-rate.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var purchase = Assert.Single(result.Records);
+
+        Assert.Equal(TransactionType.Buy, purchase.Type);
+        Assert.Equal(100m, purchase.GrossAmount);
+        Assert.Equal(99.0595m, purchase.Quantity);
+    }
+
+    [Fact]
     public async Task A_swap_of_crypto_for_crypto_is_valued_in_euros()
     {
         // Bit2Me valora el movimiento entero en la moneda de origen, no en euros, pero
