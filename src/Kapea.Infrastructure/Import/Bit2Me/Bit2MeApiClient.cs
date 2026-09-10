@@ -125,15 +125,25 @@ public sealed class Bit2MeApiClient(HttpClient httpClient, ILogger<Bit2MeApiClie
         CancellationToken cancellationToken = default)
     {
         using var document = await GetAsync("/v2/earn/wallets", credential, cancellationToken).ConfigureAwait(false);
+        var root = document.RootElement;
 
-        if (document.RootElement.ValueKind != JsonValueKind.Array)
+        // La respuesta es un objeto con «data», no un array suelto. Esperando un array
+        // se leían cero productos, y con ellos se perdían todas las recompensas: ni un
+        // error ni un aviso, simplemente no había nada que importar.
+        var wallets = root.ValueKind == JsonValueKind.Array
+            ? root
+            : root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array
+                ? data
+                : default;
+
+        if (wallets.ValueKind != JsonValueKind.Array)
         {
             return [];
         }
 
         return
         [
-            .. document.RootElement.EnumerateArray()
+            .. wallets.EnumerateArray()
                 .Select(element => new Bit2MeEarnWallet(
                     Bit2MeJson.String(element, "walletId"),
                     Bit2MeJson.String(element, "currency")))

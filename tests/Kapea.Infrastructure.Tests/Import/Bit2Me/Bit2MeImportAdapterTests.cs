@@ -108,6 +108,17 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task The_earn_products_are_read_from_the_object_that_wraps_them()
+    {
+        // Bit2Me devuelve los productos dentro de «data», no como un array suelto.
+        // Esperando un array se leían cero productos y con ellos se perdían todas las
+        // recompensas: ni un error ni un aviso, simplemente no había nada que importar.
+        var result = await ReadFullHistory();
+
+        Assert.Contains(result.Records, record => record.NaturalId == "em-0001");
+    }
+
+    [Fact]
     public async Task Earn_rewards_and_contributions_are_told_apart()
     {
         var result = await ReadFullHistory();
