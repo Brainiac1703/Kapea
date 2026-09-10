@@ -186,12 +186,15 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             candidates.Add(transaction.Operation.ToUpperInvariant());
         }
 
+        // Bit2Me valora el movimiento en «denomination», pero no siempre en euros: a
+        // veces viene en la propia moneda del activo. Tomarlo sin mirar la divisa
+        // convertía una cantidad de cripto en un importe en euros.
+        var valueInEuros = transaction.Denomination is { } denomination && IsEuro(denomination.Currency)
+            ? denomination.Value
+            : 0m;
+
         if (candidates.Contains("SWAP") && transaction.Origin is { } origin && transaction.Destination is { } destination)
         {
-            var valueInEuros = transaction.Denomination is { } denomination && IsEuro(denomination.Currency)
-                ? denomination.Value
-                : 0m;
-
             return
             [
                 Leg(TransactionType.Sell, origin, valueInEuros, $"{transaction.Id}:out"),
@@ -212,7 +215,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             return [];
         }
 
-        return [Leg(type, amount, transaction.Denomination?.Value ?? 0m, transaction.Id)];
+        return [Leg(type, amount, valueInEuros, transaction.Id)];
 
         ImportRecord Leg(TransactionType type, Bit2MeAmount amount, decimal euros, string naturalId)
         {

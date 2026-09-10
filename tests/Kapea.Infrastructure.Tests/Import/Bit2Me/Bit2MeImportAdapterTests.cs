@@ -124,6 +124,27 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task A_value_that_is_not_in_euros_is_not_taken_for_euros()
+    {
+        // Bit2Me valora el movimiento en «denomination», y no siempre en euros: a veces
+        // viene en la propia moneda del activo. Tomarlo sin mirar la divisa convertía una
+        // cantidad de cripto en un importe, y la cifra que se veía era disparatada.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-denomination.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var record = Assert.Single(result.Records);
+
+        Assert.Equal(1500m, record.Quantity);
+        Assert.Equal(0m, record.GrossAmount);
+        Assert.Equal("EUR", record.Currency.Code);
+    }
+
+    [Fact]
     public async Task Moving_funds_to_and_from_Earn_is_a_transfer_and_not_a_withdrawal()
     {
         // Bit2Me reparte el significado entre dos campos: una retirada hacia Earn llega
