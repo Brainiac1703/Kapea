@@ -124,6 +124,33 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task A_swap_of_crypto_for_crypto_is_valued_in_euros()
+    {
+        // Bit2Me valora el movimiento entero en la moneda de origen, no en euros, pero
+        // cada lado trae su cambio contra el euro. Sin usarlo, la venta entraba con cero
+        // de ingreso y el ejercicio salía con una pérdida del importe entero.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-swap-rates.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var sale = result.Records.Single(record => record.Type == TransactionType.Sell);
+        var purchase = result.Records.Single(record => record.Type == TransactionType.Buy);
+
+        // 12,47227153 ATOM a 2,71572845 €
+        Assert.Equal("ATOM", sale.AssetSymbol);
+        Assert.Equal(33.87m, Math.Round(sale.GrossAmount, 2));
+        Assert.Equal("EUR", sale.Currency.Code);
+
+        // 0,01004612 ETH a 3.339,87 €
+        Assert.Equal("ETH", purchase.AssetSymbol);
+        Assert.Equal(33.55m, Math.Round(purchase.GrossAmount, 2));
+    }
+
+    [Fact]
     public async Task A_value_that_is_not_in_euros_is_not_taken_for_euros()
     {
         // Bit2Me valora el movimiento en «denomination», y no siempre en euros: a veces

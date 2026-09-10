@@ -39,7 +39,20 @@ public sealed record Bit2MeTrade(
 }
 
 /// <summary>Importe con su divisa, la forma en que Bit2Me expresa cantidades en el monedero.</summary>
-public sealed record Bit2MeAmount(decimal Value, string Currency);
+/// <param name="EuroRate">
+/// Cuántos euros vale una unidad, cuando Bit2Me lo aporta.
+/// </param>
+/// <remarks>
+/// Cada lado de una permuta trae su cambio contra el euro. Sin él, una venta de cripto
+/// por cripto no tendría importe: el campo que valora el movimiento entero viene en la
+/// moneda de origen, no en euros, así que la operación entraría con cero de ingreso y
+/// eso falsearía el resultado del ejercicio.
+/// </remarks>
+public sealed record Bit2MeAmount(decimal Value, string Currency, decimal? EuroRate = null)
+{
+    /// <summary>Valor en euros, si se puede saber.</summary>
+    public decimal? ValueInEuros => EuroRate is { } rate ? Math.Abs(Value) * rate : null;
+}
 
 /// <summary>
 /// Movimiento del monedero. Un mismo tipo cubre ingresos, retiradas, compras, ventas
@@ -191,6 +204,39 @@ internal static class Bit2MeJson
 
         var value = node.TryGetProperty("amount", out _) ? Decimal(node, "amount") : Decimal(node, "value");
 
-        return new Bit2MeAmount(value, currency);
+        return new Bit2MeAmount(value, currency, EuroRate(node, currency));
+    }
+
+    /// <summary>
+    /// Cambio contra el euro que acompaña al importe, si lo hay y es contra el euro.
+    /// </summary>
+    /// <remarks>
+    /// Se comprueba el par: Bit2Me también manda cambios de una moneda contra sí misma,
+    /// y darlos por buenos convertiría una cantidad de cripto en euros.
+    /// </remarks>
+    private static decimal? EuroRate(JsonElement node, string currency)
+    {
+        if (!node.TryGetProperty("rate", out var rate) || rate.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        if (!rate.TryGetProperty("pair", out var pair) || pair.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var quote = String(pair, "quote");
+        var basis = String(pair, "base");
+
+        if (!string.Equals(quote, "EUR", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(basis, currency, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var value = Decimal(rate, "value");
+
+        return value > 0m ? value : null;
     }
 }

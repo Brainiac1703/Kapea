@@ -195,10 +195,17 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
 
         if (candidates.Contains("SWAP") && transaction.Origin is { } origin && transaction.Destination is { } destination)
         {
+            // Cada lado trae su propio cambio contra el euro, y es lo único que da valor
+            // a una permuta de cripto por cripto: lo que valora el movimiento entero
+            // viene en la moneda de origen. Sin esto, la venta entraba con cero de
+            // ingreso y el ejercicio salía con una pérdida que no existió.
+            var sold = origin.ValueInEuros ?? destination.ValueInEuros ?? valueInEuros;
+            var bought = destination.ValueInEuros ?? origin.ValueInEuros ?? valueInEuros;
+
             return
             [
-                Leg(TransactionType.Sell, origin, valueInEuros, $"{transaction.Id}:out"),
-                Leg(TransactionType.Buy, destination, valueInEuros, $"{transaction.Id}:in"),
+                Leg(TransactionType.Sell, origin, sold, $"{transaction.Id}:out"),
+                Leg(TransactionType.Buy, destination, bought, $"{transaction.Id}:in"),
             ];
         }
 
@@ -215,7 +222,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             return [];
         }
 
-        return [Leg(type, amount, valueInEuros, transaction.Id)];
+        return [Leg(type, amount, amount.ValueInEuros ?? valueInEuros, transaction.Id)];
 
         ImportRecord Leg(TransactionType type, Bit2MeAmount amount, decimal euros, string naturalId)
         {
