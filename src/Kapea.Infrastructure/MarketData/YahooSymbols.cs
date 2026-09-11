@@ -22,6 +22,18 @@ public static class YahooSymbols
     /// <summary>Sufijos que Yahoo no usa porque son su mercado por omisión.</summary>
     private static readonly string[] ImplicitMarkets = [".US"];
 
+    /// <summary>
+    /// Símbolo con el que Yahoo nombra la serie de un activo.
+    /// </summary>
+    /// <remarks>
+    /// Yahoo cotiza las criptomonedas contra una divisa y lo dice en el propio símbolo:
+    /// bitcoin en euros es «BTC-EUR». Pedirlo sin el sufijo devuelve otra cosa o nada.
+    /// </remarks>
+    public static string ToYahoo(string canonicalSymbol, Domain.Assets.AssetClass assetClass) =>
+        assetClass == Domain.Assets.AssetClass.Crypto
+            ? $"{canonicalSymbol.Trim().ToUpperInvariant()}-EUR"
+            : ToYahoo(canonicalSymbol);
+
     public static string ToYahoo(string brokerSymbol)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(brokerSymbol);

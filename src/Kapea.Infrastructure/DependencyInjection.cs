@@ -17,6 +17,7 @@ using Kapea.Infrastructure.Secrets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Kapea.Infrastructure;
 
@@ -156,6 +157,28 @@ public static class DependencyInjection
             Domain.Assets.AssetClass.Equity, provider.GetRequiredService<YahooMarketPriceProvider>()));
 
         services.AddScoped<IMarketPriceProvider, MarketPriceDispatcher>();
+
+        // El histórico va al revés que el precio de ahora: Yahoo primero, porque entrega
+        // años de cierres diarios en euros, y CoinGecko después para lo que no cubra,
+        // dentro de su ventana gratuita de un año.
+        services.AddHttpClient<YahooPriceHistoryProvider>(client =>
+            YahooMarketPriceProvider.Configure(
+                client,
+                new Uri(configuration["Yahoo:BaseAddress"] ?? "https://query1.finance.yahoo.com/")))
+            .AddStandardResilienceHandler();
+
+        services.AddHttpClient<CoinGeckoPriceHistoryProvider>(client =>
+            CoinGeckoMarketPriceProvider.Configure(
+                client,
+                new Uri(configuration["CoinGecko:BaseAddress"] ?? "https://api.coingecko.com/")))
+            .AddStandardResilienceHandler();
+
+        services.AddScoped<IPriceHistoryProvider>(provider => new PriceHistoryDispatcher(
+            [
+                provider.GetRequiredService<YahooPriceHistoryProvider>(),
+                provider.GetRequiredService<CoinGeckoPriceHistoryProvider>(),
+            ],
+            provider.GetRequiredService<ILogger<PriceHistoryDispatcher>>()));
     }
 
     /// <summary>

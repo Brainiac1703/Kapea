@@ -6,11 +6,11 @@
 
 ## 2. Descarga del histórico
 
-- [ ] 2.1 Ampliar el puerto de precios con la serie histórica entre dos fechas; verificar que las implementaciones existentes siguen compilando y que sus tests pasan
-- [ ] 2.2 Implementar el histórico de Yahoo contra respuestas grabadas, con la conversión de símbolo para cripto —`BTC` a `BTC-EUR`— y para renta variable; verificar con tests de ambos casos y de un símbolo que Yahoo no cubre
-- [ ] 2.3 Implementar el histórico de CoinGecko contra respuestas grabadas; verificar con test que una petición fuera de los 365 días permitidos se trata como falta de cobertura y no como error
-- [ ] 2.4 Implementar el reparto entre proveedores —Yahoo primero, CoinGecko para lo que no cubra— y verificar con test que un activo que ninguno cubre deja su serie vacía sin impedir la de los demás
-- [ ] 2.5 Comprobar contra los proveedores reales qué días quedan sin cubrir para los doce activos del usuario y dejarlo escrito en el change
+- [x] 2.1 Ampliar el puerto de precios con la serie histórica entre dos fechas; verificar que las implementaciones existentes siguen compilando y que sus tests pasan
+- [x] 2.2 Implementar el histórico de Yahoo contra respuestas grabadas, con la conversión de símbolo para cripto —`BTC` a `BTC-EUR`— y para renta variable; verificar con tests de ambos casos y de un símbolo que Yahoo no cubre
+- [x] 2.3 Implementar el histórico de CoinGecko contra respuestas grabadas; verificar con test que una petición fuera de los 365 días permitidos se trata como falta de cobertura y no como error
+- [x] 2.4 Implementar el reparto entre proveedores —Yahoo primero, CoinGecko para lo que no cubra— y verificar con test que un activo que ninguno cubre deja su serie vacía sin impedir la de los demás
+- [x] 2.5 Comprobar contra los proveedores reales qué días quedan sin cubrir para los doce activos del usuario y dejarlo escrito en el change
 
 ## 3. Puesta al día
 

@@ -40,3 +40,32 @@ public interface IPriceHistoryStore
     /// <summary>Guarda una serie descargada. Un día ya guardado no se duplica.</summary>
     Task<int> UpsertAsync(IReadOnlyList<DailyPrice> prices, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Lo que hace falta para pedir la serie de un activo a un proveedor.</summary>
+/// <param name="AssetId">Activo del catálogo, para devolver la serie ya atribuida.</param>
+/// <param name="CanonicalSymbol">Símbolo del catálogo, que cada proveedor traduce al suyo.</param>
+/// <param name="Class">Clase del activo: decide cómo se nombra en el proveedor.</param>
+public sealed record PriceHistoryRequest(
+    Guid AssetId,
+    string CanonicalSymbol,
+    Kapea.Domain.Assets.AssetClass Class,
+    DateOnly From,
+    DateOnly To);
+
+/// <summary>
+/// Proveedor capaz de entregar el cierre diario de un activo entre dos fechas.
+/// </summary>
+/// <remarks>
+/// Va aparte del precio de ahora porque la cobertura no coincide: hay proveedores que
+/// dan el precio actual de un token pequeño y no su historia, y al revés. Un proveedor
+/// que no cubra un activo devuelve una serie vacía, nunca un error.
+/// </remarks>
+public interface IPriceHistoryProvider
+{
+    /// <summary>Nombre con el que queda anotado el origen de cada precio.</summary>
+    string Name { get; }
+
+    Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
+        PriceHistoryRequest request,
+        CancellationToken cancellationToken = default);
+}
