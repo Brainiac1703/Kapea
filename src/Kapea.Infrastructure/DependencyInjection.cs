@@ -58,6 +58,9 @@ public static class DependencyInjection
         services.AddScoped<PortfolioCalculationService>();
         services.AddScoped<IPortfolioQueries, PortfolioQueries>();
         services.AddScoped<IPriceHistoryStore, PriceHistoryStore>();
+        services.AddScoped<Application.MarketData.IPricedAssetRepository, PricedAssetRepository>();
+        services.AddScoped<Application.MarketData.ExchangeRateIngestion>();
+        services.AddScoped<Application.MarketData.PriceHistoryUpdater>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<UserSignInService>();
         services.AddScoped<DevelopmentDataAdoption>();

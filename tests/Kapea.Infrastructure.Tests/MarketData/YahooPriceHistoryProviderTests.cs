@@ -91,6 +91,28 @@ public class YahooPriceHistoryProviderTests
         Assert.Contains("period2=1746576000", query, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_series_quoted_in_dollars_is_converted_with_the_rate_of_the_day()
+    {
+        // Yahoo no cotiza en euros los tokens pequeños, y es la única fuente que llega
+        // más atrás de un año. Se convierte con el mismo tipo con el que se valoran los
+        // movimientos, y el origen lo dice para no confundirlo con un precio cotizado.
+        var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-dollars.json"));
+
+        var prices = await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("PAXG"));
+
+        Assert.Equal(100m, prices[0].PriceInEuros);
+        Assert.Equal("Yahoo+BCE", prices[0].Source);
+    }
+
+    [Fact]
+    public async Task A_day_without_an_exchange_rate_is_left_out_rather_than_guessed()
+    {
+        var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-dollars.json"));
+
+        Assert.Empty(await Provider(handler).GetHistoryAsync(Request("PAXG")));
+    }
+
     private static string File(string path) =>
         System.IO.File.ReadAllText(Path.Combine(AppContext.BaseDirectory, path));
 
@@ -99,8 +121,32 @@ public class YahooPriceHistoryProviderTests
     private static PriceHistoryRequest Request(string symbol = "BTC") =>
         new(Asset, symbol, AssetClass.Crypto, new DateOnly(2025, 5, 1), new DateOnly(2025, 5, 6));
 
-    private static YahooPriceHistoryProvider Provider(HttpMessageHandler handler) =>
+    private static YahooPriceHistoryProvider Provider(
+        HttpMessageHandler handler,
+        IExchangeRateProvider? rates = null) =>
         new(
             new HttpClient(handler) { BaseAddress = new Uri("https://ejemplo/") },
+            rates ?? new NoRates(),
             NullLogger<YahooPriceHistoryProvider>.Instance);
+
+    /// <summary>Sin tipos de cambio guardados, que es el estado de partida.</summary>
+    private sealed class NoRates : IExchangeRateProvider
+    {
+        public Task<Kapea.Domain.Exchange.ExchangeRate?> ResolveAsync(
+            Kapea.Domain.ValueObjects.Currency currency,
+            DateOnly date,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<Kapea.Domain.Exchange.ExchangeRate?>(null);
+    }
+
+    /// <summary>Un tipo fijo, para leer la conversión a simple vista.</summary>
+    private sealed class FixedRate(decimal unitsPerEuro) : IExchangeRateProvider
+    {
+        public Task<Kapea.Domain.Exchange.ExchangeRate?> ResolveAsync(
+            Kapea.Domain.ValueObjects.Currency currency,
+            DateOnly date,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<Kapea.Domain.Exchange.ExchangeRate?>(Kapea.Domain.Exchange.ExchangeRate.Create(
+                currency, unitsPerEuro, date, date, Kapea.Domain.Exchange.ExchangeRate.EuropeanCentralBank));
+    }
 }

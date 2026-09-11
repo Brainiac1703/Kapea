@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Kapea.Application.Abstractions;
 using Kapea.Domain.MarketData;
+using Kapea.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace Kapea.Infrastructure.MarketData;
@@ -18,8 +19,12 @@ namespace Kapea.Infrastructure.MarketData;
 /// </remarks>
 public sealed class YahooPriceHistoryProvider(
     HttpClient httpClient,
+    IExchangeRateProvider exchangeRates,
     ILogger<YahooPriceHistoryProvider> logger) : IPriceHistoryProvider
 {
+    /// <summary>Origen de un precio que hubo que pasar a euros.</summary>
+    internal const string ConvertedSource = "Yahoo+BCE";
+
     public string Name => "Yahoo";
 
     public async Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
@@ -59,7 +64,18 @@ public sealed class YahooPriceHistoryProvider(
             await using var content = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var document = await JsonDocument.ParseAsync(content, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            return Read(document, request);
+            var currency = CurrencyOf(document);
+
+            if (currency is null)
+            {
+                return [];
+            }
+
+            var closes = Read(document, request);
+
+            return currency.Value.IsEuro
+                ? closes
+                : await ToEurosAsync(closes, currency.Value, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or TaskCanceledException)
         {
@@ -75,6 +91,68 @@ public sealed class YahooPriceHistoryProvider(
     private static long Instant(DateOnly day) =>
         new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero).ToUnixTimeSeconds();
 
+    /// <summary>
+    /// Pasa a euros una serie cotizada en otra divisa, al tipo del BCE de cada día.
+    /// </summary>
+    /// <remarks>
+    /// Yahoo no cotiza en euros los tokens pequeños, y es la única fuente que llega más
+    /// atrás de un año. Se convierte con el mismo tipo con el que se valoran los
+    /// movimientos, que está guardado y es contrastable, y el origen lo dice para que
+    /// nadie confunda un precio convertido con uno cotizado.
+    ///
+    /// Un día sin tipo se queda fuera: el BCE no publica fines de semana, así que se
+    /// toma el último publicado, y si no hay ninguno el día no se inventa.
+    /// </remarks>
+    private async Task<IReadOnlyList<DailyPrice>> ToEurosAsync(
+        List<DailyPrice> closes,
+        Currency currency,
+        CancellationToken cancellationToken)
+    {
+        var converted = new List<DailyPrice>(closes.Count);
+
+        foreach (var close in closes)
+        {
+            var rate = await exchangeRates.ResolveAsync(currency, close.Date, cancellationToken).ConfigureAwait(false);
+
+            if (rate is null)
+            {
+                continue;
+            }
+
+            converted.Add(close with
+            {
+                PriceInEuros = rate.ToEuros(new Money(close.PriceInEuros, currency)).Amount,
+                Source = ConvertedSource,
+            });
+        }
+
+        if (converted.Count < closes.Count)
+        {
+            logger.LogInformation(
+                "Faltan tipos de cambio para {Dias} días de una serie en {Divisa}.",
+                closes.Count - converted.Count, currency.Code);
+        }
+
+        return converted;
+    }
+
+    /// <summary>Divisa en la que Yahoo cotiza la serie, o su ausencia si no la dice.</summary>
+    private static Currency? CurrencyOf(JsonDocument document)
+    {
+        if (!document.RootElement.TryGetProperty("chart", out var chart)
+            || !chart.TryGetProperty("result", out var results)
+            || results.ValueKind != JsonValueKind.Array
+            || results.GetArrayLength() == 0
+            || !results[0].TryGetProperty("meta", out var meta)
+            || !meta.TryGetProperty("currency", out var currency)
+            || currency.GetString() is not { Length: > 0 } code)
+        {
+            return null;
+        }
+
+        return Currency.FromCode(code);
+    }
+
     private static List<DailyPrice> Read(JsonDocument document, PriceHistoryRequest request)
     {
         var prices = new List<DailyPrice>();
@@ -88,15 +166,6 @@ public sealed class YahooPriceHistoryProvider(
         }
 
         var result = results[0];
-
-        // Solo se acepta lo que ya viene en euros: convertir por detrás produciría una
-        // cifra que nadie puede comprobar contra su plataforma.
-        if (!result.TryGetProperty("meta", out var meta)
-            || !meta.TryGetProperty("currency", out var currency)
-            || !string.Equals(currency.GetString(), "EUR", StringComparison.OrdinalIgnoreCase))
-        {
-            return prices;
-        }
 
         if (!result.TryGetProperty("timestamp", out var timestamps)
             || timestamps.ValueKind != JsonValueKind.Array

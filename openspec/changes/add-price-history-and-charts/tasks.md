@@ -14,9 +14,9 @@
 
 ## 3. Puesta al día
 
-- [ ] 3.1 Implementar el cálculo de qué falta por activo —desde su primera adquisición o desde el último día guardado, hasta hoy—; verificar con tests de las tres situaciones
-- [ ] 3.2 Implementar el relleno de los huecos y añadirlo al trabajador periódico; verificar con test que una segunda pasada sobre una serie completa no pide nada al proveedor
-- [ ] 3.3 Implementar la degradación ante un proveedor que falla a mitad; verificar con test que lo descargado se guarda y lo que falta queda para la siguiente vuelta
+- [x] 3.1 Implementar el cálculo de qué falta por activo —desde su primera adquisición o desde el último día guardado, hasta hoy—; verificar con tests de las tres situaciones
+- [x] 3.2 Implementar el relleno de los huecos y añadirlo al trabajador periódico; verificar con test que una segunda pasada sobre una serie completa no pide nada al proveedor
+- [x] 3.3 Implementar la degradación ante un proveedor que falla a mitad; verificar con test que lo descargado se guarda y lo que falta queda para la siguiente vuelta
 - [ ] 3.4 Ejecutar la primera carga real sobre la cartera del usuario y comprobar cuántos días quedan cubiertos por activo
 
 ## 4. Serie de la cartera
