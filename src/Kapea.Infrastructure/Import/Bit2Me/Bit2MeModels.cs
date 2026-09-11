@@ -67,8 +67,23 @@ public sealed record Bit2MeWalletTransaction(
     Bit2MeAmount? Destination,
     Bit2MeAmount? Denomination,
     Bit2MeAmount? NetworkFee,
-    string RawContent)
+    string RawContent,
+    string Method = "")
 {
+    /// <summary>El monedero de euros de la propia cuenta, frente a una tarjeta o una transferencia.</summary>
+    public const string InternalWallet = "pocket";
+
+    /// <summary>
+    /// La compra se pagó desde fuera de la cuenta.
+    /// </summary>
+    /// <remarks>
+    /// Pagar con tarjeta lleva el dinero de fuera a la moneda sin pasar por el saldo en
+    /// euros. Tratarla como una compra corriente descuenta un efectivo que nunca estuvo
+    /// allí, y el saldo de la cuenta arranca en negativo para siempre.
+    /// </remarks>
+    public bool IsFundedFromOutside =>
+        Method.Length > 0 && !string.Equals(Method, InternalWallet, StringComparison.OrdinalIgnoreCase);
+
     public bool IsCompleted => string.Equals(Status, "completed", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
@@ -118,7 +133,8 @@ public sealed record Bit2MeWalletTransaction(
             Bit2MeJson.Amount(element, "destination"),
             Bit2MeJson.Amount(element, "denomination"),
             ReadNetworkFee(element),
-            element.GetRawText())
+            element.GetRawText(),
+            Bit2MeJson.String(element, "method"))
         {
             Operations = operations,
         };

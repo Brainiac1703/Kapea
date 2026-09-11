@@ -226,7 +226,38 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             return [];
         }
 
-        return [Leg(type, amount, paidInEuros ?? amount.ValueInEuros ?? 0m, transaction.Id)];
+        var euros = paidInEuros ?? amount.ValueInEuros ?? 0m;
+        var leg = Leg(type, amount, euros, transaction.Id);
+
+        // Una compra pagada con tarjeta lleva el dinero de fuera a la moneda sin pasar
+        // por el saldo en euros de la cuenta. Sin el ingreso que la acompaña, la compra
+        // descuenta un efectivo que nunca estuvo allí y el saldo arranca en negativo
+        // para siempre. El ingreso no cambia ni el coste ni la cantidad: solo devuelve
+        // a la cuenta el dinero que de verdad entró en ella.
+        if (type == TransactionType.Buy && transaction.IsFundedFromOutside && euros > 0m)
+        {
+            return [Funding(euros), leg];
+        }
+
+        return [leg];
+
+        ImportRecord Funding(decimal euros) => new(
+            NaturalId: $"{transaction.Id}:pago",
+            RowNumber: null,
+            Type: TransactionType.Deposit,
+            AssetSymbol: null,
+            AssetClass: null,
+            Quantity: 0m,
+            UnitPrice: null,
+            GrossAmount: euros,
+            Currency: Currency.Euro,
+            Fee: 0m,
+            Withholding: null,
+            OccurredAt: transaction.Date,
+            NaiveOccurredAt: null,
+            SourceTimeZoneId: PlatformTimeZoneId,
+            SplitRatio: null,
+            RawContent: transaction.RawContent);
 
         ImportRecord Leg(TransactionType type, Bit2MeAmount amount, decimal euros, string naturalId)
         {

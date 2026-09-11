@@ -1,0 +1,44 @@
+{
+  "data": [
+    {
+      "id": "wc-0001",
+      "date": "2024-05-04T10:15:13.489Z",
+      "completedAt": "2024-05-04T10:15:13.489Z",
+      "concept": "",
+      "type": "deposit",
+      "subtype": "purchase",
+      "method": "apple-pay",
+      "status": "completed",
+      "destination": {
+        "amount": "49.59173500",
+        "currency": "XRP"
+      },
+      "denomination": {
+        "amount": "100.00",
+        "currency": "EUR"
+      }
+    },
+    {
+      "id": "wc-0002",
+      "date": "2024-05-10T10:15:13.489Z",
+      "completedAt": "2024-05-10T10:15:13.489Z",
+      "concept": "",
+      "type": "transfer",
+      "subtype": "purchase",
+      "method": "pocket",
+      "status": "completed",
+      "destination": {
+        "amount": "0.30000000",
+        "currency": "SOL"
+      },
+      "denomination": {
+        "amount": "50.00",
+        "currency": "EUR"
+      }
+    }
+  ],
+  "pageInfo": {
+    "hasNextPage": false,
+    "endCursor": null
+  }
+}

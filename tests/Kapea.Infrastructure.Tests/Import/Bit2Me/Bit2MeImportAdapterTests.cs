@@ -171,6 +171,50 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task A_purchase_paid_with_a_card_brings_its_money_into_the_account()
+    {
+        // El dinero va de la tarjeta a la moneda sin pasar por el saldo en euros. Sin el
+        // ingreso que la acompaña, la compra descuenta un efectivo que nunca estuvo allí
+        // y el saldo de la cuenta arranca en negativo para siempre.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-purchase-card.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var funding = result.Records.Single(record => record.NaturalId == "wc-0001:pago");
+        var purchase = result.Records.Single(record => record.NaturalId == "wc-0001");
+
+        Assert.Equal(TransactionType.Deposit, funding.Type);
+        Assert.Equal(100m, funding.GrossAmount);
+        Assert.Null(funding.AssetSymbol);
+        Assert.Equal(0m, funding.Quantity);
+
+        // El ingreso no cambia lo que costó la compra ni cuántas unidades trajo.
+        Assert.Equal(TransactionType.Buy, purchase.Type);
+        Assert.Equal(100m, purchase.GrossAmount);
+        Assert.Equal(49.591735m, purchase.Quantity);
+    }
+
+    [Fact]
+    public async Task A_purchase_paid_from_the_wallet_brings_no_money_in()
+    {
+        // El dinero ya estaba en la cuenta. Ingresarlo otra vez lo contaría dos veces.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-purchase-card.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        Assert.DoesNotContain(result.Records, record => record.NaturalId == "wc-0002:pago");
+        Assert.Equal(TransactionType.Buy, result.Records.Single(record => record.NaturalId == "wc-0002").Type);
+    }
+
+    [Fact]
     public async Task A_swap_of_crypto_for_crypto_is_valued_in_euros()
     {
         // Bit2Me valora el movimiento entero en la moneda de origen, no en euros, pero
