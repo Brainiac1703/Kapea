@@ -90,6 +90,9 @@ public sealed class ProfileRulesModel
 
     public bool AmountIsAlwaysPositive { get; set; }
 
+    /// <summary>El importe de la fila ya lleva la comisión descontada.</summary>
+    public bool AmountIsNetOfFee { get; set; }
+
     public string RecognizedHeaders { get; set; } = string.Empty;
 
     public string DateFormats { get; set; } = "dd/MM/yyyy";
@@ -124,6 +127,7 @@ public sealed class ProfileRulesModel
             AmountSource = version.AmountSource,
             FixedAssetClass = version.FixedAssetClass ?? string.Empty,
             AmountIsAlwaysPositive = version.AmountIsAlwaysPositive,
+            AmountIsNetOfFee = version.AmountIsNetOfFee,
             RecognizedHeaders = string.Join("; ", version.RecognizedHeaders),
             DateFormats = string.Join("; ", version.DateFormats),
             NonFinancialConcepts = string.Join("; ", version.NonFinancialConcepts),
@@ -150,7 +154,8 @@ public sealed class ProfileRulesModel
             Columns
                 .Where(entry => !string.IsNullOrWhiteSpace(entry.Value))
                 .ToDictionary(entry => entry.Key, entry => entry.Value.Trim()),
-            ParseConcepts());
+            ParseConcepts(),
+            AmountIsNetOfFee);
 
     private static string[] Split(string value) =>
         [.. value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];

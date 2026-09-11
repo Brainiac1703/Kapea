@@ -61,6 +61,19 @@ public sealed class ImportProfileVersion
     public bool AmountIsAlwaysPositive { get; private set; }
 
     /// <summary>
+    /// El importe de la fila ya lleva la comisión descontada.
+    /// </summary>
+    /// <remarks>
+    /// Algunos extractos dan el dinero que de verdad se movió, no el bruto de la
+    /// operación. Restarle la comisión otra vez deja el saldo corto y el resultado de la
+    /// venta más bajo de lo que fue.
+    ///
+    /// Se declara en el perfil y no se deduce: mirando una fila sola no hay forma de
+    /// saber si el importe va antes o después de la comisión.
+    /// </remarks>
+    public bool AmountIsNetOfFee { get; private set; }
+
+    /// <summary>
     /// Monedas que son dinero y no activos.
     /// </summary>
     /// <remarks>
@@ -117,7 +130,8 @@ public sealed class ImportProfileVersion
         AmountSource amountSource = AmountSource.Column,
         string? fixedAssetClass = null,
         bool amountIsAlwaysPositive = false,
-        IEnumerable<string>? fiatCurrencies = null)
+        IEnumerable<string>? fiatCurrencies = null,
+        bool amountIsNetOfFee = false)
     {
         ArgumentNullException.ThrowIfNull(recognizedHeaders);
         ArgumentNullException.ThrowIfNull(columns);
@@ -133,6 +147,7 @@ public sealed class ImportProfileVersion
             AmountSource = amountSource,
             FixedAssetClass = string.IsNullOrWhiteSpace(fixedAssetClass) ? null : fixedAssetClass.Trim(),
             AmountIsAlwaysPositive = amountIsAlwaysPositive,
+            AmountIsNetOfFee = amountIsNetOfFee,
         };
 
         version._recognizedHeaders.AddRange(recognizedHeaders.Where(header => !string.IsNullOrWhiteSpace(header)).Select(header => header.Trim()));

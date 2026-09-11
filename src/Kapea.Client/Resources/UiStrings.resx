@@ -772,6 +772,9 @@
   <data name="Profiles_AmountPositive" xml:space="preserve">
     <value>Guardar el importe siempre en positivo</value>
   </data>
+  <data name="Profiles_AmountNetOfFee" xml:space="preserve">
+    <value>El importe ya lleva la comisión descontada</value>
+  </data>
   <data name="Profiles_AmountPositiveHelp" xml:space="preserve">
     <value>La dirección del dinero la lleva el tipo del movimiento, así que conservar además el signo la contaría dos veces.</value>
   </data>

@@ -25,9 +25,14 @@ public class Bit2MeSummaryProfileTests
         Assert.Equal(TransactionType.Buy, record.Type);
         Assert.Equal("XRP", record.AssetSymbol);
         Assert.Equal(49.591735m, record.Quantity);
-        Assert.Equal(100m, record.GrossAmount);
         Assert.Equal("EUR", record.Currency.Code);
         Assert.Equal(1.99m, record.Fee);
+
+        // El fichero da el dinero que salió de la cuenta, con la comisión ya dentro. El
+        // bruto se reconstruye para que el coste, que es bruto más comisión, vuelva a ser
+        // los cien euros que se pagaron.
+        Assert.Equal(98.01m, record.GrossAmount);
+        Assert.Equal(100m, record.GrossAmount + record.Fee);
     }
 
     [Fact]
@@ -40,7 +45,10 @@ public class Bit2MeSummaryProfileTests
         Assert.Equal(TransactionType.Sell, record.Type);
         Assert.Equal("EURC", record.AssetSymbol);
         Assert.Equal(99.0595m, record.Quantity);
-        Assert.Equal(98.10821983m, record.GrossAmount);
+
+        // Igual en el otro sentido: el importe de la fila es lo que se cobró, así que el
+        // bruto menos la comisión tiene que dar esa misma cifra.
+        Assert.Equal(98.10821983m, record.GrossAmount - record.Fee);
     }
 
     [Fact]

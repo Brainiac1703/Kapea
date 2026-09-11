@@ -772,6 +772,9 @@
   <data name="Profiles_AmountPositive" xml:space="preserve">
     <value>Always store the amount as positive</value>
   </data>
+  <data name="Profiles_AmountNetOfFee" xml:space="preserve">
+    <value>The amount already has the fee deducted</value>
+  </data>
   <data name="Profiles_AmountPositiveHelp" xml:space="preserve">
     <value>The direction of money is carried by the movement type, so keeping the sign as well would count it twice.</value>
   </data>

@@ -224,7 +224,7 @@ public sealed class ProfileFileImportAdapter
                 AssetClass: isMoney ? null : AssetClassOf(version),
                 Quantity: isMoney ? 0m : Math.Abs(quantity),
                 UnitPrice: null,
-                GrossAmount: Math.Abs(euros),
+                GrossAmount: Gross(version, type, Math.Abs(euros), fee),
                 Currency: Currency.FromCode(
                     isMoney && asset is { Length: > 0 } ? asset.Trim() : version.FixedCurrency ?? "EUR"),
                 Fee: Math.Abs(fee),
@@ -235,6 +235,30 @@ public sealed class ProfileFileImportAdapter
                 SplitRatio: null,
                 RawContent: row.Raw);
         }
+    }
+
+
+    /// <summary>
+    /// Reconstruye el importe bruto cuando el extracto da el dinero que se movió.
+    /// </summary>
+    /// <remarks>
+    /// El cálculo resta la comisión a lo que se ingresa y se la suma a lo que se paga,
+    /// así que un importe que ya la lleva descontada la contaría dos veces: la venta
+    /// rendiría menos de lo que rindió y el saldo quedaría corto.
+    /// </remarks>
+    private static decimal Gross(ImportProfileVersion version, TransactionType type, decimal amount, decimal fee)
+    {
+        if (!version.AmountIsNetOfFee || fee == 0m || amount == 0m)
+        {
+            return amount;
+        }
+
+        return type switch
+        {
+            TransactionType.Sell or TransactionType.Withdrawal => amount + Math.Abs(fee),
+            TransactionType.Buy or TransactionType.Deposit => amount - Math.Abs(fee),
+            _ => amount,
+        };
     }
 
     private static string? Suffix(string? reference, string leg) =>
@@ -357,6 +381,8 @@ public sealed class ProfileFileImportAdapter
             amount = Math.Abs(amount);
         }
 
+        var fee = values.OptionalDecimal(Cell(row, columns, ImportField.Fee)) ?? 0m;
+
         return new ImportRecord(
             NaturalId: Cell(row, columns, ImportField.NaturalId),
             RowNumber: row.Number,
@@ -365,9 +391,9 @@ public sealed class ProfileFileImportAdapter
             AssetClass: AssetClassOf(version),
             Quantity: quantity,
             UnitPrice: unitPrice,
-            GrossAmount: amount,
+            GrossAmount: Gross(version, type, amount, fee),
             Currency: currency,
-            Fee: values.OptionalDecimal(Cell(row, columns, ImportField.Fee)) ?? 0m,
+            Fee: fee,
             Withholding: values.OptionalDecimal(Cell(row, columns, ImportField.Withholding)),
             OccurredAt: null,
             NaiveOccurredAt: date,

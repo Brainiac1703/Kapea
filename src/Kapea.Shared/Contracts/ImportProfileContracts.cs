@@ -32,7 +32,8 @@ public sealed record ImportProfileVersionResponse(
     IReadOnlyList<string> DateFormats,
     IReadOnlyList<string> NonFinancialConcepts,
     IReadOnlyDictionary<string, string> Columns,
-    IReadOnlyDictionary<string, string> Concepts);
+    IReadOnlyDictionary<string, string> Concepts,
+    bool AmountIsNetOfFee = false);
 
 /// <summary>Las reglas que se envían al crear un perfil o al corregirlo.</summary>
 public sealed record ImportProfileRulesRequest(
@@ -48,7 +49,8 @@ public sealed record ImportProfileRulesRequest(
     IReadOnlyList<string> DateFormats,
     IReadOnlyList<string> NonFinancialConcepts,
     IReadOnlyDictionary<string, string> Columns,
-    IReadOnlyDictionary<string, string> Concepts);
+    IReadOnlyDictionary<string, string> Concepts,
+    bool AmountIsNetOfFee = false);
 
 public sealed record CreateImportProfileRequest(string Platform, string Name, ImportProfileRulesRequest Rules);
 

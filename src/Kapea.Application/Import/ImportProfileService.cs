@@ -38,7 +38,9 @@ public static class ImportProfileRules
             Parse<RowShape>(rules.RowShape, "forma de la fila"),
             Parse<AmountSource>(rules.AmountSource, "origen del importe"),
             rules.FixedAssetClass,
-            rules.AmountIsAlwaysPositive);
+            rules.AmountIsAlwaysPositive,
+            fiatCurrencies: null,
+            amountIsNetOfFee: rules.AmountIsNetOfFee);
     }
 
     public static ImportProfileResponse ToResponse(ImportProfile profile)
@@ -73,7 +75,8 @@ public static class ImportProfileRules
             version.DateFormats,
             version.NonFinancialConcepts,
             version.Columns.ToDictionary(entry => entry.Key.ToString(), entry => entry.Value),
-            version.Concepts.ToDictionary(entry => entry.Key, entry => entry.Value.ToString()));
+            version.Concepts.ToDictionary(entry => entry.Key, entry => entry.Value.ToString()),
+            version.AmountIsNetOfFee);
     }
 
     /// <summary>Los campos a los que se puede apuntar una columna, con su nombre en pantalla.</summary>

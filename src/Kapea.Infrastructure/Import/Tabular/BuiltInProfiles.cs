@@ -113,7 +113,13 @@ public static class BuiltInProfiles
                 AmountSource.Column,
                 fixedAssetClass: "Crypto",
                 amountIsAlwaysPositive: true,
-                fiatCurrencies: ["EUR", "USD", "GBP", "CHF"]),
+                fiatCurrencies: ["EUR", "USD", "GBP", "CHF"],
+
+                // Bit2Me exporta el dinero que se movió, no el bruto de la operación:
+                // una venta de cien euros con una comisión de uno aparece como noventa y
+                // nueve. Restarla otra vez dejaba el saldo corto y la venta rindiendo
+                // menos de lo que rindió.
+                amountIsNetOfFee: true),
             builtIn: true);
 
     private static ImportProfile CashOperations(DateTimeOffset createdAt) =>
