@@ -67,8 +67,13 @@ services:
       # Secrets, y por eso vive fuera de la imagen y del repositorio.
       KeyVault__Uri: '${KEYVAULT_URI:-}'
       UserSecrets__Id: kapea-local
+
+      # Sin esto, las claves que cifran la cookie de sesión viven en memoria y cada
+      # despliegue echa al usuario de su sesión.
+      DataProtection__KeysPath: /home/app/.aspnet/DataProtection-Keys
     volumes:
       - broker-secrets:/home/app/.microsoft/usersecrets
+      - data-protection:/home/app/.aspnet/DataProtection-Keys
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -135,6 +140,10 @@ services:
 
 volumes:
   mssql-data:
+
+  # Las claves que cifran la cookie de sesión. En un volumen para que reiniciar la
+  # API no cierre la sesión de quien esté dentro.
+  data-protection:
 
   # Las credenciales de los brokers en desarrollo. En un volumen y no en la
   # imagen para que sobrevivan a un rebuild y no acaben nunca en un commit.

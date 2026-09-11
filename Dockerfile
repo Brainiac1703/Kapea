@@ -57,8 +57,8 @@ COPY --from=build /app/api .
 # la aplicación. Docker copia estos permisos al crear el volumen que se monta encima;
 # sin el directorio en la imagen, el volumen nace de root y la aplicación no puede
 # guardar ninguna credencial.
-RUN mkdir -p /home/app/.microsoft/usersecrets \
-    && chown -R $APP_UID:$APP_UID /home/app/.microsoft
+RUN mkdir -p /home/app/.microsoft/usersecrets /home/app/.aspnet/DataProtection-Keys \
+    && chown -R $APP_UID:$APP_UID /home/app/.microsoft /home/app/.aspnet
 
 USER $APP_UID
 
@@ -78,8 +78,8 @@ COPY --from=build /app/sync .
 # la aplicación. Docker copia estos permisos al crear el volumen que se monta encima;
 # sin el directorio en la imagen, el volumen nace de root y la aplicación no puede
 # guardar ninguna credencial.
-RUN mkdir -p /home/app/.microsoft/usersecrets \
-    && chown -R $APP_UID:$APP_UID /home/app/.microsoft
+RUN mkdir -p /home/app/.microsoft/usersecrets /home/app/.aspnet/DataProtection-Keys \
+    && chown -R $APP_UID:$APP_UID /home/app/.microsoft /home/app/.aspnet
 
 USER $APP_UID
 

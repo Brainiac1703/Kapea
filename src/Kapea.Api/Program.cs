@@ -1,4 +1,5 @@
 using Kapea.Api.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using Kapea.Api.Endpoints;
 using Kapea.Application.Abstractions;
 using Kapea.Application.Credentials;
@@ -19,6 +20,17 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 
 builder.Services.AddKapeaAuthentication(builder.Configuration, builder.Environment.IsDevelopment());
+
+// Las claves que cifran la cookie viven en memoria si nadie dice lo contrario, así que
+// cada reinicio echaba a todo el mundo de su sesión. En un directorio persistente
+// sobreviven al despliegue; sin directorio configurado se sigue como hasta ahora.
+if (builder.Configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
+{
+    builder.Services
+        .AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+        .SetApplicationName("Kapea");
+}
 
 builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
