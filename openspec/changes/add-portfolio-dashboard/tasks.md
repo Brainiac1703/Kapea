@@ -17,12 +17,12 @@
 
 ## 3. Cartera ampliada
 
-- [ ] 3.1 Añadir a la posición abierta el peso sobre el valor total, las comisiones acumuladas y el resultado ya realizado del activo; verificar con tests, incluido el caso de pesos parciales cuando falta algún precio
-- [ ] 3.2 Implementar el resultado acumulado de la cartera —realizado desde el inicio, latente y su suma—; verificar con test que difiere del resultado de un ejercicio concreto y que ambos salen de los mismos datos
-- [ ] 3.3 Implementar el valor total del patrimonio como posiciones más efectivo, con su marca de incompleto; verificar con tests de total completo, sin algún precio y sin algún saldo
-- [ ] 3.4 Implementar la agrupación por clase de activo con subtotales y peso por grupo; verificar con test que una clase nueva aparece como un grupo más sin cambios en la consulta
-- [ ] 3.5 Implementar el resumen de rendimientos cobrados con su retención, agrupados por clase; verificar con test
-- [ ] 3.6 Ampliar los contratos de la cartera y su endpoint con todo lo anterior; verificar con tests de integración de la API
+- [x] 3.1 Añadir a la posición abierta el peso sobre el valor total, las comisiones acumuladas y el resultado ya realizado del activo; verificar con tests, incluido el caso de pesos parciales cuando falta algún precio
+- [x] 3.2 Implementar el resultado acumulado de la cartera —realizado desde el inicio, latente y su suma—; verificar con test que difiere del resultado de un ejercicio concreto y que ambos salen de los mismos datos
+- [x] 3.3 Implementar el valor total del patrimonio como posiciones más efectivo, con su marca de incompleto; verificar con tests de total completo, sin algún precio y sin algún saldo
+- [x] 3.4 Implementar la agrupación por clase de activo con subtotales y peso por grupo; verificar con test que una clase nueva aparece como un grupo más sin cambios en la consulta
+- [x] 3.5 Implementar el resumen de rendimientos cobrados con su retención, agrupados por clase; verificar con test
+- [x] 3.6 Ampliar los contratos de la cartera y su endpoint con todo lo anterior; verificar con tests de integración de la API
 
 ## 4. Pantalla de cartera
 

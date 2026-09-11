@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Kapea.Shared.Contracts;
 
 /// <summary>Cuenta del usuario en una plataforma.</summary>
@@ -102,21 +104,64 @@ public sealed record OpenPositionResponse(
     decimal? MarketPriceInEuros,
     decimal? MarketValueInEuros,
     decimal? UnrealisedResultInEuros,
-    DateTimeOffset? PriceAsOf);
+    DateTimeOffset? PriceAsOf,
+    string AssetClass,
+    decimal FeesInEuros,
+    decimal RealizedResultInEuros,
+    decimal? Weight);
+
+/// <summary>Las posiciones de una clase de activo con sus subtotales.</summary>
+public sealed record PortfolioGroupResponse(
+    string AssetClass,
+    IReadOnlyList<OpenPositionResponse> Positions,
+    decimal CostInEuros,
+    decimal MarketValueInEuros,
+    decimal? Weight);
+
+/// <summary>Dinero disponible en una cuenta y una divisa.</summary>
+public sealed record CashBalanceResponse(Guid AccountId, string AccountAlias, string Currency, decimal Amount);
+
+/// <summary>Rendimientos cobrados de una clase de activo, con su retención.</summary>
+public sealed record IncomeByClassResponse(
+    string AssetClass,
+    decimal GrossInEuros,
+    decimal WithholdingInEuros,
+    decimal NetInEuros);
 
 /// <summary>Cartera completa, con la advertencia visible cuando las cifras están incompletas.</summary>
 public sealed record PortfolioResponse(
-    IReadOnlyList<OpenPositionResponse> Positions,
+    IReadOnlyList<PortfolioGroupResponse> Groups,
+    IReadOnlyList<CashBalanceResponse> Cash,
+    decimal CashTotalInEuros,
+    IReadOnlyList<string> CurrenciesWithoutRate,
     decimal TotalCostInEuros,
-    decimal? TotalMarketValueInEuros,
+    decimal TotalMarketValueInEuros,
+    decimal WealthInEuros,
+    decimal RealizedResultInEuros,
+    decimal UnrealisedResultInEuros,
+    IReadOnlyList<IncomeByClassResponse> Income,
     int UnclassifiedTransactionCount,
     int PendingTransferCount,
-    IReadOnlyList<string> Inconsistencies)
+    IReadOnlyList<string> Inconsistencies,
+    bool MissingPrices,
+    bool MissingCash)
 {
+    /// <summary>
+    /// Todas las posiciones seguidas, sin agrupar.
+    /// </summary>
+    /// <remarks>
+    /// No viaja: se calcula de los grupos al leerla. Mandarla además de los grupos
+    /// duplicaría la cartera entera en cada respuesta.
+    /// </remarks>
+    [JsonIgnore]
+    public IEnumerable<OpenPositionResponse> Positions => Groups.SelectMany(group => group.Positions);
+
     /// <summary>Mientras haya movimientos sin resolver, estas cifras no están completas.</summary>
     public bool IsComplete => UnclassifiedTransactionCount == 0
         && PendingTransferCount == 0
-        && Inconsistencies.Count == 0;
+        && Inconsistencies.Count == 0
+        && !MissingPrices
+        && !MissingCash;
 }
 
 /// <summary>Resultado realizado con su desglose hasta los lotes que lo originan.</summary>

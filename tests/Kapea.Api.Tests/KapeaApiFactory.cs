@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -113,7 +114,24 @@ public sealed class KapeaApiFactory : WebApplicationFactory<Program>, IAsyncLife
                 options.DefaultAuthenticateScheme = TestAuthenticationHandler.SchemeName;
                 options.DefaultChallengeScheme = TestAuthenticationHandler.SchemeName;
             });
+
+            // Sin esto las pruebas salían a CoinGecko de verdad: la cartera valía lo que
+            // valiera bitcoin esa mañana, y sin red no valía nada. Un proveedor que no
+            // cubre ningún símbolo deja las posiciones sin valorar, que es justo el caso
+            // que las pruebas necesitan poder afirmar.
+            services.RemoveAll<Application.Abstractions.IMarketPriceProvider>();
+            services.AddSingleton<Application.Abstractions.IMarketPriceProvider, NoPrices>();
         });
+    }
+
+    /// <summary>Proveedor que no cubre ningún símbolo.</summary>
+    private sealed class NoPrices : Application.Abstractions.IMarketPriceProvider
+    {
+        public Task<IReadOnlyDictionary<string, Application.Abstractions.MarketPrice>> GetPricesAsync(
+            IReadOnlyCollection<string> canonicalSymbols,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyDictionary<string, Application.Abstractions.MarketPrice>>(
+                new Dictionary<string, Application.Abstractions.MarketPrice>(StringComparer.OrdinalIgnoreCase));
     }
 
     private sealed class FixedUser(Guid id) : Application.Abstractions.ICurrentUser

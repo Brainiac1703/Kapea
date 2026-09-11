@@ -125,7 +125,7 @@ public class ImportProfilePersistenceTests(SqlServerFixture fixture)
         context.Transactions.Add(transaction);
         await context.SaveChangesAsync();
 
-        var queries = new Kapea.Infrastructure.Persistence.Stores.PortfolioQueries(context, new NoPrices());
+        var queries = new Kapea.Infrastructure.Persistence.Stores.PortfolioQueries(context, new NoPrices(), new NoRates());
         var stored = (await queries.ListTransactionsAsync(account.Id, onlyRequiringReview: false))
             .Single(entity => entity.Id == transaction.Id);
 
@@ -137,6 +137,15 @@ public class ImportProfilePersistenceTests(SqlServerFixture fixture)
     }
 
     /// <summary>Aquí no se miran precios de mercado: lo que se comprueba es el rastro hasta el perfil.</summary>
+    private sealed class NoRates : Kapea.Application.Abstractions.IExchangeRateProvider
+    {
+        public Task<Kapea.Domain.Exchange.ExchangeRate?> ResolveAsync(
+            Kapea.Domain.ValueObjects.Currency currency,
+            DateOnly date,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<Kapea.Domain.Exchange.ExchangeRate?>(null);
+    }
+
     private sealed class NoPrices : Kapea.Application.Abstractions.IMarketPriceProvider
     {
         public Task<IReadOnlyDictionary<string, Kapea.Application.Abstractions.MarketPrice>> GetPricesAsync(

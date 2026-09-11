@@ -222,6 +222,74 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task The_money_left_in_an_account_comes_back_with_its_alias_and_its_currency()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Kraken principal", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(user, account!.Id);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        var cash = Assert.Single(portfolio!.Cash);
+
+        Assert.Equal("Kraken principal", cash.AccountAlias);
+        Assert.Equal("EUR", cash.Currency);
+        Assert.Equal(100m, cash.Amount);
+        Assert.Equal(100m, portfolio.CashTotalInEuros);
+    }
+
+    [Fact]
+    public async Task A_position_comes_back_inside_the_group_of_its_class_with_its_fees()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con posición", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        var group = Assert.Single(portfolio!.Groups);
+        var position = Assert.Single(group.Positions);
+
+        Assert.Equal("Crypto", group.AssetClass);
+        Assert.Equal("BTC", position.AssetSymbol);
+        Assert.Equal(500m, position.CostInEuros);
+        Assert.Equal(1.5m, position.FeesInEuros);
+    }
+
+    [Fact]
+    public async Task Wealth_is_the_positions_plus_the_money_in_the_accounts()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Mixta", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(user, account!.Id);
+        await SeedPositionAsync(user, account.Id, "ETH");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        // Sin proveedor de precios en las pruebas la posición no se valora, así que el
+        // patrimonio es el efectivo y la respuesta lo dice en lugar de aparentar estar
+        // completa.
+        Assert.Equal(portfolio!.CashTotalInEuros + portfolio.TotalMarketValueInEuros, portfolio.WealthInEuros);
+        Assert.True(portfolio.MissingPrices);
+        Assert.False(portfolio.IsComplete);
+    }
+
+    [Fact]
     public async Task The_results_of_a_year_with_nothing_come_back_empty_rather_than_missing()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());
@@ -662,6 +730,50 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
             $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
 
         return await response.Content.ReadFromJsonAsync<ImportPreviewResponse>();
+    }
+
+
+    /// <summary>Deja un activo con un lote abierto y la compra que lo originó.</summary>
+    private async Task SeedPositionAsync(Guid user, Guid accountId, string symbol = "BTC")
+    {
+        await using var context = factory.CreateContext(user);
+
+        // El catálogo de activos es de la instalación y lo comparten todas las pruebas,
+        // así que se reutiliza el que ya esté en lugar de chocar con su símbolo.
+        var asset = await context.Assets.FirstOrDefaultAsync(entry => entry.CanonicalSymbol == symbol)
+            ?? Domain.Assets.Asset.Create(symbol, Domain.Assets.AssetClass.Crypto);
+        var occurredAt = Domain.Transactions.Occurrence.FromOffset(DateTimeOffset.UtcNow, "UTC");
+
+        var purchase = Domain.Transactions.Transaction.Imported(
+            new UserId(user),
+            accountId,
+            Domain.Transactions.TransactionType.Buy,
+            asset.Id,
+            new Quantity(0.01m),
+            null,
+            Money.Euros(500m),
+            Money.Euros(1.5m),
+            occurredAt,
+            Domain.Transactions.TransactionSource.FromImport(
+                Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString()));
+
+        if (context.Entry(asset).State == Microsoft.EntityFrameworkCore.EntityState.Detached)
+        {
+            context.Assets.Add(asset);
+        }
+
+        context.Transactions.Add(purchase);
+        context.Lots.Add(Domain.Lots.Lot.Create(
+            new UserId(user),
+            asset.Id,
+            accountId,
+            purchase.Id,
+            new Quantity(0.01m),
+            Money.Euros(500m),
+            occurredAt,
+            1));
+
+        await context.SaveChangesAsync();
     }
 
     private async Task SeedTransactionAsync(

@@ -2,6 +2,9 @@ using Kapea.Application.Abstractions;
 using Kapea.Application.Import;
 using Kapea.Application.Portfolio;
 using Kapea.Domain.Calculation;
+using Kapea.Domain.ValueObjects;
+using Kapea.Domain.Exchange;
+using Kapea.Domain.Assets;
 using Kapea.Domain.Import;
 using Kapea.Domain.Transactions;
 using Kapea.Domain.Transfers;
@@ -11,7 +14,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Kapea.Infrastructure.Persistence.Stores;
 
 /// <summary>Lecturas de la cartera sobre EF Core, ya en la forma que consume el cliente.</summary>
-public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvider prices) : IPortfolioQueries
+public sealed class PortfolioQueries(
+    KapeaDbContext context,
+    IMarketPriceProvider prices,
+    IExchangeRateProvider exchangeRates) : IPortfolioQueries
 {
     // El catálogo es de la instalación, no de cada usuario, así que se salta el filtro
     // global: sin esto no devolvería nada, porque las plataformas no tienen dueño.
@@ -224,21 +230,48 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
                         : null,
                     transaction.Source.ProfileVersion);
 
+    /// <summary>
+    /// La cartera entera: posiciones agrupadas por clase, efectivo, patrimonio,
+    /// resultado acumulado y rendimientos cobrados.
+    /// </summary>
+    /// <remarks>
+    /// Las cifras las compone el dominio; aquí solo se reúne lo que necesita. Así las
+    /// mismas reglas valen desde cualquier sitio y se pueden comprobar sin base de datos.
+    /// </remarks>
     public async Task<PortfolioResponse> GetPortfolioAsync(CancellationToken cancellationToken = default)
     {
-        var lots = await context.Lots.ToListAsync(cancellationToken).ConfigureAwait(false);
         var assets = await context.Assets.ToDictionaryAsync(asset => asset.Id, cancellationToken).ConfigureAwait(false);
+        var lots = await context.Lots.ToListAsync(cancellationToken).ConfigureAwait(false);
+        var transactions = await context.Transactions.ToListAsync(cancellationToken).ConfigureAwait(false);
+        var transfers = await context.InternalTransfers.ToListAsync(cancellationToken).ConfigureAwait(false);
+        var realized = await context.RealizedResults.ToListAsync(cancellationToken).ConfigureAwait(false);
+        var incomes = await context.CapitalIncomes.ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var open = lots.Where(lot => !lot.IsExhausted).GroupBy(lot => lot.AssetId).ToList();
-        var symbols = open
-            .Where(group => assets.ContainsKey(group.Key))
-            .Select(group => assets[group.Key].CanonicalSymbol)
-            .ToList();
 
-        var quotes = await prices.GetPricesAsync(symbols, cancellationToken).ConfigureAwait(false);
-        var positions = new List<OpenPositionResponse>();
+        var quotes = await prices
+            .GetPricesAsync(
+                [.. open.Where(group => assets.ContainsKey(group.Key)).Select(group => assets[group.Key].CanonicalSymbol)],
+                cancellationToken)
+            .ConfigureAwait(false);
 
-        foreach (var group in open)
+        var feesByAsset = transactions
+            .Where(transaction => transaction.AssetId is not null && !transaction.RequiresReview)
+            .GroupBy(transaction => transaction.AssetId!.Value)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Aggregate(Money.Euros(0m), (total, transaction) => total + transaction.FeeInEuros));
+
+        var realizedByAsset = realized
+            .GroupBy(result => result.AssetId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Aggregate(Money.Euros(0m), (total, result) => total + result.ResultInEuros));
+
+        var portfolioAssets = new List<PortfolioAsset>();
+        var responsesByAsset = new Dictionary<Guid, (string Symbol, bool Verified)>();
+
+        foreach (var group in open.OrderBy(group => assets.GetValueOrDefault(group.Key)?.CanonicalSymbol))
         {
             var asset = assets.GetValueOrDefault(group.Key);
             var symbol = asset?.CanonicalSymbol ?? group.Key.ToString();
@@ -247,7 +280,7 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
             var position = OpenPosition.From(
                 group.Key,
                 group,
-                quote is null ? null : Domain.ValueObjects.Money.Euros(quote.PriceInEuros),
+                quote is null ? null : Money.Euros(quote.PriceInEuros),
                 quote?.AsOf);
 
             if (position is null)
@@ -255,36 +288,121 @@ public sealed class PortfolioQueries(KapeaDbContext context, IMarketPriceProvide
                 continue;
             }
 
-            positions.Add(new OpenPositionResponse(
-                position.AssetId,
-                symbol,
-                asset?.IsVerified ?? false,
-                position.Quantity.Value,
-                position.CostInEuros.Amount,
-                position.AverageCostInEuros.Amount,
-                position.MarketPriceInEuros?.Amount,
-                position.MarketValueInEuros?.Amount,
-                position.UnrealisedResultInEuros?.Amount,
-                position.PriceAsOf));
+            portfolioAssets.Add(new PortfolioAsset(
+                asset?.Class ?? AssetClass.Crypto,
+                position,
+                feesByAsset.GetValueOrDefault(group.Key, Money.Euros(0m)),
+                realizedByAsset.GetValueOrDefault(group.Key, Money.Euros(0m))));
+
+            responsesByAsset[group.Key] = (symbol, asset?.IsVerified ?? false);
         }
 
-        var unclassified = await context.Transactions
-            .CountAsync(transaction => transaction.Type == TransactionType.Unknown, cancellationToken)
-            .ConfigureAwait(false);
+        var balances = CashBalanceCalculator.Calculate(PortfolioCalculationService.Value(transactions, transfers));
+        var cashTotal = CashBalanceCalculator.InEuros(balances, await RatesAsync(balances, cancellationToken).ConfigureAwait(false));
 
-        var pendingTransfers = await context.InternalTransfers
-            .CountAsync(transfer => transfer.Status == InternalTransferStatus.Proposed, cancellationToken)
+        var summary = PortfolioSummary.Build(
+            portfolioAssets,
+            cashTotal,
+            balances,
+            IncomeByClass(incomes, assets));
+
+        var aliases = await context.Accounts
+            .ToDictionaryAsync(account => account.Id, account => account.Alias, cancellationToken)
             .ConfigureAwait(false);
 
         return new PortfolioResponse(
-            [.. positions.OrderBy(position => position.AssetSymbol)],
-            positions.Sum(position => position.CostInEuros),
-            positions.All(position => position.MarketValueInEuros is not null)
-                ? positions.Sum(position => position.MarketValueInEuros!.Value)
-                : null,
-            unclassified,
-            pendingTransfers,
-            []);
+            [.. summary.Groups.Select(group => ToResponse(group, responsesByAsset))],
+            [.. balances.Balances.Select(balance => new CashBalanceResponse(
+                balance.AccountId,
+                aliases.GetValueOrDefault(balance.AccountId, string.Empty),
+                balance.Currency.Code,
+                balance.Amount.Amount))],
+            cashTotal.Total.Amount,
+            [.. cashTotal.CurrenciesWithoutRate.Select(currency => currency.Code)],
+            summary.CostInEuros.Amount,
+            summary.MarketValueInEuros.Amount,
+            summary.Wealth.TotalInEuros.Amount,
+            summary.Result.RealizedInEuros.Amount,
+            summary.Result.UnrealisedInEuros.Amount,
+            [.. summary.Income.Select(entry => new IncomeByClassResponse(
+                entry.Class.ToString(),
+                entry.GrossInEuros.Amount,
+                entry.WithholdingInEuros.Amount,
+                entry.NetInEuros.Amount))],
+            transactions.Count(transaction => transaction.RequiresReview),
+            transfers.Count(transfer => transfer.Status == InternalTransferStatus.Proposed),
+            [],
+            summary.Wealth.MissingPrices,
+            summary.Wealth.MissingCash);
+    }
+
+    private static PortfolioGroupResponse ToResponse(
+        PortfolioGroup group,
+        IReadOnlyDictionary<Guid, (string Symbol, bool Verified)> named) =>
+        new(
+            group.Class.ToString(),
+            [.. group.Positions.Select(entry =>
+            {
+                var position = entry.Position;
+                var asset = named.GetValueOrDefault(position.AssetId, (Symbol: position.AssetId.ToString(), Verified: false));
+
+                return new OpenPositionResponse(
+                    position.AssetId,
+                    asset.Symbol,
+                    asset.Verified,
+                    position.Quantity.Value,
+                    position.CostInEuros.Amount,
+                    position.AverageCostInEuros.Amount,
+                    position.MarketPriceInEuros?.Amount,
+                    position.MarketValueInEuros?.Amount,
+                    position.UnrealisedResultInEuros?.Amount,
+                    position.PriceAsOf,
+                    entry.Class.ToString(),
+                    entry.FeesInEuros.Amount,
+                    entry.RealizedResultInEuros.Amount,
+                    entry.Weight);
+            })],
+            group.CostInEuros.Amount,
+            group.MarketValueInEuros.Amount,
+            group.Weight);
+
+    private static IReadOnlyList<IncomeByClass> IncomeByClass(
+        IReadOnlyList<CapitalIncome> incomes,
+        IReadOnlyDictionary<Guid, Asset> assets) =>
+        [.. incomes
+            .Where(income => income.AssetId is not null && assets.ContainsKey(income.AssetId.Value))
+            .GroupBy(income => assets[income.AssetId!.Value].Class)
+            .Select(group => new IncomeByClass(
+                group.Key,
+                group.Aggregate(Money.Euros(0m), (total, income) => total + income.GrossAmountInEuros),
+                group.Aggregate(Money.Euros(0m), (total, income) => total + income.WithholdingInEuros)))];
+
+    /// <summary>
+    /// Tipos del día para las divisas que no son el euro.
+    /// </summary>
+    /// <remarks>
+    /// La que no tenga tipo se queda fuera del total y se nombra: contarla como cero
+    /// escondería dinero y convertirla a ojo inventaría una cifra.
+    /// </remarks>
+    private async Task<IReadOnlyDictionary<Currency, ExchangeRate>> RatesAsync(
+        CashBalances balances,
+        CancellationToken cancellationToken)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var rates = new Dictionary<Currency, ExchangeRate>();
+
+        foreach (var currency in balances.Balances
+            .Select(balance => balance.Currency)
+            .Where(currency => !currency.IsEuro)
+            .Distinct())
+        {
+            if (await exchangeRates.ResolveAsync(currency, today, cancellationToken).ConfigureAwait(false) is { } rate)
+            {
+                rates[currency] = rate;
+            }
+        }
+
+        return rates;
     }
 
     public async Task<TaxYearResultsResponse> GetTaxYearResultsAsync(
