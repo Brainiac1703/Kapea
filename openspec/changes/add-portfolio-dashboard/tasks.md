@@ -26,11 +26,11 @@
 
 ## 4. Pantalla de cartera
 
-- [ ] 4.1 Rehacer la pantalla como una sola vista agrupada por clase de activo, con subtotales por grupo y el total del patrimonio arriba; verificar manualmente con posiciones de acciones y de cripto
-- [ ] 4.2 Mostrar por posición cantidad, coste medio, precio, valor, resultado latente, resultado realizado, comisiones y peso; verificar manualmente que una posición sin precio se distingue de una con valor cero
-- [ ] 4.3 Mostrar el efectivo por cuenta y divisa, con el aviso de que se convierte al tipo del día; verificar manualmente
-- [ ] 4.4 Mostrar el instante de cada precio y el de la última actualización, con el botón de refrescar; verificar manualmente que refrescar cambia el instante
-- [ ] 4.5 Mostrar las advertencias de cifras incompletas —movimientos sin resolver, precios que faltan— arriba y no al pie; verificar manualmente que se ven antes de leer las cifras
+- [x] 4.1 Rehacer la pantalla como una sola vista agrupada por clase de activo, con subtotales por grupo y el total del patrimonio arriba; verificar manualmente con posiciones de acciones y de cripto
+- [x] 4.2 Mostrar por posición cantidad, coste medio, precio, valor, resultado latente, resultado realizado, comisiones y peso; verificar manualmente que una posición sin precio se distingue de una con valor cero
+- [x] 4.3 Mostrar el efectivo por cuenta y divisa, con el aviso de que se convierte al tipo del día; verificar manualmente
+- [x] 4.4 Mostrar el instante de cada precio y el de la última actualización, con el botón de refrescar; verificar manualmente que refrescar cambia el instante
+- [x] 4.5 Mostrar las advertencias de cifras incompletas —movimientos sin resolver, precios que faltan— arriba y no al pie; verificar manualmente que se ven antes de leer las cifras
 
 ## 5. Validación con los datos del usuario
 
