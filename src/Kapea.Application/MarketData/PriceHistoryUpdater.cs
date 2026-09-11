@@ -19,7 +19,20 @@ public interface IPricedAssetRepository
 }
 
 /// <param name="FirstHeldOn">Día de la primera adquisición: antes de él no hay nada que valorar.</param>
-public sealed record PricedAsset(Guid AssetId, string CanonicalSymbol, AssetClass Class, DateOnly FirstHeldOn);
+/// <param name="LastHeldOn">
+/// Día en que se vendió del todo, o nada si sigue en cartera.
+/// </param>
+/// <remarks>
+/// Un activo vendido entero sigue necesitando precios de cuando se tenía: sin ellos, la
+/// gráfica de aquellos meses saldría corta sin que nada lo explicara. Lo que no necesita
+/// es precio de hoy.
+/// </remarks>
+public sealed record PricedAsset(
+    Guid AssetId,
+    string CanonicalSymbol,
+    AssetClass Class,
+    DateOnly FirstHeldOn,
+    DateOnly? LastHeldOn = null);
 
 /// <summary>Lo que dejó una pasada del relleno.</summary>
 public sealed record PriceHistoryUpdate(int Assets, int DaysWritten, int AssetsWithoutCoverage);
@@ -57,13 +70,13 @@ public sealed class PriceHistoryUpdater(
     private static IEnumerable<(DateOnly From, DateOnly To)> Missing(
         PricedAsset asset,
         StoredRange? covered,
-        DateOnly today)
+        DateOnly until)
     {
         if (covered is null)
         {
-            if (asset.FirstHeldOn <= today)
+            if (asset.FirstHeldOn <= until)
             {
-                yield return (asset.FirstHeldOn, today);
+                yield return (asset.FirstHeldOn, until);
             }
 
             yield break;
@@ -74,9 +87,9 @@ public sealed class PriceHistoryUpdater(
             yield return (asset.FirstHeldOn, covered.First.AddDays(-1));
         }
 
-        if (covered.Last < today)
+        if (covered.Last < until)
         {
-            yield return (covered.Last.AddDays(1), today);
+            yield return (covered.Last.AddDays(1), until);
         }
     }
 
@@ -107,12 +120,13 @@ public sealed class PriceHistoryUpdater(
             cancellationToken.ThrowIfCancellationRequested();
 
             var covered = stored.GetValueOrDefault(asset.AssetId);
+            var until = asset.LastHeldOn is { } sold && sold < today ? sold : today;
             var downloaded = 0;
 
             // Dos tramos y no uno: lo que falta al final, que es lo habitual, y lo que
             // falte al principio, que aparece cuando la serie se descargó con un
             // proveedor que entonces no llegaba tan atrás.
-            foreach (var (from, to) in Missing(asset, covered, today))
+            foreach (var (from, to) in Missing(asset, covered, until))
             {
                 var prices = await provider
                     .GetHistoryAsync(

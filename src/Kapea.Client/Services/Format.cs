@@ -32,6 +32,20 @@ public static class Format
     public static string Money(decimal amount, string currency) =>
         string.Create(CultureInfo.CurrentCulture, $"{amount:N2} {currency}");
 
+    /// <summary>
+    /// Importe corto para los ejes de una gráfica.
+    /// </summary>
+    /// <remarks>
+    /// Con todos sus dígitos, tres etiquetas se solapan y el eje deja de leerse. Aquí el
+    /// redondeo no falsea nada: el valor exacto está en la lectura bajo el cursor.
+    /// </remarks>
+    public static string Compact(decimal amount) => Math.Abs(amount) switch
+    {
+        >= 1_000_000m => (amount / 1_000_000m).ToString("0.#M", CultureInfo.CurrentCulture),
+        >= 1_000m => (amount / 1_000m).ToString("0.#k", CultureInfo.CurrentCulture),
+        _ => amount.ToString("0.##", CultureInfo.CurrentCulture),
+    };
+
     /// <summary>Peso sobre el total. Ausente cuando no se puede calcular, nunca cero.</summary>
     public static string Percent(decimal? weight, string whenMissing) =>
         weight is { } value ? value.ToString("P1", CultureInfo.CurrentCulture) : whenMissing;

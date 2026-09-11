@@ -36,13 +36,13 @@
 
 ## 6. Gráficas
 
-- [ ] 6.1 Construir el componente de gráfica de líneas en SVG, con ejes, rejilla y formato de importes y fechas del idioma activo; verificar manualmente en claro y oscuro
-- [ ] 6.2 Mostrar el valor bajo el cursor al pasar por encima; verificar manualmente que la cifra corresponde al día señalado
-- [ ] 6.3 Enseñar los días sin precio como hueco y no como caída a cero; verificar manualmente con un activo sin cobertura
-- [ ] 6.4 Añadir la pantalla de evolución con la gráfica del patrimonio y el selector de periodo; verificar manualmente
+- [x] 6.1 Construir el componente de gráfica de líneas en SVG, con ejes, rejilla y formato de importes y fechas del idioma activo; verificar manualmente en claro y oscuro
+- [x] 6.2 Mostrar el valor bajo el cursor al pasar por encima; verificar manualmente que la cifra corresponde al día señalado
+- [x] 6.3 Enseñar los días sin precio como hueco y no como caída a cero; verificar manualmente con un activo sin cobertura
+- [x] 6.4 Añadir la pantalla de evolución con la gráfica del patrimonio y el selector de periodo; verificar manualmente
 - [ ] 6.5 Añadir el reparto por clase de activo a lo largo del tiempo como área apilada; verificar manualmente
-- [ ] 6.6 Añadir la gráfica de un activo desde su posición en la cartera, con sus indicadores superpuestos; verificar manualmente
-- [ ] 6.7 Localizar todos los textos nuevos en los dos idiomas; verificar que el test que prohíbe texto sin localizar sigue pasando
+- [x] 6.6 Añadir la gráfica de un activo desde su posición en la cartera, con sus indicadores superpuestos; verificar manualmente
+- [x] 6.7 Localizar todos los textos nuevos en los dos idiomas; verificar que el test que prohíbe texto sin localizar sigue pasando
 
 ## 7. Validación con los datos del usuario
 

@@ -72,6 +72,31 @@ public class PriceHistoryUpdaterTests
     }
 
     [Fact]
+    public async Task An_asset_already_sold_is_asked_for_only_until_the_day_it_was_sold()
+    {
+        // Sigue necesitando los precios de cuando se tenía, o la gráfica de aquellos
+        // meses saldría corta. Lo que no necesita es el precio de hoy.
+        var provider = new Provider();
+
+        await new PriceHistoryUpdater(
+            new Assets([
+                new PricedAsset(
+                    Bitcoin,
+                    "BTC",
+                    AssetClass.Crypto,
+                    new DateOnly(2026, 1, 20),
+                    LastHeldOn: new DateOnly(2026, 2, 15)),
+            ]),
+            new Store(),
+            provider,
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance).UpdateAsync();
+
+        Assert.Equal(new DateOnly(2026, 2, 15), Assert.Single(provider.Asked).To);
+    }
+
+    [Fact]
     public async Task What_the_provider_gives_is_stored()
     {
         var provider = new Provider(new DateOnly(2026, 3, 9), new DateOnly(2026, 3, 10));

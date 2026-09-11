@@ -334,6 +334,9 @@
   <data name="Nav_Portfolio" xml:space="preserve">
     <value>Cartera</value>
   </data>
+  <data name="Nav_Evolution" xml:space="preserve">
+    <value>Evolución</value>
+  </data>
   <data name="Nav_Results" xml:space="preserve">
     <value>Resultados</value>
   </data>
@@ -453,6 +456,69 @@
   </data>
   <data name="Portfolio_Recalculate" xml:space="preserve">
     <value>Recalcular</value>
+  </data>
+  <data name="Charts_Empty" xml:space="preserve">
+    <value>No hay datos para dibujar en este periodo.</value>
+  </data>
+  <data name="Charts_NoValue" xml:space="preserve">
+    <value>Sin dato</value>
+  </data>
+  <data name="Evolution_Title" xml:space="preserve">
+    <value>Evolución</value>
+  </data>
+  <data name="Evolution_Heading" xml:space="preserve">
+    <value>Evolución del patrimonio</value>
+  </data>
+  <data name="Evolution_Intro" xml:space="preserve">
+    <value>Lo que ha valido tu cartera cada día. Los días sin precio se dejan en blanco en lugar de rellenarse.</value>
+  </data>
+  <data name="Evolution_Wealth" xml:space="preserve">
+    <value>Patrimonio</value>
+  </data>
+  <data name="Evolution_Contributed" xml:space="preserve">
+    <value>Aportado</value>
+  </data>
+  <data name="Evolution_ByClass" xml:space="preserve">
+    <value>Reparto por clase de activo</value>
+  </data>
+  <data name="Evolution_Incomplete" xml:space="preserve">
+    <value>Hay {0} días a los que les falta el precio de algún activo. Esos días la cifra sale corta.</value>
+  </data>
+  <data name="Evolution_Period" xml:space="preserve">
+    <value>Periodo</value>
+  </data>
+  <data name="Evolution_Period_Month" xml:space="preserve">
+    <value>1 mes</value>
+  </data>
+  <data name="Evolution_Period_Quarter" xml:space="preserve">
+    <value>3 meses</value>
+  </data>
+  <data name="Evolution_Period_Year" xml:space="preserve">
+    <value>1 año</value>
+  </data>
+  <data name="Evolution_Period_All" xml:space="preserve">
+    <value>Todo</value>
+  </data>
+  <data name="Asset_Title" xml:space="preserve">
+    <value>Evolución del activo</value>
+  </data>
+  <data name="Asset_Price" xml:space="preserve">
+    <value>Precio</value>
+  </data>
+  <data name="Asset_Average" xml:space="preserve">
+    <value>Media móvil</value>
+  </data>
+  <data name="Asset_Exponential" xml:space="preserve">
+    <value>Media exponencial</value>
+  </data>
+  <data name="Asset_Strength" xml:space="preserve">
+    <value>Fuerza relativa</value>
+  </data>
+  <data name="Asset_Window" xml:space="preserve">
+    <value>Ventana</value>
+  </data>
+  <data name="Asset_Chart" xml:space="preserve">
+    <value>Ver evolución</value>
   </data>
   <data name="Portfolio_Wealth" xml:space="preserve">
     <value>Patrimonio</value>

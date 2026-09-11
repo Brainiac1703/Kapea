@@ -176,3 +176,55 @@ table.sample th {
     background: var(--neutral-fill-secondary-rest);
     font-weight: 600;
 }
+
+/* La gráfica ocupa el ancho disponible y mantiene su altura: estirarla en vertical
+   exageraría las variaciones según el tamaño de la ventana. */
+.chart {
+    position: relative;
+    margin: 1rem 0;
+}
+
+.chart svg {
+    width: 100%;
+    height: 320px;
+}
+
+.chart-grid {
+    stroke: var(--neutral-stroke-divider-rest);
+    stroke-width: 1;
+}
+
+.chart-cursor {
+    stroke: var(--neutral-foreground-hint);
+    stroke-dasharray: 4 4;
+}
+
+.chart-label {
+    fill: var(--neutral-foreground-hint);
+    font-size: 11px;
+}
+
+.chart-readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.chart-readout-date {
+    color: var(--neutral-foreground-hint);
+}
+
+.chart-readout-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.chart-readout-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}

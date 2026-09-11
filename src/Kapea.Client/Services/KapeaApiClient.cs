@@ -292,6 +292,35 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<PortfolioResponse>(response, cancellationToken);
     }
 
+    /// <param name="days">Cuántos días atrás. Sin valor, el que decida el servidor.</param>
+    public async Task<PortfolioHistoryResponse> GetHistoryAsync(
+        int? days = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync(Range("api/portfolio/history", days), cancellationToken);
+
+        return await ReadAsync<PortfolioHistoryResponse>(response, cancellationToken);
+    }
+
+    public async Task<AssetHistoryResponse> GetAssetHistoryAsync(
+        Guid assetId,
+        int? days = null,
+        int? window = null,
+        CancellationToken cancellationToken = default)
+    {
+        var path = Range($"api/portfolio/history/{assetId}", days);
+        var query = window is { } size ? $"{path}{(path.Contains('?', StringComparison.Ordinal) ? "&" : "?")}window={size}" : path;
+
+        var response = await http.GetAsync(query, cancellationToken);
+
+        return await ReadAsync<AssetHistoryResponse>(response, cancellationToken);
+    }
+
+    /// <summary>Acota el periodo contando hacia atrás desde hoy.</summary>
+    private static string Range(string path, int? days) => days is { } span
+        ? $"{path}?from={DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-span):yyyy-MM-dd}"
+        : path;
+
     public async Task<PortfolioResponse> RecalculatePortfolioAsync(CancellationToken cancellationToken = default)
     {
         var response = await http.PostAsync("api/portfolio/recalculate", content: null, cancellationToken);

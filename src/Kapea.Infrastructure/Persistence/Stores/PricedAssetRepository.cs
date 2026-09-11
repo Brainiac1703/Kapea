@@ -16,8 +16,9 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
 {
     public async Task<IReadOnlyList<PricedAsset>> ListAsync(CancellationToken cancellationToken = default)
     {
-        // Con lotes abiertos: un activo vendido del todo ya no necesita precio nuevo, y
-        // su historia pasada sigue guardada para las gráficas de entonces.
+        // Todo lo que se haya tenido alguna vez, no solo lo abierto: un activo vendido
+        // entero sigue necesitando los precios de cuando se tenía, o la gráfica de
+        // aquellos meses saldría corta sin que nada lo explicara.
         //
         // La cantidad pendiente es un objeto de valor y la base de datos no sabe
         // compararlo, así que el filtro se hace aquí sobre lo mínimo: activo y cantidad.
@@ -27,25 +28,31 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var held = lots
+        var held = lots.Select(lot => lot.AssetId).Distinct().ToList();
+
+        var open = lots
             .Where(lot => !lot.RemainingQuantity.IsZero)
             .Select(lot => lot.AssetId)
-            .Distinct()
-            .ToList();
+            .ToHashSet();
 
         if (held.Count == 0)
         {
             return [];
         }
 
-        var firstHeld = await context.Transactions
+        var moved = await context.Transactions
             .IgnoreQueryFilters()
             .Where(transaction => transaction.AssetId != null
                 && held.Contains(transaction.AssetId.Value)
                 && transaction.Type != TransactionType.Unknown)
             .GroupBy(transaction => transaction.AssetId!.Value)
-            .Select(group => new { AssetId = group.Key, First = group.Min(t => t.OccurredAt.Instant) })
-            .ToDictionaryAsync(entry => entry.AssetId, entry => entry.First, cancellationToken)
+            .Select(group => new
+            {
+                AssetId = group.Key,
+                First = group.Min(t => t.OccurredAt.Instant),
+                Last = group.Max(t => t.OccurredAt.Instant),
+            })
+            .ToDictionaryAsync(entry => entry.AssetId, entry => entry, cancellationToken)
             .ConfigureAwait(false);
 
         var assets = await context.Assets
@@ -58,12 +65,13 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
         return
         [
             .. assets
-                .Where(asset => firstHeld.ContainsKey(asset.Id))
+                .Where(asset => moved.ContainsKey(asset.Id))
                 .Select(asset => new PricedAsset(
                     asset.Id,
                     asset.CanonicalSymbol,
                     asset.Class,
-                    DateOnly.FromDateTime(firstHeld[asset.Id].UtcDateTime)))
+                    DateOnly.FromDateTime(moved[asset.Id].First.UtcDateTime),
+                    open.Contains(asset.Id) ? null : DateOnly.FromDateTime(moved[asset.Id].Last.UtcDateTime)))
                 .OrderBy(asset => asset.CanonicalSymbol, StringComparer.Ordinal),
         ];
     }

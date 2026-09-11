@@ -1,0 +1,134 @@
+@page "/evolution"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Evolution_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Evolution_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Evolution_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentLabel Typo="Typography.Body">@Ui["Evolution_Period"]</FluentLabel>
+    @foreach (var period in Periods)
+    {
+        <FluentButton Appearance="@(period.Days == _days ? Appearance.Accent : Appearance.Neutral)"
+                      OnClick="@(() => ChangeAsync(period.Days))">
+            @Ui[period.Label]
+        </FluentButton>
+    }
+</FluentToolbar>
+
+@if (_history is null)
+{
+    <FluentProgressRing />
+}
+else
+{
+    @* El aviso va antes de la gráfica: una línea que cae porque falta un precio se lee
+       igual que una pérdida si nadie dice lo contrario. *@
+    @if (_history.IncompleteDays > 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+            @string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                Ui["Evolution_Incomplete"].Value, _history.IncompleteDays)
+        </FluentMessageBar>
+    }
+
+    <LineChart Lines="@Wealth()" Title="@Ui["Evolution_Heading"]" />
+
+    <FluentLabel Typo="Typography.H4">@Ui["Evolution_ByClass"]</FluentLabel>
+
+    <LineChart Lines="@ByClass()" Title="@Ui["Evolution_ByClass"]" Stacked="true" />
+}
+
+@code {
+    private static readonly (string Label, int? Days)[] Periods =
+    [
+        ("Evolution_Period_Month", 30),
+        ("Evolution_Period_Quarter", 90),
+        ("Evolution_Period_Year", 365),
+        ("Evolution_Period_All", 3650),
+    ];
+
+    private PortfolioHistoryResponse? _history;
+    private int? _days = 365;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ChangeAsync(int? days)
+    {
+        _days = days;
+
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _history = await Api.GetHistoryAsync(_days);
+        }
+        catch (KapeaApiException exception)
+        {
+            _history = null;
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    /// <summary>
+    /// El patrimonio y lo aportado, juntos.
+    /// </summary>
+    /// <remarks>
+    /// Se dibujan en la misma gráfica a propósito: la distancia entre las dos líneas es
+    /// lo que se ha ganado o perdido, y separadas hay que compararlas de memoria.
+    /// </remarks>
+    private IReadOnlyList<ChartLine> Wealth()
+    {
+        var running = 0m;
+        var contributed = new List<ChartPoint>();
+
+        foreach (var day in _history!.Days)
+        {
+            running += day.ContributionInEuros;
+            contributed.Add(new ChartPoint(day.Date, running));
+        }
+
+        return
+        [
+            new ChartLine(
+                Ui["Evolution_Wealth"],
+                [.. _history.Days.Select(day => new ChartPoint(day.Date, day.IsComplete ? day.ValueInEuros : null))],
+                ChartLine.ColorAt(0)),
+            new ChartLine(Ui["Evolution_Contributed"], contributed, ChartLine.ColorAt(1), Dashed: true),
+        ];
+    }
+
+    /// <summary>Una línea por clase de activo, con las que haya en el periodo.</summary>
+    private IReadOnlyList<ChartLine> ByClass()
+    {
+        var classes = _history!.ByClass
+            .SelectMany(day => day.ValueByClass.Keys)
+            .Distinct()
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        return
+        [
+            .. classes.Select((name, index) => new ChartLine(
+                ClassName(name),
+                [
+                    .. _history.ByClass.Select(day => new ChartPoint(
+                        day.Date,
+                        day.ValueByClass.TryGetValue(name, out var value) ? value : null)),
+                ],
+                ChartLine.ColorAt(index))),
+        ];
+    }
+
+    private string ClassName(string assetClass) => assetClass switch
+    {
+        "Equity" => Ui["Portfolio_ClassEquity"],
+        "Crypto" => Ui["Portfolio_ClassCrypto"],
+        _ => assetClass,
+    };
+}

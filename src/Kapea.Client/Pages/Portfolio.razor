@@ -87,7 +87,13 @@ else
                         TGridItem="OpenPositionResponse"
                         GridTemplateColumns="1.2fr 1fr 1fr 1.2fr 1fr 1fr 1fr 1fr 0.8fr">
             <TemplateColumn Title="@Ui["Common_Asset"]">
-                @context.AssetSymbol
+                @* El símbolo lleva a su evolución: es donde se mira cuando una posición
+                   llama la atención en la tabla. *@
+                <FluentAnchor Href="@($"evolution/{context.AssetId}")"
+                              Appearance="Appearance.Hypertext"
+                              Title="@Ui["Asset_Chart"]">
+                    @context.AssetSymbol
+                </FluentAnchor>
                 @if (!context.AssetIsVerified)
                 {
                     <FluentIcon Value="@(new Icons.Regular.Size16.Warning())"
