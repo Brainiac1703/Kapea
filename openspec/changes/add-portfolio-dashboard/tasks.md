@@ -1,10 +1,10 @@
 ## 1. Saldo de efectivo
 
-- [ ] 1.1 Implementar el cálculo del efecto en caja de cada tipo de movimiento —ingreso, retirada, compra, venta, dividendo, interés, recompensa y comisión— como función pura del dominio; verificar con tests de cada tipo y de una comisión de compra que reduce el saldo
-- [ ] 1.2 Implementar el saldo por cuenta y divisa a partir de esos efectos; verificar con test que una cuenta que ha operado en dos divisas devuelve un saldo por cada una y que no se suman entre sí
-- [ ] 1.3 Excluir del saldo los movimientos sin clasificar y los traspasos pendientes, devolviendo cuántos quedan; verificar con test que el saldo se marca como incompleto
-- [ ] 1.4 Comprobar que un traspaso interno confirmado no altera el efectivo salvo por su comisión de red; verificar con test
-- [ ] 1.5 Implementar la conversión del efectivo a euros al tipo del día para el total, dejando fuera las divisas sin tipo disponible; verificar con tests de divisa con tipo y sin él
+- [x] 1.1 Implementar el cálculo del efecto en caja de cada tipo de movimiento —ingreso, retirada, compra, venta, dividendo, interés, recompensa y comisión— como función pura del dominio; verificar con tests de cada tipo y de una comisión de compra que reduce el saldo
+- [x] 1.2 Implementar el saldo por cuenta y divisa a partir de esos efectos; verificar con test que una cuenta que ha operado en dos divisas devuelve un saldo por cada una y que no se suman entre sí
+- [x] 1.3 Excluir del saldo los movimientos sin clasificar y los traspasos pendientes, devolviendo cuántos quedan; verificar con test que el saldo se marca como incompleto
+- [x] 1.4 Comprobar que un traspaso interno confirmado no altera el efectivo salvo por su comisión de red; verificar con test
+- [x] 1.5 Implementar la conversión del efectivo a euros al tipo del día para el total, dejando fuera las divisas sin tipo disponible; verificar con tests de divisa con tipo y sin él
 
 ## 2. Precios de renta variable
 
