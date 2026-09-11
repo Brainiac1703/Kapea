@@ -1,8 +1,8 @@
 ## 1. Serie de precios guardada
 
-- [ ] 1.1 Añadir la entidad de precio diario —activo, fecha, precio en euros y origen— con su tabla y la clave que impide dos precios del mismo activo y día; verificar con test de integración que reinsertar el mismo día no duplica ni falla
-- [ ] 1.2 Implementar la lectura de la serie de un activo entre dos fechas y la consulta de hasta qué día llega; verificar con tests, incluido el de un activo sin ninguna serie
-- [ ] 1.3 Implementar la escritura por lotes de una serie descargada; verificar con test que mezclar días nuevos con días ya guardados deja una sola fila por día
+- [x] 1.1 Añadir la entidad de precio diario —activo, fecha, precio en euros y origen— con su tabla y la clave que impide dos precios del mismo activo y día; verificar con test de integración que reinsertar el mismo día no duplica ni falla
+- [x] 1.2 Implementar la lectura de la serie de un activo entre dos fechas y la consulta de hasta qué día llega; verificar con tests, incluido el de un activo sin ninguna serie
+- [x] 1.3 Implementar la escritura por lotes de una serie descargada; verificar con test que mezclar días nuevos con días ya guardados deja una sola fila por día
 
 ## 2. Descarga del histórico
 

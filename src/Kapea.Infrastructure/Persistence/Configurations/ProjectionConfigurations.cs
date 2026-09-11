@@ -101,6 +101,25 @@ internal sealed class CapitalIncomeConfiguration : IEntityTypeConfiguration<Capi
     }
 }
 
+/// <summary>
+/// Precios diarios. La clave es activo y fecha, que es lo que impide que el mismo día
+/// acabe con dos precios distintos según quién lo trajera.
+/// </summary>
+internal sealed class DailyPriceConfiguration : IEntityTypeConfiguration<Domain.MarketData.DailyPrice>
+{
+    public void Configure(EntityTypeBuilder<Domain.MarketData.DailyPrice> builder)
+    {
+        builder.ToTable("DailyPrices");
+        builder.HasKey(price => new { price.AssetId, price.Date });
+
+        builder.Property(price => price.PriceInEuros)
+            .HasPrecision(ValueObjectConverters.RatePrecision, ValueObjectConverters.RateScale)
+            .IsRequired();
+
+        builder.Property(price => price.Source).HasMaxLength(32).IsRequired();
+    }
+}
+
 /// <summary>Tipos publicados. La clave es divisa y fecha, que es lo que hace idempotente la reingesta.</summary>
 internal sealed class DailyRateConfiguration : IEntityTypeConfiguration<Domain.Exchange.DailyRate>
 {
