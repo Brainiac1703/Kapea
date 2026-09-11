@@ -79,9 +79,10 @@ public class PriceHistoryStoreTests(SqlServerFixture fixture)
     }
 
     [Fact]
-    public async Task The_last_stored_day_says_how_far_each_series_reaches()
+    public async Task The_stored_range_says_from_where_to_where_each_series_reaches()
     {
-        // Es lo que permite pedir al proveedor solo lo que falta.
+        // Hacen falta los dos extremos: una serie que empezó tarde tiene un hueco al
+        // principio que mirando solo el final no se vería nunca.
         var withSeries = Guid.NewGuid();
         var withoutSeries = Guid.NewGuid();
 
@@ -89,10 +90,11 @@ public class PriceHistoryStoreTests(SqlServerFixture fixture)
             new DailyPrice(withSeries, new DateOnly(2026, 3, 10), 66_000m, "Yahoo"),
             new DailyPrice(withSeries, new DateOnly(2026, 3, 12), 67_000m, "Yahoo"));
 
-        var last = await StoreAsync().GetLastStoredDayAsync([withSeries, withoutSeries]);
+        var covered = await StoreAsync().GetStoredRangeAsync([withSeries, withoutSeries]);
 
-        Assert.Equal(new DateOnly(2026, 3, 12), last[withSeries]);
-        Assert.False(last.ContainsKey(withoutSeries));
+        Assert.Equal(new DateOnly(2026, 3, 10), covered[withSeries].First);
+        Assert.Equal(new DateOnly(2026, 3, 12), covered[withSeries].Last);
+        Assert.False(covered.ContainsKey(withoutSeries));
     }
 
     [Fact]

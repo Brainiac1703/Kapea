@@ -53,6 +53,33 @@ public sealed class PriceHistoryUpdater(
     /// </remarks>
     private static readonly Currency Dollar = Currency.FromCode("USD");
 
+    /// <summary>Los tramos de días que la serie todavía no cubre.</summary>
+    private static IEnumerable<(DateOnly From, DateOnly To)> Missing(
+        PricedAsset asset,
+        StoredRange? covered,
+        DateOnly today)
+    {
+        if (covered is null)
+        {
+            if (asset.FirstHeldOn <= today)
+            {
+                yield return (asset.FirstHeldOn, today);
+            }
+
+            yield break;
+        }
+
+        if (asset.FirstHeldOn < covered.First)
+        {
+            yield return (asset.FirstHeldOn, covered.First.AddDays(-1));
+        }
+
+        if (covered.Last < today)
+        {
+            yield return (covered.Last.AddDays(1), today);
+        }
+    }
+
     public async Task<PriceHistoryUpdate> UpdateAsync(CancellationToken cancellationToken = default)
     {
         var priced = await assets.ListAsync(cancellationToken).ConfigureAwait(false);
@@ -68,8 +95,8 @@ public sealed class PriceHistoryUpdater(
             .EnsureAsync(Dollar, priced.Min(asset => asset.FirstHeldOn), today, cancellationToken)
             .ConfigureAwait(false);
 
-        var last = await store
-            .GetLastStoredDayAsync([.. priced.Select(asset => asset.AssetId)], cancellationToken)
+        var stored = await store
+            .GetStoredRangeAsync([.. priced.Select(asset => asset.AssetId)], cancellationToken)
             .ConfigureAwait(false);
 
         var written = 0;
@@ -79,29 +106,30 @@ public sealed class PriceHistoryUpdater(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var from = last.TryGetValue(asset.AssetId, out var stored)
-                ? stored.AddDays(1)
-                : asset.FirstHeldOn;
+            var covered = stored.GetValueOrDefault(asset.AssetId);
+            var downloaded = 0;
 
-            if (from > today)
+            // Dos tramos y no uno: lo que falta al final, que es lo habitual, y lo que
+            // falte al principio, que aparece cuando la serie se descargó con un
+            // proveedor que entonces no llegaba tan atrás.
+            foreach (var (from, to) in Missing(asset, covered, today))
             {
-                continue;
+                var prices = await provider
+                    .GetHistoryAsync(
+                        new PriceHistoryRequest(asset.AssetId, asset.CanonicalSymbol, asset.Class, from, to),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                downloaded += prices.Count;
+                written += await store.UpsertAsync([.. prices], cancellationToken).ConfigureAwait(false);
             }
 
-            var prices = await provider
-                .GetHistoryAsync(
-                    new PriceHistoryRequest(asset.AssetId, asset.CanonicalSymbol, asset.Class, from, today),
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            if (prices.Count == 0)
+            // Sin cobertura es no tener ni un día, no que hoy todavía no haya cerrado:
+            // contar lo segundo haría parecer rota una serie que está al día.
+            if (downloaded == 0 && covered is null)
             {
                 uncovered++;
-
-                continue;
             }
-
-            written += await store.UpsertAsync([.. prices], cancellationToken).ConfigureAwait(false);
         }
 
         logger.LogInformation(

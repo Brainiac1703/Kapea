@@ -48,7 +48,7 @@ public sealed class PriceHistoryStore(KapeaDbContext context) : IPriceHistorySto
             .ToDictionary(group => group.Key, group => (IReadOnlyList<DailyPrice>)[.. group]);
     }
 
-    public async Task<IReadOnlyDictionary<Guid, DateOnly>> GetLastStoredDayAsync(
+    public async Task<IReadOnlyDictionary<Guid, StoredRange>> GetStoredRangeAsync(
         IReadOnlyCollection<Guid> assetIds,
         CancellationToken cancellationToken = default)
     {
@@ -56,14 +56,22 @@ public sealed class PriceHistoryStore(KapeaDbContext context) : IPriceHistorySto
 
         if (assetIds.Count == 0)
         {
-            return new Dictionary<Guid, DateOnly>();
+            return new Dictionary<Guid, StoredRange>();
         }
 
         return await context.DailyPrices
             .Where(price => assetIds.Contains(price.AssetId))
             .GroupBy(price => price.AssetId)
-            .Select(group => new { AssetId = group.Key, Last = group.Max(price => price.Date) })
-            .ToDictionaryAsync(entry => entry.AssetId, entry => entry.Last, cancellationToken)
+            .Select(group => new
+            {
+                AssetId = group.Key,
+                First = group.Min(price => price.Date),
+                Last = group.Max(price => price.Date),
+            })
+            .ToDictionaryAsync(
+                entry => entry.AssetId,
+                entry => new StoredRange(entry.First, entry.Last),
+                cancellationToken)
             .ConfigureAwait(false);
     }
 

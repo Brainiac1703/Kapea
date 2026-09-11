@@ -60,10 +60,11 @@ public class YahooPriceHistoryProviderTests
     {
         // Responde 404. No es que el sistema falle: es que esta fuente no lo cubre, y
         // los demás activos tienen que poder descargarse igual.
-        var handler = new RecordedResponseHandler().Respond(_ => new HttpResponseMessage(System.Net.HttpStatusCode.NotFound)
-        {
-            Content = new StringContent(File(Recorded("yahoo-history-unknown.json"))),
-        });
+        // Ni contra el euro ni contra el dólar: esta fuente no lo cubre, y los demás
+        // activos tienen que poder descargarse igual.
+        var handler = new RecordedResponseHandler()
+            .Respond(_ => NotFound())
+            .Respond(_ => NotFound());
 
         Assert.Empty(await Provider(handler).GetHistoryAsync(Request("B2M")));
     }
@@ -71,7 +72,9 @@ public class YahooPriceHistoryProviderTests
     [Fact]
     public async Task A_provider_that_fails_leaves_the_series_empty_and_not_the_process_broken()
     {
-        var handler = new RecordedResponseHandler().RespondWithStatus(System.Net.HttpStatusCode.ServiceUnavailable);
+        var handler = new RecordedResponseHandler()
+            .RespondWithStatus(System.Net.HttpStatusCode.ServiceUnavailable)
+            .RespondWithStatus(System.Net.HttpStatusCode.ServiceUnavailable);
 
         Assert.Empty(await Provider(handler).GetHistoryAsync(Request()));
     }
@@ -92,6 +95,24 @@ public class YahooPriceHistoryProviderTests
     }
 
     [Fact]
+    public async Task A_crypto_without_a_euro_series_is_looked_up_against_the_dollar()
+    {
+        // Yahoo no cotiza contra el euro los tokens pequeños, y es la única fuente que
+        // llega más atrás de un año. Rendirse tras la primera respuesta vacía dejaría un
+        // hueco de meses en la gráfica.
+        var handler = new RecordedResponseHandler()
+            .Respond(_ => NotFound())
+            .RespondWithFile(Recorded("yahoo-history-dollars.json"));
+
+        var prices = await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("B2M"));
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Contains("B2M-EUR", handler.Requests[0].RequestUri!.ToString(), StringComparison.Ordinal);
+        Assert.Contains("B2M-USD", handler.Requests[1].RequestUri!.ToString(), StringComparison.Ordinal);
+        Assert.NotEmpty(prices);
+    }
+
+    [Fact]
     public async Task A_series_quoted_in_dollars_is_converted_with_the_rate_of_the_day()
     {
         // Yahoo no cotiza en euros los tokens pequeños, y es la única fuente que llega
@@ -101,6 +122,7 @@ public class YahooPriceHistoryProviderTests
 
         var prices = await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("PAXG"));
 
+
         Assert.Equal(100m, prices[0].PriceInEuros);
         Assert.Equal("Yahoo+BCE", prices[0].Source);
     }
@@ -108,10 +130,19 @@ public class YahooPriceHistoryProviderTests
     [Fact]
     public async Task A_day_without_an_exchange_rate_is_left_out_rather_than_guessed()
     {
-        var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-dollars.json"));
+        // Sin tipo no hay conversión posible, así que tampoco la hay probando en dólares.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("yahoo-history-dollars.json"))
+            .RespondWithFile(Recorded("yahoo-history-dollars.json"));
 
         Assert.Empty(await Provider(handler).GetHistoryAsync(Request("PAXG")));
     }
+
+    private static HttpResponseMessage NotFound() =>
+        new(System.Net.HttpStatusCode.NotFound)
+        {
+            Content = new StringContent(File(Recorded("yahoo-history-unknown.json"))),
+        };
 
     private static string File(string path) =>
         System.IO.File.ReadAllText(Path.Combine(AppContext.BaseDirectory, path));

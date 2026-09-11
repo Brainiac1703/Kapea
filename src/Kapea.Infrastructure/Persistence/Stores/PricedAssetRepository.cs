@@ -18,13 +18,20 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
     {
         // Con lotes abiertos: un activo vendido del todo ya no necesita precio nuevo, y
         // su historia pasada sigue guardada para las gráficas de entonces.
-        var held = await context.Lots
+        //
+        // La cantidad pendiente es un objeto de valor y la base de datos no sabe
+        // compararlo, así que el filtro se hace aquí sobre lo mínimo: activo y cantidad.
+        var lots = await context.Lots
             .IgnoreQueryFilters()
-            .Where(lot => lot.RemainingQuantity.Value > 0m)
-            .Select(lot => lot.AssetId)
-            .Distinct()
+            .Select(lot => new { lot.AssetId, lot.RemainingQuantity })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        var held = lots
+            .Where(lot => !lot.RemainingQuantity.IsZero)
+            .Select(lot => lot.AssetId)
+            .Distinct()
+            .ToList();
 
         if (held.Count == 0)
         {

@@ -39,7 +39,27 @@ public sealed class YahooPriceHistoryProvider(
         }
 
         var symbol = YahooSymbols.ToYahoo(request.CanonicalSymbol, request.Class);
+        var prices = await SeriesAsync(symbol, request, cancellationToken).ConfigureAwait(false);
 
+        // Yahoo no cotiza contra el euro los tokens pequeños, y es la única fuente que
+        // llega más atrás de un año. Si no hay serie en euros se prueba contra el dólar
+        // y se convierte; mejor un precio convertido y dicho que un hueco de meses.
+        if (prices.Count == 0 && request.Class == Domain.Assets.AssetClass.Crypto)
+        {
+            prices = await SeriesAsync(
+                YahooSymbols.ToYahoo(request.CanonicalSymbol, Domain.Assets.AssetClass.Crypto, "USD"),
+                request,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        return prices;
+    }
+
+    private async Task<IReadOnlyList<DailyPrice>> SeriesAsync(
+        string symbol,
+        PriceHistoryRequest request,
+        CancellationToken cancellationToken)
+    {
         // Yahoo acota por instante y excluye el extremo superior, así que se pide desde
         // el principio del primer día hasta el final del último.
         var from = Instant(request.From);

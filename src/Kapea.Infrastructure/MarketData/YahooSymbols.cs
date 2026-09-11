@@ -29,9 +29,12 @@ public static class YahooSymbols
     /// Yahoo cotiza las criptomonedas contra una divisa y lo dice en el propio símbolo:
     /// bitcoin en euros es «BTC-EUR». Pedirlo sin el sufijo devuelve otra cosa o nada.
     /// </remarks>
-    public static string ToYahoo(string canonicalSymbol, Domain.Assets.AssetClass assetClass) =>
+    public static string ToYahoo(
+        string canonicalSymbol,
+        Domain.Assets.AssetClass assetClass,
+        string quoteCurrency = "EUR") =>
         assetClass == Domain.Assets.AssetClass.Crypto
-            ? $"{canonicalSymbol.Trim().ToUpperInvariant()}-EUR"
+            ? $"{canonicalSymbol.Trim().ToUpperInvariant()}-{quoteCurrency.Trim().ToUpperInvariant()}"
             : ToYahoo(canonicalSymbol);
 
     public static string ToYahoo(string brokerSymbol)

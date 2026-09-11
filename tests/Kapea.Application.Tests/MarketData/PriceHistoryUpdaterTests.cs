@@ -48,6 +48,30 @@ public class PriceHistoryUpdaterTests
     }
 
     [Fact]
+    public async Task A_series_that_starts_later_than_the_first_acquisition_is_filled_backwards()
+    {
+        // Pasa cuando la serie se descargó con un proveedor que entonces no llegaba tan
+        // atrás. Mirando solo el final, ese hueco no se vería nunca.
+        var provider = new Provider();
+        var store = new Store();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 2, 1), new DateOnly(2026, 3, 10));
+
+        await new PriceHistoryUpdater(
+            new Assets([new PricedAsset(Bitcoin, "BTC", AssetClass.Crypto, new DateOnly(2026, 1, 20))]),
+            store,
+            provider,
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance).UpdateAsync();
+
+        var asked = Assert.Single(provider.Asked);
+
+        Assert.Equal(new DateOnly(2026, 1, 20), asked.From);
+        Assert.Equal(new DateOnly(2026, 1, 31), asked.To);
+    }
+
+    [Fact]
     public async Task What_the_provider_gives_is_stored()
     {
         var provider = new Provider(new DateOnly(2026, 3, 9), new DateOnly(2026, 3, 10));
@@ -57,6 +81,27 @@ public class PriceHistoryUpdaterTests
 
         Assert.Equal(2, update.DaysWritten);
         Assert.Equal(2, store.Written.Count);
+    }
+
+    [Fact]
+    public async Task An_asset_up_to_date_except_for_today_is_not_reported_as_uncovered()
+    {
+        // Hoy todavía no ha cerrado. Contarlo como falta de cobertura haría parecer rota
+        // una serie que está al día.
+        var provider = new Provider();
+        var store = new Store();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 9));
+
+        var update = await new PriceHistoryUpdater(
+            new Assets([new PricedAsset(Bitcoin, "BTC", AssetClass.Crypto, new DateOnly(2026, 1, 20))]),
+            store,
+            provider,
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance).UpdateAsync();
+
+        Assert.Equal(0, update.AssetsWithoutCoverage);
     }
 
     [Fact]
@@ -110,7 +155,7 @@ public class PriceHistoryUpdaterTests
     {
         if (stored is { } day)
         {
-            store.Last[Bitcoin] = day;
+            store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), day);
         }
 
         return new PriceHistoryUpdater(
@@ -187,7 +232,7 @@ public class PriceHistoryUpdaterTests
 
     private sealed class Store : IPriceHistoryStore
     {
-        internal Dictionary<Guid, DateOnly> Last { get; } = [];
+        internal Dictionary<Guid, StoredRange> Covered { get; } = [];
 
         internal List<DailyPrice> Written { get; } = [];
 
@@ -203,9 +248,9 @@ public class PriceHistoryUpdaterTests
             Task.FromResult<IReadOnlyDictionary<Guid, IReadOnlyList<DailyPrice>>>(
                 new Dictionary<Guid, IReadOnlyList<DailyPrice>>());
 
-        public Task<IReadOnlyDictionary<Guid, DateOnly>> GetLastStoredDayAsync(
+        public Task<IReadOnlyDictionary<Guid, StoredRange>> GetStoredRangeAsync(
             IReadOnlyCollection<Guid> assetIds, CancellationToken cancellationToken = default) =>
-            Task.FromResult<IReadOnlyDictionary<Guid, DateOnly>>(Last);
+            Task.FromResult<IReadOnlyDictionary<Guid, StoredRange>>(Covered);
 
         public Task<int> UpsertAsync(IReadOnlyList<DailyPrice> prices, CancellationToken cancellationToken = default)
         {

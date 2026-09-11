@@ -22,3 +22,25 @@ Queda por tanto un hueco de unos cuatro meses, del 4 de mayo al 12 de septiembre
 `PAXG` pesa el 16 % de la cartera, así que durante esos cuatro meses el patrimonio
 aparecería corto en esa proporción, y el día saldría marcado como incompleto. Los otros
 cuatro juntos no llegan al 1 %.
+
+## Resultado de la primera carga real
+
+Ejecutada el 12 de septiembre de 2026. Los doce activos quedan cubiertos desde su
+primera adquisición, con 5.024 precios guardados.
+
+| Activo | Días | Desde | Origen |
+|---|---|---|---|
+| XRP | 496 | 2025-05-04 | Yahoo |
+| B2M | 495 | 2025-05-05 | Yahoo+BCE hasta septiembre, CoinGecko después |
+| SOL | 494 | 2025-05-06 | Yahoo |
+| ETH | 490 | 2025-05-10 | Yahoo |
+| BTC | 489 | 2025-05-11 | Yahoo |
+| AVAX, LINK | 466 | 2025-06-03 | Yahoo |
+| PAXG, USDG | 334 | 2025-10-13 | CoinGecko |
+| DOGE | 332 | 2025-10-15 | Yahoo |
+| PEPE | 317 | 2025-10-30 | CoinGecko |
+| TAO | 311 | 2025-11-05 | CoinGecko |
+
+El hueco que se temía no llegó a existir. Cuatro de los cinco tokens pequeños se
+compraron en octubre o después, dentro de la ventana gratuita de CoinGecko, y el
+único anterior, `B2M`, se rellenó desde el dólar con el tipo del BCE.

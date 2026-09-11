@@ -17,13 +17,13 @@
 - [x] 3.1 Implementar el cálculo de qué falta por activo —desde su primera adquisición o desde el último día guardado, hasta hoy—; verificar con tests de las tres situaciones
 - [x] 3.2 Implementar el relleno de los huecos y añadirlo al trabajador periódico; verificar con test que una segunda pasada sobre una serie completa no pide nada al proveedor
 - [x] 3.3 Implementar la degradación ante un proveedor que falla a mitad; verificar con test que lo descargado se guarda y lo que falta queda para la siguiente vuelta
-- [ ] 3.4 Ejecutar la primera carga real sobre la cartera del usuario y comprobar cuántos días quedan cubiertos por activo
+- [x] 3.4 Ejecutar la primera carga real sobre la cartera del usuario y comprobar cuántos días quedan cubiertos por activo
 
 ## 4. Serie de la cartera
 
-- [ ] 4.1 Implementar en el dominio la reconstrucción de las unidades de cada activo día a día a partir de los movimientos; verificar con tests de un día anterior a la compra, del día de la compra y de un día posterior a la venta total
-- [ ] 4.2 Implementar el valor diario combinando esas unidades con la serie de precios; verificar con tests de día completo, de día al que le falta el precio de un activo y de día sin ningún precio
-- [ ] 4.3 Separar en la serie lo aportado o retirado de lo que cambió por precio; verificar con test que un ingreso seguido de una compra no produce rendimiento
+- [x] 4.1 Implementar en el dominio la reconstrucción de las unidades de cada activo día a día a partir de los movimientos; verificar con tests de un día anterior a la compra, del día de la compra y de un día posterior a la venta total
+- [x] 4.2 Implementar el valor diario combinando esas unidades con la serie de precios; verificar con tests de día completo, de día al que le falta el precio de un activo y de día sin ningún precio
+- [x] 4.3 Separar en la serie lo aportado o retirado de lo que cambió por precio; verificar con test que un ingreso seguido de una compra no produce rendimiento
 - [ ] 4.4 Implementar la serie de un solo activo y la del reparto por clase; verificar con tests, incluida una clase incorporada más tarde
 - [ ] 4.5 Cachear la serie en el servidor y exponerla en la API con su marca de días incompletos; verificar con tests de integración de la API
 

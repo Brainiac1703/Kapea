@@ -27,19 +27,23 @@ public interface IPriceHistoryStore
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Hasta qué día llega la serie de cada activo, o su ausencia si no tiene ninguno.
+    /// Desde y hasta qué día llega la serie de cada activo, o su ausencia si no tiene.
     /// </summary>
     /// <remarks>
-    /// Es lo que permite pedir al proveedor solo lo que falta en lugar del histórico
-    /// entero cada vez.
+    /// Hacen falta los dos extremos y no solo el último: una serie que empezó tarde
+    /// —porque cuando se descargó el proveedor no llegaba más atrás— tiene un hueco al
+    /// principio que mirando solo el final no se vería nunca.
     /// </remarks>
-    Task<IReadOnlyDictionary<Guid, DateOnly>> GetLastStoredDayAsync(
+    Task<IReadOnlyDictionary<Guid, StoredRange>> GetStoredRangeAsync(
         IReadOnlyCollection<Guid> assetIds,
         CancellationToken cancellationToken = default);
 
     /// <summary>Guarda una serie descargada. Un día ya guardado no se duplica.</summary>
     Task<int> UpsertAsync(IReadOnlyList<DailyPrice> prices, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Tramo de días que la serie de un activo ya cubre.</summary>
+public sealed record StoredRange(DateOnly First, DateOnly Last);
 
 /// <summary>Lo que hace falta para pedir la serie de un activo a un proveedor.</summary>
 /// <param name="AssetId">Activo del catálogo, para devolver la serie ya atribuida.</param>
