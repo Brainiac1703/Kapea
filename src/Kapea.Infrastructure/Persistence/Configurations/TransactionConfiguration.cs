@@ -17,6 +17,10 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.Property(transaction => transaction.Origin).HasConversion<string>().HasMaxLength(24).IsRequired();
         builder.Property(transaction => transaction.AdjustmentReason).HasMaxLength(500);
 
+        // Por omisión sí liquida en efectivo: es lo que hace la inmensa mayoría de los
+        // movimientos, y así lo ya guardado no cambia de significado.
+        builder.Property(transaction => transaction.SettledInCash).HasDefaultValue(true).IsRequired();
+
         builder.ComplexProperty(transaction => transaction.OccurredAt, occurred =>
         {
             occurred.Property(value => value.Instant).HasColumnName("OccurredAt").IsRequired();

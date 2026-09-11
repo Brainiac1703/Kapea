@@ -31,8 +31,17 @@ public static class CashEffect
         ArgumentNullException.ThrowIfNull(transaction);
 
         var gross = transaction.GrossAmount;
-        var fee = transaction.Fee;
         var nothing = Money.Zero(gross.Currency);
+
+        // Una permuta se valora en euros para saber lo que costó, pero ningún euro entró
+        // ni salió. Contarla como venta y compra dejaba en el saldo la diferencia entre
+        // los dos cambios, que no es dinero de nadie.
+        if (!transaction.SettledInCash)
+        {
+            return nothing;
+        }
+
+        var fee = transaction.Fee;
 
         return transaction.Type switch
         {
@@ -42,12 +51,13 @@ public static class CashEffect
             TransactionType.Sell => gross - fee,
 
             // Un rendimiento cobrado en unidades del propio activo no pasa por caja: lo
-            // que entra es un lote, no dinero. Se distingue por la cantidad entregada,
-            // que es el mismo criterio con el que el motor decide crear ese lote.
+            // que entra es un lote, no dinero, y su comisión se descuenta de las unidades
+            // antes de entregarlas. Restarla del efectivo quitaba euros por un pago que
+            // se hizo en cripto.
             TransactionType.Dividend or TransactionType.Interest or TransactionType.Reward =>
                 transaction.Quantity.IsZero
                     ? gross - fee - (transaction.WithholdingTax ?? nothing)
-                    : -fee,
+                    : nothing,
 
             // La comisión suelta trae su importe como bruto, no como comisión.
             TransactionType.Fee => -gross - fee,
@@ -55,9 +65,10 @@ public static class CashEffect
             // Un split cambia cuántas participaciones hay, no el dinero.
             TransactionType.Split => nothing,
 
-            // Mover un activo de una cuenta a otra no es dinero: solo cuesta la comisión
-            // de red. Mover dinero sí lo es, pero el movimiento no dice en qué sentido.
-            TransactionType.Transfer => transaction.AssetId is not null ? -fee : null,
+            // Mover un activo de una cuenta a otra no toca el dinero: la comisión de red
+            // se paga en el propio activo, no en euros. Mover dinero sí lo tocaría, pero
+            // el movimiento no dice en qué sentido.
+            TransactionType.Transfer => transaction.AssetId is not null ? nothing : null,
 
             _ => null,
         };

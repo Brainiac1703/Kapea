@@ -295,7 +295,8 @@ public sealed class ImportPipeline(
                 run.ProfileId,
                 run.ProfileVersion),
             record.Withholding is { } withholding ? new Money(withholding, record.Currency) : null,
-            rate);
+            rate,
+            record.SettledInCash);
     }
 
     /// <summary>

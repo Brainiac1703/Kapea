@@ -208,8 +208,8 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
 
             return
             [
-                Leg(TransactionType.Sell, origin, sold, $"{transaction.Id}:out"),
-                Leg(TransactionType.Buy, destination, bought, $"{transaction.Id}:in"),
+                Leg(TransactionType.Sell, origin, sold, $"{transaction.Id}:out", settledInCash: false),
+                Leg(TransactionType.Buy, destination, bought, $"{transaction.Id}:in", settledInCash: false),
             ];
         }
 
@@ -259,7 +259,12 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             SplitRatio: null,
             RawContent: transaction.RawContent);
 
-        ImportRecord Leg(TransactionType type, Bit2MeAmount amount, decimal euros, string naturalId)
+        ImportRecord Leg(
+            TransactionType type,
+            Bit2MeAmount amount,
+            decimal euros,
+            string naturalId,
+            bool settledInCash = true)
         {
             var isFiat = FiatCodes.Contains(amount.Currency);
 
@@ -279,7 +284,8 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
                 NaiveOccurredAt: null,
                 SourceTimeZoneId: PlatformTimeZoneId,
                 SplitRatio: null,
-                RawContent: transaction.RawContent);
+                RawContent: transaction.RawContent,
+                SettledInCash: settledInCash);
         }
     }
 

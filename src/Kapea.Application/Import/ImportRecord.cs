@@ -32,7 +32,8 @@ public sealed record ImportRecord(
     DateTime? NaiveOccurredAt,
     string SourceTimeZoneId,
     decimal? SplitRatio,
-    string RawContent)
+    string RawContent,
+    bool SettledInCash = true)
 {
     /// <summary>Resuelve el instante del registro, venga con zona o sin ella.</summary>
     public Occurrence ToOccurrence() => OccurredAt is { } instant

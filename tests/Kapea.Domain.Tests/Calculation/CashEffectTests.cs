@@ -57,8 +57,31 @@ public class CashEffectTests
         Assert.Equal(Money.Euros(0m), CashEffect.Of(Trade(TransactionType.Split, 0m, quantity: 10m)));
 
     [Fact]
-    public void Moving_an_asset_between_accounts_only_costs_the_network_fee() =>
-        Assert.Equal(Money.Euros(-0.35m), CashEffect.Of(Trade(TransactionType.Transfer, 0m, fee: 0.35m, quantity: 1m)));
+    public void Moving_an_asset_between_accounts_does_not_touch_the_money()
+    {
+        // La comisión de red se paga en el propio activo: se la queda la red antes de
+        // entregar. Restarla del efectivo quitaba euros por un pago hecho en cripto.
+        Assert.Equal(Money.Euros(0m), CashEffect.Of(Trade(TransactionType.Transfer, 0m, fee: 0.35m, quantity: 1m)));
+    }
+
+    [Fact]
+    public void A_swap_of_one_asset_for_another_moves_no_money()
+    {
+        // Se valora en euros para saber lo que costó, pero ningún euro entró ni salió.
+        // Contarla como venta y compra dejaba en el saldo la diferencia entre los dos
+        // cambios, que no es dinero de nadie.
+        var swap = Build(
+            TransactionType.Sell,
+            Guid.NewGuid(),
+            new Quantity(5m),
+            gross: 98.11m,
+            Currency.Euro,
+            fee: 0.94m,
+            withholding: null,
+            settledInCash: false);
+
+        Assert.Equal(Money.Euros(0m), CashEffect.Of(swap));
+    }
 
     [Fact]
     public void A_movement_of_money_with_no_direction_is_not_guessed()
@@ -102,7 +125,8 @@ public class CashEffectTests
         decimal gross,
         Currency currency,
         decimal fee,
-        decimal? withholding) =>
+        decimal? withholding,
+        bool settledInCash = true) =>
         Transaction.Imported(
             new UserId(Guid.NewGuid()),
             Guid.NewGuid(),
@@ -122,5 +146,6 @@ public class CashEffectTests
                     1.10m,
                     new DateOnly(2026, 1, 15),
                     new DateOnly(2026, 1, 15),
-                    ExchangeRate.EuropeanCentralBank));
+                    ExchangeRate.EuropeanCentralBank),
+            settledInCash);
 }

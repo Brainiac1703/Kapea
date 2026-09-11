@@ -87,10 +87,10 @@ public class CashBalanceCalculatorTests
     }
 
     [Fact]
-    public void A_confirmed_internal_transfer_only_costs_its_network_fee()
+    public void A_confirmed_internal_transfer_leaves_the_money_where_it_was()
     {
-        // Mover monedas de una cuenta propia a otra no gasta ni ingresa dinero. Lo único
-        // que desaparece es la comisión de red, y sale de la cuenta que la paga.
+        // Mover monedas de una cuenta propia a otra no gasta ni ingresa dinero, y la
+        // comisión de red se paga en el propio activo, no en euros.
         var origin = Guid.NewGuid();
         var destination = Guid.NewGuid();
         var transfer = Guid.NewGuid();
@@ -101,7 +101,7 @@ public class CashBalanceCalculatorTests
             Valued(destination, TransactionType.Transfer, 0m, quantity: 2m, transferId: transfer),
         ]);
 
-        Assert.Equal(Money.Euros(-0.35m), balances.Balances.Single(b => b.AccountId == origin).Amount);
+        Assert.Equal(Money.Euros(0m), balances.Balances.Single(b => b.AccountId == origin).Amount);
         Assert.Equal(Money.Euros(0m), balances.Balances.Single(b => b.AccountId == destination).Amount);
         Assert.True(balances.IsComplete);
     }
