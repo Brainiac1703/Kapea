@@ -166,8 +166,11 @@ public class Bit2MeImportAdapterTests
         var purchase = Assert.Single(result.Records);
 
         Assert.Equal(TransactionType.Buy, purchase.Type);
-        Assert.Equal(100m, purchase.GrossAmount);
         Assert.Equal(99.0595m, purchase.Quantity);
+
+        // Lo pagado son cien euros, repartidos entre lo que costó la moneda y lo que se
+        // quedó la plataforma dentro del precio.
+        Assert.Equal(100m, decimal.Round(purchase.GrossAmount + purchase.Fee, 2));
     }
 
     [Fact]
@@ -212,6 +215,30 @@ public class Bit2MeImportAdapterTests
 
         Assert.DoesNotContain(result.Records, record => record.NaturalId == "wc-0002:pago");
         Assert.Equal(TransactionType.Buy, result.Records.Single(record => record.NaturalId == "wc-0002").Type);
+    }
+
+    [Fact]
+    public async Task The_fee_hidden_in_the_price_is_worked_out_from_the_published_rate()
+    {
+        // Bit2Me no manda comisión en sus movimientos: la cobra dando peor cambio que el
+        // publicado. Como manda los dos datos, la diferencia es la comisión, y es la
+        // misma cifra que trae la columna del fichero exportado.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-purchase-spread.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var purchase = Assert.Single((await Adapter(handler).ReadAsync(Credential, From, To)).Records);
+
+        // Cincuenta euros al cambio publicado son 49,53; los cuarenta y siete céntimos
+        // que faltan se los quedó la plataforma.
+        Assert.Equal(0.47m, decimal.Round(purchase.Fee, 2));
+        Assert.Equal(49.53m, decimal.Round(purchase.GrossAmount, 2));
+
+        // Lo pagado no cambia: sigue costando los cincuenta euros que salieron.
+        Assert.Equal(50m, decimal.Round(purchase.GrossAmount + purchase.Fee, 2));
+        Assert.Equal(0.00084628m, purchase.Quantity);
     }
 
     [Fact]

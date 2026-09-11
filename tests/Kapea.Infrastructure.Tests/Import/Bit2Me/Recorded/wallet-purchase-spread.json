@@ -1,0 +1,33 @@
+{
+  "data": [
+    {
+      "id": "ws-0001",
+      "date": "2024-04-02T18:43:53.942Z",
+      "completedAt": "2024-04-02T18:43:53.942Z",
+      "concept": "",
+      "type": "transfer",
+      "subtype": "purchase",
+      "method": "pocket",
+      "status": "completed",
+      "denomination": {
+        "amount": "50.00",
+        "currency": "EUR"
+      },
+      "destination": {
+        "amount": "0.00084628",
+        "currency": "BTC",
+        "rate": {
+          "value": "58526.085200000000",
+          "pair": {
+            "base": "BTC",
+            "quote": "EUR"
+          }
+        }
+      }
+    }
+  ],
+  "pageInfo": {
+    "hasNextPage": false,
+    "endCursor": null
+  }
+}

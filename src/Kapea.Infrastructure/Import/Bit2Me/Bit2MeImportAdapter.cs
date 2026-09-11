@@ -175,6 +175,9 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
     internal static IReadOnlyList<ImportRecord> ReadWalletTransaction(Bit2MeWalletTransaction transaction) =>
         FromWalletTransaction(transaction);
 
+    /// <summary>Tope del diferencial que se acepta como comisión.</summary>
+    private const decimal MaximumSpread = 0.05m;
+
     private static IReadOnlyList<ImportRecord> FromWalletTransaction(Bit2MeWalletTransaction transaction)
     {
         var candidates = transaction.Operations
@@ -227,7 +230,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
         }
 
         var euros = paidInEuros ?? amount.ValueInEuros ?? 0m;
-        var leg = Leg(type, amount, euros, transaction.Id);
+        var leg = Leg(type, amount, euros, transaction.Id, spread: Spread(type, amount, paidInEuros));
 
         // Una compra pagada con tarjeta lleva el dinero de fuera a la moneda sin pasar
         // por el saldo en euros de la cuenta. Sin el ingreso que la acompaña, la compra
@@ -264,7 +267,8 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             Bit2MeAmount amount,
             decimal euros,
             string naturalId,
-            bool settledInCash = true)
+            bool settledInCash = true,
+            decimal spread = 0m)
         {
             var isFiat = FiatCodes.Contains(amount.Currency);
 
@@ -276,9 +280,11 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
                 AssetClass: isFiat ? null : AssetClass.Crypto,
                 Quantity: isFiat ? 0m : Math.Abs(amount.Value),
                 UnitPrice: null,
-                GrossAmount: isFiat ? Math.Abs(amount.Value) : Math.Abs(euros),
+                // El diferencial sale del bruto y entra en la comisión: lo pagado no
+                // cambia, pero se ve cuánto de ello se quedó la plataforma.
+                GrossAmount: (isFiat ? Math.Abs(amount.Value) : Math.Abs(euros)) - spread,
                 Currency: isFiat ? Currency.FromCode(amount.Currency) : Currency.Euro,
-                Fee: transaction.NetworkFee is { } fee ? Math.Abs(fee.Value) : 0m,
+                Fee: spread + (transaction.NetworkFee is { } fee ? Math.Abs(fee.Value) : 0m),
                 Withholding: null,
                 OccurredAt: transaction.Date,
                 NaiveOccurredAt: null,
@@ -287,6 +293,35 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
                 RawContent: transaction.RawContent,
                 SettledInCash: settledInCash);
         }
+    }
+
+
+    /// <summary>
+    /// Lo que se quedó la plataforma dentro del precio de una compra o una venta.
+    /// </summary>
+    /// <remarks>
+    /// Bit2Me no manda ninguna comisión en sus movimientos de monedero: la cobra como
+    /// diferencial, dando peor cambio que el publicado. Como sí manda los dos datos —lo
+    /// que se pagó y el cambio de referencia—, la diferencia entre ambos es esa comisión,
+    /// y es la misma cifra que aparece en la columna del fichero exportado.
+    ///
+    /// Solo se deduce cuando sale positiva y pequeña. Una diferencia grande no es una
+    /// comisión sino un cambio que no corresponde al movimiento, y convertirla en
+    /// comisión estropearía el coste en lugar de explicarlo.
+    /// </remarks>
+    private static decimal Spread(TransactionType type, Bit2MeAmount amount, decimal? paidInEuros)
+    {
+        if (type is not (TransactionType.Buy or TransactionType.Sell)
+            || paidInEuros is not { } paid
+            || amount.ValueInEuros is not { } published
+            || paid <= 0m)
+        {
+            return 0m;
+        }
+
+        var spread = type == TransactionType.Buy ? paid - published : published - paid;
+
+        return spread > 0m && spread < paid * MaximumSpread ? decimal.Round(spread, 8) : 0m;
     }
 
     private static ImportRecord FromEarnMovement(Bit2MeEarnMovement movement)
