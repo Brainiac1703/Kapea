@@ -103,9 +103,12 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<TransactionPageResponse>(response, cancellationToken);
     }
 
-    public async Task<SynchronizationResponse> SynchroniseAsync(CancellationToken cancellationToken = default)
+    /// <param name="full">Relee el histórico entero en lugar de pedir solo lo nuevo.</param>
+    public async Task<SynchronizationResponse> SynchroniseAsync(
+        bool full = false,
+        CancellationToken cancellationToken = default)
     {
-        var response = await http.PostAsync("api/sync", content: null, cancellationToken);
+        var response = await http.PostAsync(full ? "api/sync?full=true" : "api/sync", content: null, cancellationToken);
 
         return await ReadAsync<SynchronizationResponse>(response, cancellationToken);
     }

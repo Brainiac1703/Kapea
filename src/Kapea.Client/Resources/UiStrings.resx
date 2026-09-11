@@ -877,6 +877,12 @@
   <data name="Credentials_SyncNow" xml:space="preserve">
     <value>Sincronizar ahora</value>
   </data>
+  <data name="Credentials_SyncAll" xml:space="preserve">
+    <value>Releer todo el histórico</value>
+  </data>
+  <data name="Credentials_SyncAllHelp" xml:space="preserve">
+    <value>Releer el histórico vuelve a pedir todos los movimientos desde el principio. Los que ya están se descartan por duplicado.</value>
+  </data>
   <data name="Credentials_SyncHelp" xml:space="preserve">
     <value>La sincronización automática corre cada pocas horas. Esto la lanza ya, útil justo después de dar de alta una credencial.</value>
   </data>

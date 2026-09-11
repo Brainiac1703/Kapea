@@ -40,7 +40,7 @@ public sealed class SynchronizationWorker(
 
             await scope.ServiceProvider
                 .GetRequiredService<SynchronizationService>()
-                .RunAsync(owner: null, cancellationToken)
+                .RunAsync(owner: null, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

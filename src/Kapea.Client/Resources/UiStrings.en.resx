@@ -877,6 +877,12 @@
   <data name="Credentials_SyncNow" xml:space="preserve">
     <value>Synchronise now</value>
   </data>
+  <data name="Credentials_SyncAll" xml:space="preserve">
+    <value>Re-read full history</value>
+  </data>
+  <data name="Credentials_SyncAllHelp" xml:space="preserve">
+    <value>Re-reading the history asks for every movement again from the start. The ones already stored are discarded as duplicates.</value>
+  </data>
   <data name="Credentials_SyncHelp" xml:space="preserve">
     <value>Automatic synchronisation runs every few hours. This starts it now, useful right after adding a credential.</value>
   </data>

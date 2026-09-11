@@ -73,8 +73,14 @@ public sealed class SynchronizationService(
     /// mano desde la aplicación: pedirla no puede servir para mover los datos de otro.
     /// Nulo en la ejecución programada, que recorre todas.
     /// </param>
+    /// <param name="fromTheBeginning">
+    /// Relee el histórico entero en lugar de pedir solo lo nuevo. Hace falta cuando se
+    /// corrige cómo se interpreta un movimiento: lo ya importado se descarta por
+    /// duplicado, así que solo entra lo que antes no se sabía leer.
+    /// </param>
     public async Task<SynchronizationReport> RunAsync(
         Domain.ValueObjects.UserId? owner = null,
+        bool fromTheBeginning = false,
         CancellationToken cancellationToken = default)
     {
         var all = await repository.ListTargetsAsync(cancellationToken).ConfigureAwait(false);
@@ -90,7 +96,7 @@ public sealed class SynchronizationService(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            results.Add(await SynchroniseAsync(target, cancellationToken).ConfigureAwait(false));
+            results.Add(await SynchroniseAsync(target, fromTheBeginning, cancellationToken).ConfigureAwait(false));
         }
 
         await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -141,6 +147,7 @@ public sealed class SynchronizationService(
 
     private async Task<AccountSynchronizationResult> SynchroniseAsync(
         SynchronizationTarget target,
+        bool fromTheBeginning,
         CancellationToken cancellationToken)
     {
         var account = target.Account;
@@ -165,7 +172,7 @@ public sealed class SynchronizationService(
 
         try
         {
-            return await ImportAsync(target, cancellationToken).ConfigureAwait(false);
+            return await ImportAsync(target, fromTheBeginning, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -189,6 +196,7 @@ public sealed class SynchronizationService(
 
     private async Task<AccountSynchronizationResult> ImportAsync(
         SynchronizationTarget target,
+        bool fromTheBeginning,
         CancellationToken cancellationToken)
     {
         var account = target.Account;
@@ -197,9 +205,11 @@ public sealed class SynchronizationService(
 
         // Se pide solo lo posterior a la última importación correcta. Una fallida no
         // mueve ese punto, así que lo que no llegó a entrar se vuelve a pedir.
-        var from = await importRepository
-            .FindLastSuccessfulImportInstantAsync(account.Id, cancellationToken).ConfigureAwait(false)
-            ?? EarliestHistory;
+        var from = fromTheBeginning
+            ? EarliestHistory
+            : await importRepository
+                .FindLastSuccessfulImportInstantAsync(account.Id, cancellationToken).ConfigureAwait(false)
+                ?? EarliestHistory;
 
         var to = timeProvider.GetUtcNow();
         var adapter = adapters.GetApiAdapter(account.Platform);

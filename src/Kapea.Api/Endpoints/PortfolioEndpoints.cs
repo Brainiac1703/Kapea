@@ -412,6 +412,7 @@ public static class PortfolioEndpoints
         // Sincronización a petición. La programada corre cada pocas horas, y esperar a
         // que toque después de dar de alta una credencial no tiene por qué.
         api.MapPost("/sync", async (
+            bool? full,
             Kapea.Application.Synchronization.SynchronizationService synchronization,
             InternalTransferService transfers,
             PortfolioCalculationService calculation,
@@ -420,7 +421,10 @@ public static class PortfolioEndpoints
         {
             // Solo las cuentas de quien la pide: lanzarla no puede servir para mover los
             // datos de otro.
-            var report = await synchronization.RunAsync(user.Id, token);
+            // Con «full» se relee el histórico entero. Hace falta cuando se corrige cómo
+            // se interpreta un movimiento: lo ya importado se descarta por duplicado, así
+            // que solo entra lo que antes no se sabía leer.
+            var report = await synchronization.RunAsync(user.Id, full ?? false, token);
 
             if (report.Results.Any(result => result.ImportedRecords > 0))
             {
