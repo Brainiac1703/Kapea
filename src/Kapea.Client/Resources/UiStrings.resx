@@ -454,6 +454,69 @@
   <data name="Portfolio_Recalculate" xml:space="preserve">
     <value>Recalcular</value>
   </data>
+  <data name="Portfolio_Wealth" xml:space="preserve">
+    <value>Patrimonio</value>
+  </data>
+  <data name="Portfolio_Accumulated" xml:space="preserve">
+    <value>Resultado acumulado</value>
+  </data>
+  <data name="Portfolio_Realized" xml:space="preserve">
+    <value>Resultado realizado</value>
+  </data>
+  <data name="Portfolio_Weight" xml:space="preserve">
+    <value>Peso</value>
+  </data>
+  <data name="Portfolio_Fees" xml:space="preserve">
+    <value>Comisiones</value>
+  </data>
+  <data name="Portfolio_Cash" xml:space="preserve">
+    <value>Efectivo</value>
+  </data>
+  <data name="Portfolio_CashNote" xml:space="preserve">
+    <value>El efectivo en otras divisas se convierte al tipo de cambio del día.</value>
+  </data>
+  <data name="Portfolio_CashEmpty" xml:space="preserve">
+    <value>No hay efectivo registrado en ninguna cuenta.</value>
+  </data>
+  <data name="Portfolio_Account" xml:space="preserve">
+    <value>Cuenta</value>
+  </data>
+  <data name="Portfolio_Currency" xml:space="preserve">
+    <value>Divisa</value>
+  </data>
+  <data name="Portfolio_MissingPrices" xml:space="preserve">
+    <value>Faltan precios de algunos activos, así que el valor y el patrimonio salen cortos.</value>
+  </data>
+  <data name="Portfolio_MissingCash" xml:space="preserve">
+    <value>Falta efectivo por resolver o divisas sin tipo de cambio, así que el patrimonio sale corto.</value>
+  </data>
+  <data name="Portfolio_PriceAsOf" xml:space="preserve">
+    <value>Precio de</value>
+  </data>
+  <data name="Portfolio_UpdatedAt" xml:space="preserve">
+    <value>Cifras de</value>
+  </data>
+  <data name="Portfolio_Refresh" xml:space="preserve">
+    <value>Actualizar precios</value>
+  </data>
+  <data name="Portfolio_Income" xml:space="preserve">
+    <value>Rendimientos cobrados</value>
+  </data>
+  <data name="Portfolio_Gross" xml:space="preserve">
+    <value>Bruto</value>
+  </data>
+  <data name="Portfolio_Withholding" xml:space="preserve">
+    <value>Retención</value>
+  </data>
+  <data name="Portfolio_Net" xml:space="preserve">
+    <value>Neto</value>
+  </data>
+  <data name="Portfolio_ClassEquity" xml:space="preserve">
+    <value>Renta variable</value>
+  </data>
+  <data name="Portfolio_ClassCrypto" xml:space="preserve">
+    <value>Criptomonedas</value>
+  </data>
   <data name="Results_Title" xml:space="preserve">
     <value>Resultados</value>
   </data>

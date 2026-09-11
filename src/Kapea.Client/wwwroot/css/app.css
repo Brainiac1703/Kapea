@@ -88,6 +88,13 @@
     font-size: 0.8rem;
 }
 
+/* El instante del precio va bajo el precio y en pequeño: acompaña a la cifra sin
+   competir con ella, y sin él un precio de hace tres días se lee como el de ahora. */
+.moment {
+    color: var(--neutral-foreground-hint);
+    font-size: 0.75rem;
+}
+
 .count-highlight .count-value {
     color: var(--accent-fill-rest);
 }

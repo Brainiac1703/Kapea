@@ -32,6 +32,14 @@ public static class Format
     public static string Money(decimal amount, string currency) =>
         string.Create(CultureInfo.CurrentCulture, $"{amount:N2} {currency}");
 
+    /// <summary>Peso sobre el total. Ausente cuando no se puede calcular, nunca cero.</summary>
+    public static string Percent(decimal? weight, string whenMissing) =>
+        weight is { } value ? value.ToString("P1", CultureInfo.CurrentCulture) : whenMissing;
+
+    /// <summary>Instante en la zona de quien mira, con minutos y sin segundos.</summary>
+    public static string Moment(DateTimeOffset instant) =>
+        instant.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+
     /// <summary>Clase CSS del signo. El color acompaña al número, nunca lo sustituye.</summary>
     public static string Sign(decimal? amount) => amount switch
     {
