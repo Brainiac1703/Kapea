@@ -48,6 +48,20 @@ public interface IPortfolioQueries
 
     Task<PortfolioResponse> GetPortfolioAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Evolución de la cartera entre dos fechas, con el reparto por clase.</summary>
+    Task<PortfolioHistoryResponse> GetHistoryAsync(
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Evolución de un activo con sus indicadores, o nada si no está en cartera.</summary>
+    Task<AssetHistoryResponse?> GetAssetHistoryAsync(
+        Guid assetId,
+        DateOnly from,
+        DateOnly to,
+        int indicatorWindowDays,
+        CancellationToken cancellationToken = default);
+
     Task<TaxYearResultsResponse> GetTaxYearResultsAsync(int taxYear, CancellationToken cancellationToken = default);
 
     Task<RealizedResultResponse?> FindRealizedResultAsync(

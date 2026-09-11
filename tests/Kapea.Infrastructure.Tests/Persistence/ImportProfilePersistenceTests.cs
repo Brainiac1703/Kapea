@@ -125,7 +125,11 @@ public class ImportProfilePersistenceTests(SqlServerFixture fixture)
         context.Transactions.Add(transaction);
         await context.SaveChangesAsync();
 
-        var queries = new Kapea.Infrastructure.Persistence.Stores.PortfolioQueries(context, new NoPrices(), new NoRates());
+        var queries = new Kapea.Infrastructure.Persistence.Stores.PortfolioQueries(
+            context,
+            new NoPrices(),
+            new NoRates(),
+            new Kapea.Infrastructure.Persistence.Stores.PriceHistoryStore(context));
         var stored = (await queries.ListTransactionsAsync(account.Id, onlyRequiringReview: false))
             .Single(entity => entity.Id == transaction.Id);
 

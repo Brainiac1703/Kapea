@@ -19,6 +19,16 @@ public sealed record PortfolioDay(
     Money NetContributionInEuros,
     bool IsComplete);
 
+/// <summary>Un día de la serie de un solo activo.</summary>
+public sealed record AssetHistoryDay(DateOnly Date, Quantity Quantity, Money? PriceInEuros, Money? ValueInEuros);
+
+/// <summary>Lo que valía cada clase de activo un día.</summary>
+/// <param name="ValueByClass">Valor por clase. Una clase sin posición ese día no aparece.</param>
+public sealed record ClassHistoryDay(
+    DateOnly Date,
+    IReadOnlyDictionary<Assets.AssetClass, Money> ValueByClass,
+    bool IsComplete);
+
 /// <summary>
 /// Reconstruye lo que valía la cartera cada día.
 /// </summary>
@@ -70,6 +80,69 @@ public static class PortfolioHistory
         }
 
         return days;
+    }
+
+    /// <summary>
+    /// La serie de un solo activo, sacada de la de la cartera.
+    /// </summary>
+    /// <remarks>
+    /// Se filtra en lugar de recalcular para que la cifra de un activo y la del total
+    /// salgan siempre del mismo sitio: dos caminos distintos acaban divergiendo.
+    /// </remarks>
+    public static IReadOnlyList<AssetHistoryDay> ForAsset(IEnumerable<PortfolioDay> days, Guid assetId)
+    {
+        ArgumentNullException.ThrowIfNull(days);
+
+        return
+        [
+            .. days.Select(day =>
+            {
+                var held = day.Assets.FirstOrDefault(asset => asset.AssetId == assetId);
+
+                return new AssetHistoryDay(
+                    day.Date,
+                    held?.Quantity ?? Quantity.Zero,
+                    held?.PriceInEuros,
+                    held?.ValueInEuros);
+            }),
+        ];
+    }
+
+    /// <summary>
+    /// El reparto por clase de activo a lo largo del tiempo.
+    /// </summary>
+    /// <remarks>
+    /// Los grupos salen de lo que haya cada día, no de una lista escrita: una clase que
+    /// se incorpore más tarde aparece sola desde su primera adquisición.
+    /// </remarks>
+    public static IReadOnlyList<ClassHistoryDay> ByClass(
+        IEnumerable<PortfolioDay> days,
+        IReadOnlyDictionary<Guid, Assets.AssetClass> classes)
+    {
+        ArgumentNullException.ThrowIfNull(days);
+        ArgumentNullException.ThrowIfNull(classes);
+
+        return
+        [
+            .. days.Select(day =>
+            {
+                var byClass = new Dictionary<Assets.AssetClass, Money>();
+
+                foreach (var asset in day.Assets)
+                {
+                    if (asset.ValueInEuros is not { } value || !classes.TryGetValue(asset.AssetId, out var assetClass))
+                    {
+                        continue;
+                    }
+
+                    byClass[assetClass] = byClass.TryGetValue(assetClass, out var running)
+                        ? running + value
+                        : value;
+                }
+
+                return new ClassHistoryDay(day.Date, byClass, day.IsComplete);
+            }),
+        ];
     }
 
     private static DateOnly DateOf(ValuedTransaction valued) =>

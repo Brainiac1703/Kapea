@@ -2,6 +2,7 @@ using Kapea.Application.Abstractions;
 using Kapea.Application.Import;
 using Kapea.Application.Portfolio;
 using Kapea.Domain.Calculation;
+using Kapea.Domain.Indicators;
 using Kapea.Domain.ValueObjects;
 using Kapea.Domain.Exchange;
 using Kapea.Domain.Assets;
@@ -17,7 +18,8 @@ namespace Kapea.Infrastructure.Persistence.Stores;
 public sealed class PortfolioQueries(
     KapeaDbContext context,
     IMarketPriceProvider prices,
-    IExchangeRateProvider exchangeRates) : IPortfolioQueries
+    IExchangeRateProvider exchangeRates,
+    IPriceHistoryStore priceHistory) : IPortfolioQueries
 {
     // El catálogo es de la instalación, no de cada usuario, así que se salta el filtro
     // global: sin esto no devolvería nada, porque las plataformas no tienen dueño.
@@ -588,5 +590,102 @@ public sealed class PortfolioQueries(
             record.Currency.Code,
             record.Fee,
             staged.Outcome.ToString());
+    }
+
+    /// <summary>
+    /// Evolución de la cartera, reconstruida de los movimientos y la serie de precios.
+    /// </summary>
+    /// <remarks>
+    /// Se calcula en cada consulta y se guarda un rato en memoria. Recorrer un par de
+    /// miles de movimientos son milisegundos, y a cambio no hay ninguna cifra guardada
+    /// que pueda quedarse vieja cuando entre una importación con fecha anterior.
+    /// </remarks>
+    public async Task<PortfolioHistoryResponse> GetHistoryAsync(
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken = default)
+    {
+        var days = await DaysAsync(from, to, cancellationToken).ConfigureAwait(false);
+
+        var classes = await context.Assets
+            .ToDictionaryAsync(asset => asset.Id, asset => asset.Class, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new PortfolioHistoryResponse(
+            [
+                .. days.Select(day => new PortfolioHistoryDayResponse(
+                    day.Date,
+                    day.ValueInEuros.Amount,
+                    day.NetContributionInEuros.Amount,
+                    day.IsComplete)),
+            ],
+            [
+                .. PortfolioHistory.ByClass(days, classes).Select(day => new ClassHistoryDayResponse(
+                    day.Date,
+                    day.ValueByClass.ToDictionary(entry => entry.Key.ToString(), entry => entry.Value.Amount))),
+            ],
+            days.Count(day => !day.IsComplete));
+    }
+
+    public async Task<AssetHistoryResponse?> GetAssetHistoryAsync(
+        Guid assetId,
+        DateOnly from,
+        DateOnly to,
+        int indicatorWindowDays,
+        CancellationToken cancellationToken = default)
+    {
+        var asset = await context.Assets
+            .FirstOrDefaultAsync(entity => entity.Id == assetId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (asset is null)
+        {
+            return null;
+        }
+
+        var days = PortfolioHistory.ForAsset(
+            await DaysAsync(from, to, cancellationToken).ConfigureAwait(false), assetId);
+
+        // Los indicadores se calculan solo sobre los días con precio: rellenar los huecos
+        // daría una media de lo que dice el relleno, no de lo que hizo el mercado.
+        var series = days
+            .Where(day => day.PriceInEuros is not null)
+            .Select(day => new PricePoint(day.Date, day.PriceInEuros!.Value.Amount))
+            .ToList();
+
+        return new AssetHistoryResponse(
+            assetId,
+            asset.CanonicalSymbol,
+            [
+                .. days.Select(day => new AssetHistoryDayResponse(
+                    day.Date, day.Quantity.Value, day.PriceInEuros?.Amount, day.ValueInEuros?.Amount)),
+            ],
+            Points(TechnicalIndicators.SimpleMovingAverage(series, indicatorWindowDays)),
+            Points(TechnicalIndicators.ExponentialMovingAverage(series, indicatorWindowDays)),
+            Points(TechnicalIndicators.RelativeStrengthIndex(series, indicatorWindowDays)),
+            indicatorWindowDays);
+    }
+
+    private static IReadOnlyList<IndicatorPointResponse> Points(IReadOnlyList<IndicatorPoint> points) =>
+        [.. points.Select(point => new IndicatorPointResponse(point.Date, point.Value))];
+
+    private async Task<IReadOnlyList<PortfolioDay>> DaysAsync(
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken)
+    {
+        var transactions = await context.Transactions.ToListAsync(cancellationToken).ConfigureAwait(false);
+        var transfers = await context.InternalTransfers.ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        var assetIds = transactions
+            .Where(transaction => transaction.AssetId is not null)
+            .Select(transaction => transaction.AssetId!.Value)
+            .Distinct()
+            .ToList();
+
+        var prices = await priceHistory.GetAsync(assetIds, from, to, cancellationToken).ConfigureAwait(false);
+
+        return PortfolioHistory.Build(
+            PortfolioCalculationService.Value(transactions, transfers), prices, from, to);
     }
 }

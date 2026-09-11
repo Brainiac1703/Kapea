@@ -245,3 +245,42 @@ public sealed record TransactionPageResponse(
     IReadOnlyList<string> Types,
     IReadOnlyList<int> Years);
 
+
+/// <summary>Un día de la evolución de la cartera.</summary>
+/// <param name="ContributionInEuros">Aportado menos retirado ese día, que no es rendimiento.</param>
+/// <param name="IsComplete">Falso cuando falta el precio de algún activo con posición.</param>
+public sealed record PortfolioHistoryDayResponse(
+    DateOnly Date,
+    decimal ValueInEuros,
+    decimal ContributionInEuros,
+    bool IsComplete);
+
+/// <summary>La evolución de la cartera en un periodo.</summary>
+/// <param name="IncompleteDays">Cuántos días les falta algún precio.</param>
+public sealed record PortfolioHistoryResponse(
+    IReadOnlyList<PortfolioHistoryDayResponse> Days,
+    IReadOnlyList<ClassHistoryDayResponse> ByClass,
+    int IncompleteDays);
+
+/// <summary>El valor de cada clase de activo un día.</summary>
+public sealed record ClassHistoryDayResponse(DateOnly Date, IReadOnlyDictionary<string, decimal> ValueByClass);
+
+/// <summary>Un día de la evolución de un activo. Sin precio, el valor viaja vacío.</summary>
+public sealed record AssetHistoryDayResponse(
+    DateOnly Date,
+    decimal Quantity,
+    decimal? PriceInEuros,
+    decimal? ValueInEuros);
+
+/// <summary>La evolución de un activo con sus indicadores.</summary>
+public sealed record AssetHistoryResponse(
+    Guid AssetId,
+    string AssetSymbol,
+    IReadOnlyList<AssetHistoryDayResponse> Days,
+    IReadOnlyList<IndicatorPointResponse> SimpleMovingAverage,
+    IReadOnlyList<IndicatorPointResponse> ExponentialMovingAverage,
+    IReadOnlyList<IndicatorPointResponse> RelativeStrengthIndex,
+    int IndicatorWindowDays);
+
+/// <summary>Un valor de un indicador con el día al que corresponde.</summary>
+public sealed record IndicatorPointResponse(DateOnly Date, decimal Value);

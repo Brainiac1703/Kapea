@@ -373,8 +373,58 @@ public static class PortfolioEndpoints
         });
     }
 
+    /// <summary>Cuántos días atrás se enseña la evolución si nadie dice otra cosa.</summary>
+    private const int DefaultHistoryDays = 365;
+
+    /// <summary>Ventana de los indicadores por omisión. Veinte sesiones es el mes bursátil.</summary>
+    private const int DefaultIndicatorWindow = 20;
+
+    /// <summary>
+    /// El periodo que se consulta.
+    /// </summary>
+    /// <remarks>
+    /// Sin fechas se enseña el último año, que es lo que casi siempre se quiere mirar y
+    /// lo que evita que una cartera de años cargue toda su historia sin pedirlo.
+    /// </remarks>
+    private static (DateOnly From, DateOnly To) Range(DateOnly? from, DateOnly? to, TimeProvider time)
+    {
+        var today = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
+        var hasta = to ?? today;
+
+        return (from ?? hasta.AddDays(-DefaultHistoryDays), hasta);
+    }
+
     private static void MapPortfolio(this RouteGroupBuilder api)
     {
+        api.MapGet("/portfolio/history", (
+            DateOnly? from,
+            DateOnly? to,
+            IPortfolioQueries queries,
+            TimeProvider time,
+            CancellationToken token) =>
+        {
+            var (desde, hasta) = Range(from, to, time);
+
+            return queries.GetHistoryAsync(desde, hasta, token);
+        });
+
+        api.MapGet("/portfolio/history/{assetId:guid}", async (
+            Guid assetId,
+            DateOnly? from,
+            DateOnly? to,
+            int? window,
+            IPortfolioQueries queries,
+            TimeProvider time,
+            CancellationToken token) =>
+        {
+            var (desde, hasta) = Range(from, to, time);
+
+            return await queries.GetAssetHistoryAsync(
+                assetId, desde, hasta, window ?? DefaultIndicatorWindow, token) is { } history
+                ? Results.Ok(history)
+                : Results.NotFound();
+        });
+
         api.MapGet("/transactions", (
             Guid? accountId, bool? requiresReview, IPortfolioQueries queries, CancellationToken token) =>
             queries.ListTransactionsAsync(accountId, requiresReview ?? false, token));

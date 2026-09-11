@@ -1,3 +1,4 @@
+using Kapea.Domain.Assets;
 using Kapea.Domain.Calculation;
 using Kapea.Domain.Exchange;
 using Kapea.Domain.MarketData;
@@ -177,4 +178,82 @@ public class PortfolioHistoryTests
 
         return ValuedTransaction.From(transaction);
     }
+}
+
+public class AssetAndClassHistoryTests
+{
+    private static readonly Guid Bitcoin = Guid.NewGuid();
+    private static readonly Guid Santander = Guid.NewGuid();
+
+    [Fact]
+    public void The_series_of_one_asset_is_the_same_figure_as_in_the_total()
+    {
+        // Filtrar en lugar de recalcular: dos caminos distintos acaban divergiendo, y
+        // entonces la suma de las posiciones deja de dar el total.
+        var days = Days();
+
+        var series = PortfolioHistory.ForAsset(days, Bitcoin);
+
+        Assert.Equal(3, series.Count);
+        Assert.Equal(Money.Euros(120m), series[1].ValueInEuros);
+        Assert.Equal(new Quantity(2m), series[1].Quantity);
+    }
+
+    [Fact]
+    public void A_day_in_which_the_asset_was_not_held_comes_back_at_zero_and_without_price()
+    {
+        var series = PortfolioHistory.ForAsset(Days(), Bitcoin);
+
+        Assert.Equal(Quantity.Zero, series[0].Quantity);
+        Assert.Null(series[0].ValueInEuros);
+    }
+
+    [Fact]
+    public void Each_class_adds_up_on_its_own()
+    {
+        var byClass = PortfolioHistory.ByClass(Days(), new Dictionary<Guid, AssetClass>
+        {
+            [Bitcoin] = AssetClass.Crypto,
+            [Santander] = AssetClass.Equity,
+        });
+
+        Assert.Equal(Money.Euros(120m), byClass[1].ValueByClass[AssetClass.Crypto]);
+        Assert.Equal(Money.Euros(50m), byClass[1].ValueByClass[AssetClass.Equity]);
+    }
+
+    [Fact]
+    public void A_class_incorporated_later_appears_from_its_first_day()
+    {
+        // Los grupos salen de lo que haya cada día, así que una clase nueva aparece sola
+        // sin tocar nada y sin alterar los días anteriores.
+        var byClass = PortfolioHistory.ByClass(Days(), new Dictionary<Guid, AssetClass>
+        {
+            [Bitcoin] = AssetClass.Crypto,
+            [Santander] = AssetClass.Equity,
+        });
+
+        Assert.DoesNotContain(AssetClass.Equity, byClass[0].ValueByClass.Keys);
+        Assert.Contains(AssetClass.Equity, byClass[1].ValueByClass.Keys);
+    }
+
+    /// <summary>Tres días: el primero vacío, y a partir del segundo dos posiciones.</summary>
+    private static IReadOnlyList<PortfolioDay> Days() =>
+    [
+        new PortfolioDay(new DateOnly(2026, 3, 1), [], Money.Euros(0m), Money.Euros(0m), true),
+        new PortfolioDay(
+            new DateOnly(2026, 3, 2),
+            [
+                new AssetDay(Bitcoin, new Quantity(2m), Money.Euros(60m), Money.Euros(120m)),
+                new AssetDay(Santander, new Quantity(10m), Money.Euros(5m), Money.Euros(50m)),
+            ],
+            Money.Euros(170m),
+            Money.Euros(0m),
+            true),
+        new PortfolioDay(
+            new DateOnly(2026, 3, 3),
+            [new AssetDay(Bitcoin, new Quantity(2m), null, null)],
+            Money.Euros(0m),
+            Money.Euros(0m),
+            false),
+    ];
 }

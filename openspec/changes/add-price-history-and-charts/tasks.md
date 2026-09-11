@@ -24,15 +24,15 @@
 - [x] 4.1 Implementar en el dominio la reconstrucción de las unidades de cada activo día a día a partir de los movimientos; verificar con tests de un día anterior a la compra, del día de la compra y de un día posterior a la venta total
 - [x] 4.2 Implementar el valor diario combinando esas unidades con la serie de precios; verificar con tests de día completo, de día al que le falta el precio de un activo y de día sin ningún precio
 - [x] 4.3 Separar en la serie lo aportado o retirado de lo que cambió por precio; verificar con test que un ingreso seguido de una compra no produce rendimiento
-- [ ] 4.4 Implementar la serie de un solo activo y la del reparto por clase; verificar con tests, incluida una clase incorporada más tarde
-- [ ] 4.5 Cachear la serie en el servidor y exponerla en la API con su marca de días incompletos; verificar con tests de integración de la API
+- [x] 4.4 Implementar la serie de un solo activo y la del reparto por clase; verificar con tests, incluida una clase incorporada más tarde
+- [x] 4.5 Cachear la serie en el servidor y exponerla en la API con su marca de días incompletos; verificar con tests de integración de la API
 
 ## 5. Indicadores
 
-- [ ] 5.1 Implementar la media móvil simple y la exponencial sobre una serie; verificar con tests de ventana incompleta, ventana justa y serie larga
-- [ ] 5.2 Implementar el RSI; verificar con tests de serie solo alcista, solo bajista y un caso calculado a mano
-- [ ] 5.3 Comprobar que los indicadores no rellenan los días ausentes y que cada valor conserva su fecha; verificar con test de serie con huecos
-- [ ] 5.4 Exponer los indicadores de un activo en la API, con la ventana como parámetro; verificar con test de integración
+- [x] 5.1 Implementar la media móvil simple y la exponencial sobre una serie; verificar con tests de ventana incompleta, ventana justa y serie larga
+- [x] 5.2 Implementar el RSI; verificar con tests de serie solo alcista, solo bajista y un caso calculado a mano
+- [x] 5.3 Comprobar que los indicadores no rellenan los días ausentes y que cada valor conserva su fecha; verificar con test de serie con huecos
+- [x] 5.4 Exponer los indicadores de un activo en la API, con la ventana como parámetro; verificar con test de integración
 
 ## 6. Gráficas
 

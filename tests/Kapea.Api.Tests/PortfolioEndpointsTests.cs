@@ -290,6 +290,82 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task The_evolution_covers_every_day_of_the_period_asked_for()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var history = await client.GetFromJsonAsync<PortfolioHistoryResponse>(
+            "/api/portfolio/history?from=2026-03-01&to=2026-03-07");
+
+        // Siete días, incluidos los dos extremos: un rango que se come un día deja la
+        // gráfica desplazada respecto a las fechas que el usuario pidió.
+        Assert.Equal(7, history!.Days.Count);
+        Assert.Equal(new DateOnly(2026, 3, 1), history.Days[0].Date);
+        Assert.Equal(new DateOnly(2026, 3, 7), history.Days[^1].Date);
+    }
+
+    [Fact]
+    public async Task A_position_without_prices_leaves_its_days_marked_as_incomplete()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con evolución", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id, "LTC");
+
+        // El periodo por omisión llega hasta hoy, que es cuando se sembró la compra.
+        var history = await client.GetFromJsonAsync<PortfolioHistoryResponse>("/api/portfolio/history");
+
+        // Sin serie de precios no se inventa ninguna: el día sale sin valor y dice que
+        // está incompleto.
+        var today = history!.Days[^1];
+
+        Assert.False(today.IsComplete);
+        Assert.Equal(0m, today.ValueInEuros);
+        Assert.True(history.IncompleteDays > 0);
+    }
+
+    [Fact]
+    public async Task The_evolution_of_an_asset_that_does_not_exist_is_reported_as_missing()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var response = await client.GetAsync($"/api/portfolio/history/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_evolution_of_an_asset_comes_back_with_its_indicator_window()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con activo", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id, "DOT");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+        var assetId = portfolio!.Positions.Single().AssetId;
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{assetId}?from=2026-03-01&to=2026-03-07&window=5");
+
+        Assert.Equal("DOT", history!.AssetSymbol);
+        Assert.Equal(5, history.IndicatorWindowDays);
+
+        // Sin precios no hay indicadores que calcular, y eso se dice con listas vacías
+        // en lugar de con ceros.
+        Assert.Empty(history.SimpleMovingAverage);
+        Assert.Empty(history.RelativeStrengthIndex);
+    }
+
+    [Fact]
     public async Task The_results_of_a_year_with_nothing_come_back_empty_rather_than_missing()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());
