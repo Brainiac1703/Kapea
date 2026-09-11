@@ -304,7 +304,11 @@ public sealed class PortfolioQueries(
             portfolioAssets,
             cashTotal,
             balances,
-            IncomeByClass(incomes, assets));
+            IncomeByClass(incomes, assets),
+
+            // Todo lo realizado, también lo de activos vendidos por completo: su pérdida
+            // o su ganancia no puede desaparecer del acumulado por dejar de tenerlos.
+            realized.Aggregate(Money.Euros(0m), (total, result) => total + result.ResultInEuros));
 
         var aliases = await context.Accounts
             .ToDictionaryAsync(account => account.Id, account => account.Alias, cancellationToken)

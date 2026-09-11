@@ -88,11 +88,20 @@ public sealed record PortfolioSummary(
 {
     public IEnumerable<PortfolioPosition> Positions => Groups.SelectMany(group => group.Positions);
 
+    /// <param name="realizedSinceInception">
+    /// Todo lo realizado, incluido lo de activos que ya no se tienen.
+    /// </param>
+    /// <remarks>
+    /// Llega aparte porque no se puede sacar de las posiciones abiertas: un activo
+    /// vendido entero no tiene posición, y su ganancia o su pérdida desaparecerían del
+    /// acumulado justo cuando se materializan.
+    /// </remarks>
     public static PortfolioSummary Build(
         IEnumerable<PortfolioAsset> assets,
         CashTotal cash,
         CashBalances cashBalances,
-        IEnumerable<IncomeByClass> income)
+        IEnumerable<IncomeByClass> income,
+        Money realizedSinceInception)
     {
         ArgumentNullException.ThrowIfNull(assets);
         ArgumentNullException.ThrowIfNull(cash);
@@ -117,8 +126,6 @@ public sealed record PortfolioSummary(
         var unrealised = valued.Aggregate(
             Money.Euros(0m), (total, asset) => total + asset.Position.UnrealisedResultInEuros!.Value);
 
-        var realized = all.Aggregate(Money.Euros(0m), (total, asset) => total + asset.RealizedResultInEuros);
-
         return new PortfolioSummary(
             groups,
             cost,
@@ -127,7 +134,7 @@ public sealed record PortfolioSummary(
                 marketValue + cash.Total,
                 missingPrices,
                 !cash.IsComplete || !cashBalances.IsComplete),
-            new AccumulatedResult(realized, unrealised),
+            new AccumulatedResult(realizedSinceInception, unrealised),
             [.. income.OrderBy(entry => entry.Class)],
             missingPrices);
     }

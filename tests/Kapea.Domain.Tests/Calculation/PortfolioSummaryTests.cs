@@ -45,6 +45,19 @@ public class PortfolioSummaryTests
     }
 
     [Fact]
+    public void What_was_sold_in_full_still_counts_in_the_accumulated_result()
+    {
+        // Un activo vendido entero no tiene posición abierta, así que su pérdida
+        // desaparecería del acumulado justo cuando se materializa.
+        var summary = Build(
+            [Asset(AssetClass.Crypto, quantity: 1m, cost: 50m, price: 75m)],
+            realized: -30.51m);
+
+        Assert.Equal(Money.Euros(-30.51m), summary.Result.RealizedInEuros);
+        Assert.Equal(Money.Euros(-5.51m), summary.Result.TotalInEuros);
+    }
+
+    [Fact]
     public void The_accumulated_result_adds_what_is_realized_to_what_is_latent()
     {
         var summary = Build([Asset(AssetClass.Equity, quantity: 10m, cost: 100m, price: 15m, realized: 40m)]);
@@ -162,12 +175,14 @@ public class PortfolioSummaryTests
         IReadOnlyList<PortfolioAsset> assets,
         CashTotal? cash = null,
         CashBalances? balances = null,
-        IReadOnlyList<IncomeByClass>? income = null) =>
+        IReadOnlyList<IncomeByClass>? income = null,
+        decimal? realized = null) =>
         PortfolioSummary.Build(
             assets,
             cash ?? new CashTotal(Money.Euros(0m), []),
             balances ?? new CashBalances([], UnresolvedMovements: 0),
-            income ?? []);
+            income ?? [],
+            Money.Euros(realized ?? assets.Sum(asset => asset.RealizedResultInEuros.Amount)));
 
     private static PortfolioAsset Asset(
         AssetClass assetClass,
