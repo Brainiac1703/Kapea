@@ -3,6 +3,7 @@ using Kapea.Application.Import;
 using Kapea.Application.Portfolio;
 using Kapea.Domain.Calculation;
 using Kapea.Domain.Indicators;
+using Kapea.Domain.Performance;
 using Kapea.Domain.ValueObjects;
 using Kapea.Domain.Exchange;
 using Kapea.Domain.Assets;
@@ -687,5 +688,82 @@ public sealed class PortfolioQueries(
 
         return PortfolioHistory.Build(
             PortfolioCalculationService.Value(transactions, transfers), prices, from, to);
+    }
+
+    /// <summary>
+    /// Rendimiento del periodo y comparación con la referencia.
+    /// </summary>
+    /// <remarks>
+    /// Sin referencia elegida se toma la mayor posición del último día. Es la comparación
+    /// más honesta que se puede hacer sin preguntar: qué habría pasado poniendo todo el
+    /// dinero, en las mismas fechas, en lo que ya es su mayor apuesta.
+    /// </remarks>
+    public async Task<PerformanceResponse> GetPerformanceAsync(
+        DateOnly from,
+        DateOnly to,
+        Guid? benchmarkAssetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var days = await DaysAsync(from, to, cancellationToken).ConfigureAwait(false);
+        var performance = PortfolioPerformance.Of(days);
+
+        var reference = benchmarkAssetId ?? Largest(days);
+        var contributed = days.Aggregate(Money.Euros(0m), (total, day) => total + day.NetContributionInEuros);
+
+        if (reference is not { } assetId)
+        {
+            return Response(from, to, performance, contributed, days, null, null);
+        }
+
+        var asset = await context.Assets
+            .FirstOrDefaultAsync(entity => entity.Id == assetId, cancellationToken)
+            .ConfigureAwait(false);
+
+        var prices = await priceHistory.GetAsync(assetId, from, to, cancellationToken).ConfigureAwait(false);
+        var benchmark = BenchmarkComparison.Of(days, prices);
+
+        return Response(from, to, performance, contributed, days, asset?.CanonicalSymbol, benchmark);
+    }
+
+    /// <summary>La mayor posición del último día, que es la referencia por omisión.</summary>
+    private static Guid? Largest(IReadOnlyList<PortfolioDay> days) =>
+        days.Count == 0
+            ? null
+            : days[^1].Assets
+                .Where(asset => asset.ValueInEuros is not null)
+                .OrderByDescending(asset => asset.ValueInEuros!.Value.Amount)
+                .Select(asset => (Guid?)asset.AssetId)
+                .FirstOrDefault();
+
+    private static PerformanceResponse Response(
+        DateOnly from,
+        DateOnly to,
+        PerformanceResult performance,
+        Money contributed,
+        IReadOnlyList<PortfolioDay> days,
+        string? benchmarkSymbol,
+        BenchmarkResult? benchmark)
+    {
+        var value = days.Count == 0 ? Money.Euros(0m) : days[^1].ValueInEuros;
+
+        // El rendimiento de la referencia se mide con la misma regla que el de la
+        // cartera, o no serían comparables.
+        var benchmarkReturn = benchmark is null ? null : (decimal?)PortfolioPerformance.Of(benchmark.Days).TimeWeighted;
+
+        return new PerformanceResponse(
+            from,
+            to,
+            performance.TimeWeighted,
+            performance.MoneyWeighted,
+            performance.Volatility,
+            performance.MaximumDrawdown,
+            performance.DrawdownRecoveredInDays,
+            contributed.Amount,
+            value.Amount,
+            benchmarkSymbol,
+            benchmarkReturn,
+            benchmark?.Days is { Count: > 0 } series ? series[^1].ValueInEuros.Amount : null,
+            performance.IsComplete,
+            benchmark?.IsComplete ?? false);
     }
 }

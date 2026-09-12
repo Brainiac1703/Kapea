@@ -284,3 +284,24 @@ public sealed record AssetHistoryResponse(
 
 /// <summary>Un valor de un indicador con el día al que corresponde.</summary>
 public sealed record IndicatorPointResponse(DateOnly Date, decimal Value);
+
+/// <summary>Rendimiento y riesgo de un periodo, con su referencia.</summary>
+/// <param name="TimeWeightedReturn">Rentabilidad que juzga las decisiones, en tanto por uno.</param>
+/// <param name="MoneyWeightedReturn">Rentabilidad que juzga el resultado. Vacía si no se puede resolver.</param>
+/// <param name="BenchmarkSymbol">Activo tomado como referencia, o vacío si no hay ninguno.</param>
+/// <param name="BenchmarkReturn">Lo que habría rendido la referencia con las mismas aportaciones.</param>
+public sealed record PerformanceResponse(
+    DateOnly From,
+    DateOnly To,
+    decimal TimeWeightedReturn,
+    decimal? MoneyWeightedReturn,
+    decimal Volatility,
+    decimal MaximumDrawdown,
+    int? DrawdownRecoveredInDays,
+    decimal ContributedInEuros,
+    decimal ValueInEuros,
+    string? BenchmarkSymbol,
+    decimal? BenchmarkReturn,
+    decimal? BenchmarkValueInEuros,
+    bool IsComplete,
+    bool BenchmarkIsComplete);

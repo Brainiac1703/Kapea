@@ -5,13 +5,13 @@
 - [x] 1.3 Implementar volatilidad, caída máxima desde el pico y tiempo de recuperación; verificar con tests de caída recuperada y de caída aún abierta
 - [x] 1.4 Implementar la comparación con una referencia aplicándole las mismas aportaciones en las mismas fechas; verificar con tests, incluido el de una referencia a la que le falta algún día
 - [x] 1.5 Marcar como incompletas las métricas calculadas sobre periodos con días sin precio; verificar con test
-- [ ] 1.6 Exponer el rendimiento en la API y en una pantalla, con el periodo seleccionable; verificar con test de integración y manualmente
+- [x] 1.6 Exponer el rendimiento en la API y en una pantalla, con el periodo seleccionable; verificar con test de integración y manualmente
 
 ## 2. Indicadores que faltan
 
-- [ ] 2.1 Implementar el MACD con sus dos medias y su línea de señal; verificar con tests de serie corta y de cruce
-- [ ] 2.2 Implementar las bandas de Bollinger; verificar con tests de serie plana y de precio fuera de banda
-- [ ] 2.3 Implementar el recorrido medio verdadero; verificar con tests de dos activos con recorridos distintos y de serie de un solo día
+- [x] 2.1 Implementar el MACD con sus dos medias y su línea de señal; verificar con tests de serie corta y de cruce
+- [x] 2.2 Implementar las bandas de Bollinger; verificar con tests de serie plana y de precio fuera de banda
+- [x] 2.3 Implementar el recorrido medio verdadero; verificar con tests de dos activos con recorridos distintos y de serie de un solo día
 - [ ] 2.4 Añadir la media de 200 días como filtro de tendencia disponible para las reglas; verificar con test
 
 ## 3. Sistemas de especulación como dato

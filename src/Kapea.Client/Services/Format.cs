@@ -50,6 +50,17 @@ public static class Format
     public static string Percent(decimal? weight, string whenMissing) =>
         weight is { } value ? value.ToString("P1", CultureInfo.CurrentCulture) : whenMissing;
 
+    /// <summary>
+    /// Una rentabilidad, con su signo delante.
+    /// </summary>
+    /// <remarks>
+    /// El signo explícito evita tener que fijarse en el color para saber si se ha ganado
+    /// o perdido, que es justo lo que no funciona para quien no distingue bien los
+    /// colores.
+    /// </remarks>
+    public static string Rate(decimal? rate, string whenMissing) =>
+        rate is { } value ? value.ToString("+0.##%;-0.##%;0%", CultureInfo.CurrentCulture) : whenMissing;
+
     /// <summary>Instante en la zona de quien mira, con minutos y sin segundos.</summary>
     public static string Moment(DateTimeOffset instant) =>
         instant.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);

@@ -316,6 +316,15 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<AssetHistoryResponse>(response, cancellationToken);
     }
 
+    public async Task<PerformanceResponse> GetPerformanceAsync(
+        int? days = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync(Range("api/portfolio/performance", days), cancellationToken);
+
+        return await ReadAsync<PerformanceResponse>(response, cancellationToken);
+    }
+
     /// <summary>Acota el periodo contando hacia atrás desde hoy.</summary>
     private static string Range(string path, int? days) => days is { } span
         ? $"{path}?from={DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-span):yyyy-MM-dd}"

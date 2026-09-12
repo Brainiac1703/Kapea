@@ -366,6 +366,37 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task The_performance_of_an_empty_portfolio_is_zero_and_not_an_error()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var performance = await client.GetFromJsonAsync<PerformanceResponse>(
+            "/api/portfolio/performance?from=2026-03-01&to=2026-03-07");
+
+        Assert.Equal(0m, performance!.TimeWeightedReturn);
+        Assert.Null(performance.BenchmarkSymbol);
+    }
+
+    [Fact]
+    public async Task The_performance_says_what_was_contributed_and_what_it_is_worth()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con rendimiento", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(user, account!.Id);
+
+        var performance = await client.GetFromJsonAsync<PerformanceResponse>("/api/portfolio/performance");
+
+        // El ingreso sembrado son cien euros, y sin precios no hay valor que enseñar.
+        Assert.Equal(100m, performance!.ContributedInEuros);
+        Assert.Equal(0m, performance.ValueInEuros);
+    }
+
+    [Fact]
     public async Task The_results_of_a_year_with_nothing_come_back_empty_rather_than_missing()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());

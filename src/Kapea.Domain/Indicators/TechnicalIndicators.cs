@@ -6,6 +6,13 @@ public sealed record IndicatorPoint(DateOnly Date, decimal Value);
 /// <summary>Un día de la serie sobre la que se calculan los indicadores.</summary>
 public sealed record PricePoint(DateOnly Date, decimal PriceInEuros);
 
+/// <summary>Un día del MACD.</summary>
+/// <param name="Distance">Línea menos señal. El cruce es el día en que cambia de signo.</param>
+public sealed record MacdPoint(DateOnly Date, decimal Line, decimal Signal, decimal Distance);
+
+/// <summary>Un día de las bandas de volatilidad.</summary>
+public sealed record BandPoint(DateOnly Date, decimal Middle, decimal Upper, decimal Lower);
+
 /// <summary>
 /// Indicadores sobre una serie de precios.
 /// </summary>
@@ -130,6 +137,133 @@ public static class TechnicalIndicators
             losses = ((losses * (days - 1)) + Math.Max(-change, 0m)) / days;
 
             points.Add(new IndicatorPoint(series[index].Date, Strength(gains, losses)));
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// Convergencia y divergencia de medias móviles.
+    /// </summary>
+    /// <remarks>
+    /// La línea principal es la diferencia entre dos medias exponenciales; la de señal es
+    /// la media exponencial de esa diferencia. Lo que se mira es cuándo se cruzan, y por
+    /// eso se devuelve también la distancia entre ambas: el cruce es el día en que cambia
+    /// de signo.
+    /// </remarks>
+    public static IReadOnlyList<MacdPoint> Macd(
+        IReadOnlyList<PricePoint> series,
+        int fastDays = 12,
+        int slowDays = 26,
+        int signalDays = 9)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentOutOfRangeException.ThrowIfLessThan(fastDays, 2);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(slowDays, fastDays);
+        ArgumentOutOfRangeException.ThrowIfLessThan(signalDays, 2);
+
+        var fast = ExponentialMovingAverage(series, fastDays).ToDictionary(point => point.Date, point => point.Value);
+        var slow = ExponentialMovingAverage(series, slowDays);
+
+        // La línea solo existe donde existen las dos medias, que es desde que la lenta
+        // completa su ventana.
+        var line = slow
+            .Where(point => fast.ContainsKey(point.Date))
+            .Select(point => new PricePoint(point.Date, fast[point.Date] - point.Value))
+            .ToList();
+
+        var signal = ExponentialMovingAverage(line, signalDays).ToDictionary(point => point.Date, point => point.Value);
+
+        return
+        [
+            .. line
+                .Where(point => signal.ContainsKey(point.Date))
+                .Select(point => new MacdPoint(
+                    point.Date,
+                    point.PriceInEuros,
+                    signal[point.Date],
+                    point.PriceInEuros - signal[point.Date])),
+        ];
+    }
+
+    /// <summary>
+    /// Bandas de volatilidad alrededor de la media.
+    /// </summary>
+    /// <remarks>
+    /// Dicen si un precio está caro o barato respecto a sí mismo, que es distinto de
+    /// estar caro en términos absolutos. La desviación se calcula sobre la misma ventana
+    /// de la media, con el denominador de la población: es la convención del indicador y
+    /// cambiarla daría bandas que no coinciden con las de ninguna plataforma.
+    /// </remarks>
+    public static IReadOnlyList<BandPoint> BollingerBands(
+        IReadOnlyList<PricePoint> series,
+        int days = 20,
+        decimal deviations = 2m)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentOutOfRangeException.ThrowIfLessThan(days, 2);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(deviations);
+
+        var points = new List<BandPoint>();
+
+        for (var index = days - 1; index < series.Count; index++)
+        {
+            var window = series.Skip(index - days + 1).Take(days).Select(point => point.PriceInEuros).ToList();
+            var average = window.Sum() / days;
+            var variance = window.Sum(price => (price - average) * (price - average)) / days;
+            var deviation = (decimal)Math.Sqrt((double)variance);
+
+            points.Add(new BandPoint(
+                series[index].Date,
+                average,
+                average + (deviations * deviation),
+                average - (deviations * deviation)));
+        }
+
+        return points;
+    }
+
+    /// <summary>
+    /// Cuánto se mueve un activo de un cierre al siguiente, en media.
+    /// </summary>
+    /// <remarks>
+    /// Es lo que convierte un nivel de salida en una decisión calculada en lugar de un
+    /// número redondo: dos activos con el mismo capital asignado necesitan distancias
+    /// distintas si uno se mueve el doble que el otro.
+    ///
+    /// Se calcula sobre cierres porque la serie guardada solo tiene cierres. No todos los
+    /// proveedores dan el rango del día, y usarlo dejaría el indicador disponible para
+    /// unos activos y no para otros.
+    /// </remarks>
+    public static IReadOnlyList<IndicatorPoint> AverageDailyRange(IReadOnlyList<PricePoint> series, int days = 14)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentOutOfRangeException.ThrowIfLessThan(days, 2);
+
+        var points = new List<IndicatorPoint>();
+
+        if (series.Count <= days)
+        {
+            return points;
+        }
+
+        var moves = new List<decimal>(series.Count - 1);
+
+        for (var index = 1; index < series.Count; index++)
+        {
+            moves.Add(Math.Abs(series[index].PriceInEuros - series[index - 1].PriceInEuros));
+        }
+
+        // Suavizado de Wilder, igual que en la fuerza relativa, para que las dos cifras
+        // se muevan al mismo ritmo.
+        var average = moves.Take(days).Sum() / days;
+
+        points.Add(new IndicatorPoint(series[days].Date, average));
+
+        for (var index = days; index < moves.Count; index++)
+        {
+            average = ((average * (days - 1)) + moves[index]) / days;
+            points.Add(new IndicatorPoint(series[index + 1].Date, average));
         }
 
         return points;

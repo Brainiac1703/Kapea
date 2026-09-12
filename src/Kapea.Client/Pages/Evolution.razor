@@ -24,6 +24,81 @@
 }
 else
 {
+    @* El rendimiento va antes de la gráfica: es la respuesta a si lo estás haciendo
+       bien, y la gráfica es el detalle de cómo se llegó ahí. *@
+    @if (_performance is { } performance)
+    {
+        @if (!performance.IsComplete)
+        {
+            <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+                @Ui["Performance_Incomplete"]
+            </FluentMessageBar>
+        }
+
+        <FluentLabel Typo="Typography.H4">@Ui["Performance_Heading"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Performance_Intro"]</FluentLabel>
+
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
+            <div class="count">
+                <div class="count-value @Format.Sign(performance.TimeWeightedReturn)">
+                    @Format.Rate(performance.TimeWeightedReturn, Ui["Charts_NoValue"])
+                </div>
+                <div class="count-label">@Ui["Performance_TimeWeighted"]</div>
+            </div>
+            <div class="count">
+                <div class="count-value @Format.Sign(performance.MoneyWeightedReturn)">
+                    @Format.Rate(performance.MoneyWeightedReturn, Ui["Charts_NoValue"])
+                </div>
+                <div class="count-label">@Ui["Performance_MoneyWeighted"]</div>
+            </div>
+            <div class="count">
+                <div class="count-value">@Format.Rate(performance.Volatility, Ui["Charts_NoValue"])</div>
+                <div class="count-label">@Ui["Performance_Volatility"]</div>
+            </div>
+            <div class="count">
+                <div class="count-value loss">@Format.Rate(-performance.MaximumDrawdown, Ui["Charts_NoValue"])</div>
+                <div class="count-label">@Ui["Performance_Drawdown"]</div>
+            </div>
+        </FluentStack>
+
+        <FluentLabel Typo="Typography.Body" Class="intro">
+            @(performance.DrawdownRecoveredInDays is { } recovered
+                ? string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                    Ui["Performance_Recovered"].Value, recovered)
+                : Ui["Performance_NotRecovered"].Value)
+        </FluentLabel>
+
+        @if (performance.BenchmarkSymbol is { Length: > 0 } reference)
+        {
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
+                <div class="count">
+                    <div class="count-value @Format.Sign(performance.BenchmarkReturn)">
+                        @Format.Rate(performance.BenchmarkReturn, Ui["Charts_NoValue"])
+                    </div>
+                    <div class="count-label">@Ui["Performance_BenchmarkReturn"] · @reference</div>
+                </div>
+                <Amount Label="@Ui["Performance_Benchmark"]" Value="@performance.BenchmarkValueInEuros" />
+            </FluentStack>
+
+            <FluentLabel Typo="Typography.Body" Class="intro">
+                @string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                    Ui["Performance_BenchmarkHelp"].Value, reference)
+            </FluentLabel>
+
+            <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+                @(performance.TimeWeightedReturn >= (performance.BenchmarkReturn ?? decimal.MinValue)
+                    ? Ui["Performance_Beating"]
+                    : Ui["Performance_Losing"])
+            </FluentMessageBar>
+        }
+        else
+        {
+            <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+                @Ui["Performance_NoBenchmark"]
+            </FluentMessageBar>
+        }
+    }
+
     @* El aviso va antes de la gráfica: una línea que cae porque falta un precio se lee
        igual que una pérdida si nadie dice lo contrario. *@
     @if (_history.IncompleteDays > 0)
@@ -51,6 +126,7 @@ else
     ];
 
     private PortfolioHistoryResponse? _history;
+    private PerformanceResponse? _performance;
     private int? _days = 365;
 
     protected override Task OnInitializedAsync() => ReloadAsync();
@@ -67,10 +143,12 @@ else
         try
         {
             _history = await Api.GetHistoryAsync(_days);
+            _performance = await Api.GetPerformanceAsync(_days);
         }
         catch (KapeaApiException exception)
         {
             _history = null;
+            _performance = null;
             Toasts.ShowApiError(exception);
         }
     }

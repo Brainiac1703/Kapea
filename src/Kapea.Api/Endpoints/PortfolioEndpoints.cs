@@ -408,6 +408,19 @@ public static class PortfolioEndpoints
             return queries.GetHistoryAsync(desde, hasta, token);
         });
 
+        api.MapGet("/portfolio/performance", (
+            DateOnly? from,
+            DateOnly? to,
+            Guid? benchmark,
+            IPortfolioQueries queries,
+            TimeProvider time,
+            CancellationToken token) =>
+        {
+            var (desde, hasta) = Range(from, to, time);
+
+            return queries.GetPerformanceAsync(desde, hasta, benchmark, token);
+        });
+
         api.MapGet("/portfolio/history/{assetId:guid}", async (
             Guid assetId,
             DateOnly? from,

@@ -466,6 +466,63 @@
   <data name="Evolution_Title" xml:space="preserve">
     <value>Evolución</value>
   </data>
+  <data name="Performance_Heading" xml:space="preserve">
+    <value>Rendimiento</value>
+  </data>
+  <data name="Performance_Intro" xml:space="preserve">
+    <value>Cómo lo estás haciendo, medido como se mide un fondo, y comparado con haber puesto el mismo dinero en tu mayor posición.</value>
+  </data>
+  <data name="Performance_TimeWeighted" xml:space="preserve">
+    <value>Rentabilidad de las decisiones</value>
+  </data>
+  <data name="Performance_TimeWeighted_Help" xml:space="preserve">
+    <value>Neutraliza el efecto de cuándo metiste el dinero. Es la que compara tu gestión con otra.</value>
+  </data>
+  <data name="Performance_MoneyWeighted" xml:space="preserve">
+    <value>Rentabilidad de tu dinero</value>
+  </data>
+  <data name="Performance_MoneyWeighted_Help" xml:space="preserve">
+    <value>Tiene en cuenta cuándo entró cada euro. Es lo que te has llevado de verdad.</value>
+  </data>
+  <data name="Performance_Volatility" xml:space="preserve">
+    <value>Volatilidad</value>
+  </data>
+  <data name="Performance_Volatility_Help" xml:space="preserve">
+    <value>Cuánto oscila tu cartera en un año. Más alta significa sustos más grandes.</value>
+  </data>
+  <data name="Performance_Drawdown" xml:space="preserve">
+    <value>Mayor caída</value>
+  </data>
+  <data name="Performance_Drawdown_Help" xml:space="preserve">
+    <value>Lo máximo que has bajado desde un máximo anterior.</value>
+  </data>
+  <data name="Performance_Recovered" xml:space="preserve">
+    <value>Recuperada en {0} días</value>
+  </data>
+  <data name="Performance_NotRecovered" xml:space="preserve">
+    <value>Todavía sin recuperar</value>
+  </data>
+  <data name="Performance_Benchmark" xml:space="preserve">
+    <value>Referencia</value>
+  </data>
+  <data name="Performance_BenchmarkReturn" xml:space="preserve">
+    <value>Rentabilidad de la referencia</value>
+  </data>
+  <data name="Performance_BenchmarkHelp" xml:space="preserve">
+    <value>Qué habría rendido poner el mismo dinero, en las mismas fechas, en {0}.</value>
+  </data>
+  <data name="Performance_Beating" xml:space="preserve">
+    <value>Tu gestión va por delante de la referencia.</value>
+  </data>
+  <data name="Performance_Losing" xml:space="preserve">
+    <value>La referencia va por delante de tu gestión.</value>
+  </data>
+  <data name="Performance_Incomplete" xml:space="preserve">
+    <value>Hay días sin precio en el periodo, así que estas cifras están calculadas sobre datos incompletos.</value>
+  </data>
+  <data name="Performance_NoBenchmark" xml:space="preserve">
+    <value>No hay ninguna posición con precio con la que comparar.</value>
+  </data>
   <data name="Evolution_Heading" xml:space="preserve">
     <value>Evolución del patrimonio</value>
   </data>

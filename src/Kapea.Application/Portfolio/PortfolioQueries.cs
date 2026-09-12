@@ -54,6 +54,19 @@ public interface IPortfolioQueries
         DateOnly to,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Rendimiento del periodo, con la referencia contra la que compararlo.
+    /// </summary>
+    /// <param name="benchmarkAssetId">
+    /// Activo con el que comparar. Sin él se toma la mayor posición, que es la
+    /// alternativa más cercana a no haber hecho nada con ese dinero.
+    /// </param>
+    Task<PerformanceResponse> GetPerformanceAsync(
+        DateOnly from,
+        DateOnly to,
+        Guid? benchmarkAssetId = null,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Evolución de un activo con sus indicadores, o nada si no está en cartera.</summary>
     Task<AssetHistoryResponse?> GetAssetHistoryAsync(
         Guid assetId,

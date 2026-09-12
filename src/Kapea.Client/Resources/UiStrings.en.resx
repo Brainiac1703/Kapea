@@ -466,6 +466,63 @@
   <data name="Evolution_Title" xml:space="preserve">
     <value>Evolution</value>
   </data>
+  <data name="Performance_Heading" xml:space="preserve">
+    <value>Performance</value>
+  </data>
+  <data name="Performance_Intro" xml:space="preserve">
+    <value>How you are doing, measured the way a fund is measured, against putting the same money into your largest position.</value>
+  </data>
+  <data name="Performance_TimeWeighted" xml:space="preserve">
+    <value>Return on decisions</value>
+  </data>
+  <data name="Performance_TimeWeighted_Help" xml:space="preserve">
+    <value>Neutralises when you put money in. This is the one that compares your management with another.</value>
+  </data>
+  <data name="Performance_MoneyWeighted" xml:space="preserve">
+    <value>Return on your money</value>
+  </data>
+  <data name="Performance_MoneyWeighted_Help" xml:space="preserve">
+    <value>Takes into account when each euro went in. This is what you actually took home.</value>
+  </data>
+  <data name="Performance_Volatility" xml:space="preserve">
+    <value>Volatility</value>
+  </data>
+  <data name="Performance_Volatility_Help" xml:space="preserve">
+    <value>How much your portfolio swings in a year. Higher means bigger scares.</value>
+  </data>
+  <data name="Performance_Drawdown" xml:space="preserve">
+    <value>Largest fall</value>
+  </data>
+  <data name="Performance_Drawdown_Help" xml:space="preserve">
+    <value>The most you have dropped from an earlier peak.</value>
+  </data>
+  <data name="Performance_Recovered" xml:space="preserve">
+    <value>Recovered in {0} days</value>
+  </data>
+  <data name="Performance_NotRecovered" xml:space="preserve">
+    <value>Not recovered yet</value>
+  </data>
+  <data name="Performance_Benchmark" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="Performance_BenchmarkReturn" xml:space="preserve">
+    <value>Reference return</value>
+  </data>
+  <data name="Performance_BenchmarkHelp" xml:space="preserve">
+    <value>What putting the same money, on the same dates, into {0} would have returned.</value>
+  </data>
+  <data name="Performance_Beating" xml:space="preserve">
+    <value>Your management is ahead of the reference.</value>
+  </data>
+  <data name="Performance_Losing" xml:space="preserve">
+    <value>The reference is ahead of your management.</value>
+  </data>
+  <data name="Performance_Incomplete" xml:space="preserve">
+    <value>Some days in the period have no price, so these figures are computed on incomplete data.</value>
+  </data>
+  <data name="Performance_NoBenchmark" xml:space="preserve">
+    <value>There is no priced position to compare against.</value>
+  </data>
   <data name="Evolution_Heading" xml:space="preserve">
     <value>Net worth over time</value>
   </data>

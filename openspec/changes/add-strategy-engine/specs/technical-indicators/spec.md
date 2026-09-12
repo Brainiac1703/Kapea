@@ -28,9 +28,11 @@ El sistema DEBE calcular las bandas de Bollinger: una media móvil y dos bandas 
 - **WHEN** el precio cierra por encima de la banda superior
 - **THEN** el sistema lo refleja en el valor de ese día
 
-### Requirement: Recorrido medio
+### Requirement: Recorrido medio diario
 
-El sistema DEBE calcular el recorrido medio verdadero de una serie, que mide cuánto se mueve un activo en un día.
+El sistema DEBE calcular el recorrido medio diario de una serie, que mide cuánto se mueve un activo de un cierre al siguiente.
+
+Se calcula sobre cierres y no sobre máximos y mínimos porque la serie guardada solo tiene cierres: no todos los proveedores dan el rango del día, y usarlo dejaría el indicador disponible para unos activos y no para otros.
 
 #### Scenario: Activo tranquilo y activo movido
 
