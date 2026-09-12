@@ -39,6 +39,38 @@ public sealed class Platform
     /// </summary>
     public bool BuiltIn { get; private set; }
 
+    /// <summary>
+    /// Lo que la plataforma se queda dentro del precio, en tanto por uno.
+    /// </summary>
+    /// <remarks>
+    /// Es un dato de la plataforma y no del programa: el día que cambie sus tarifas,
+    /// escribirlo en el código haría que todas las simulaciones anteriores mintieran sin
+    /// avisar. Cero significa que no se sabe, y entonces una simulación sale sin coste y
+    /// lo dice.
+    /// </remarks>
+    public decimal FeeRate { get; private set; }
+
+    /// <summary>Comisión aparte del precio, cuando la plataforma la cobre así.</summary>
+    public decimal FixedFee { get; private set; }
+
+    /// <summary>Declara lo que cuesta operar en la plataforma.</summary>
+    public void SetFees(decimal feeRate, decimal fixedFee)
+    {
+        if (feeRate < 0m || fixedFee < 0m)
+        {
+            throw new DomainException("Una comisión no puede ser negativa.");
+        }
+
+        if (feeRate > 0.2m)
+        {
+            throw new DomainException(
+                "Una comisión superior al veinte por ciento no es una comisión; revisa si está en tanto por uno.");
+        }
+
+        FeeRate = feeRate;
+        FixedFee = fixedFee;
+    }
+
     public static Platform Create(PlatformCode code, string name, PlatformImportKind importKind) =>
         new(code, Named(name, code), importKind, builtIn: false);
 

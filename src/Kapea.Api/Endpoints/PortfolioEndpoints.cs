@@ -33,6 +33,7 @@ public static class PortfolioEndpoints
         api.MapImports();
         api.MapPortfolio();
         api.MapTransfers();
+        api.MapStrategies();
     }
 
     private static void MapAccounts(this RouteGroupBuilder api)

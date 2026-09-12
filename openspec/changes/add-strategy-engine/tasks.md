@@ -21,7 +21,7 @@
 - [x] 3.3 Implementar el versionado, conservando las versiones anteriores; verificar con tests de corrección y de simulación de una versión antigua
 - [x] 3.4 Persistir sistemas y versiones; verificar con test de integración que una versión guardada se recupera igual
 - [ ] 3.5 Añadir la pantalla de sistemas con alta, corrección y consulta de versiones; verificar manualmente
-- [ ] 3.6 Dar de alta un sistema de serie, sencillo y documentado, para tener con qué empezar; verificar con test que se puede simular sin tocar nada
+- [x] 3.6 Dar de alta un sistema de serie, sencillo y documentado, para tener con qué empezar; verificar con test que se puede simular sin tocar nada
 
 ## 4. Motor de señales
 
@@ -30,13 +30,13 @@
 - [x] 4.3 Comprobar que ninguna señal usa datos posteriores a su día; verificar con test que evaluar el histórico entero da las mismas señales que evaluar día a día
 - [x] 4.4 Implementar objetivo y nivel de salida cuando el sistema los declare; verificar con tests de sistema con objetivo y sin él
 - [x] 4.5 No emitir señal cuando falten días en la ventana que la regla necesita, diciendo por qué; verificar con test
-- [ ] 4.6 Persistir las señales emitidas y exponerlas en la API; verificar con test de integración
+- [x] 4.6 Persistir las señales emitidas y exponerlas en la API; verificar con test de integración
 - [ ] 4.7 Añadir la pantalla de señales vigentes, con el sistema del que viene cada una; verificar manualmente
 
 ## 5. Simulador
 
 - [x] 5.1 Implementar el recorrido de la simulación ejecutando al día siguiente de la señal; verificar con test que una compra nunca usa el precio del día de la señal
-- [ ] 5.2 Declarar la comisión junto a cada plataforma y aplicarla en cada operación simulada; verificar con tests de comisión dentro del precio y de comisión aparte
+- [x] 5.2 Declarar la comisión junto a cada plataforma y aplicarla en cada operación simulada; verificar con tests de comisión dentro del precio y de comisión aparte
 - [x] 5.3 Implementar el resultado después de impuestos con criterio FIFO y tramos configurables; verificar con tests de ganancia realizada y de cambio de tramos
 - [x] 5.4 Implementar la comparación con no hacer nada en el mismo periodo; verificar con test de un sistema peor que la referencia
 - [x] 5.5 Devolver el detalle de la simulación: operaciones, aciertos, caída máxima, comisiones e impuestos; verificar con test

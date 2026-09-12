@@ -61,6 +61,9 @@ public static class DependencyInjection
         services.AddScoped<Application.MarketData.IPricedAssetRepository, PricedAssetRepository>();
         services.AddScoped<Application.MarketData.ExchangeRateIngestion>();
         services.AddScoped<Application.MarketData.PriceHistoryUpdater>();
+        services.AddScoped<Application.Strategies.IStrategyRepository, StrategyStore>();
+        services.AddScoped<Application.Strategies.IStrategyDataSource, StrategyDataSource>();
+        services.AddScoped<Application.Strategies.StrategyService>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<UserSignInService>();
         services.AddScoped<DevelopmentDataAdoption>();
