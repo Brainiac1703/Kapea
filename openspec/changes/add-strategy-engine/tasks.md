@@ -67,8 +67,19 @@
 - [ ] 8.3 Implementar la consulta del diario de un periodo con lo que pasó después; verificar con test
 - [ ] 8.4 Añadir la anotación a las pantallas de movimientos y de señales; verificar manualmente
 
-## 9. Validación con los datos del usuario
+## 9. Ideas de fuentes externas
 
-- [ ] 9.1 Contrastar la rentabilidad calculada con lo que dicen sus plataformas; documentar cada diferencia y su causa
-- [ ] 9.2 Comprobar sobre su histórico cuánto se habría ido en comisiones con un sistema de operativa frecuente; dejarlo escrito
-- [ ] 9.3 Dejar escrito qué sistemas se han simulado, con qué resultado y con qué supuestos
+- [ ] 9.1 Modelar la idea con su activo, sentido, fecha, fuente, enlace y niveles opcionales; verificar con tests, incluido el de una idea sin niveles
+- [ ] 9.2 Modelar la fuente vigilada con su última publicación conocida; verificar con test de integración que se recupera igual
+- [ ] 9.3 Definir el contrato de extracción de ideas de un texto, con lo no extraído marcado aparte; verificar con tests contra respuestas grabadas, incluido un texto sin ninguna idea concreta
+- [ ] 9.4 Implementar la extracción sobre el servicio de IA existente, sin guardar el texto pegado ni permitir guardar sin aprobación; verificar con tests
+- [ ] 9.5 Implementar el aviso de publicación nueva contra la interfaz oficial de la fuente, degradando a registro manual cuando no haya forma de consultarla; verificar con tests contra respuestas grabadas
+- [ ] 9.6 Implementar el seguimiento de cada idea contra la serie de precios hasta objetivo, salida o caducidad; verificar con tests de los tres desenlaces
+- [ ] 9.7 Implementar el balance por fuente con el rendimiento neto de comisiones; verificar con tests, incluido el de una fuente sin ideas resueltas
+- [ ] 9.8 Añadir la pantalla de ideas con el pegado de texto, la revisión de lo propuesto y el balance por fuente; verificar manualmente
+
+## 10. Validación con los datos del usuario
+
+- [ ] 10.1 Contrastar la rentabilidad calculada con lo que dicen sus plataformas; documentar cada diferencia y su causa
+- [ ] 10.2 Comprobar sobre su histórico cuánto se habría ido en comisiones con un sistema de operativa frecuente; dejarlo escrito
+- [ ] 10.3 Dejar escrito qué sistemas se han simulado, con qué resultado y con qué supuestos

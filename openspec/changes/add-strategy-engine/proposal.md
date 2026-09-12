@@ -20,6 +20,7 @@ Por eso este change no empieza por las señales sino por poder juzgarlas.
 - Se añaden los indicadores que faltan para expresar sistemas reales: **MACD**, **bandas de Bollinger**, **ATR** y la **media de 200 días** como filtro de tendencia.
 - **Gestión del riesgo**: tamaño de la posición según lo que se mueve el activo, tope por posición, nivel de salida y objetivo, bandas de rebalanceo y aviso de concentración.
 - **Diario de decisiones**: cada operación puede guardar por qué se hizo y contra qué señal, para poder releerlo meses después.
+- **Ideas de fuentes externas**: lo que un analista propone sobre un valor concreto entra como idea fechada, con su nivel de entrada, su objetivo y su salida, y **se sigue hasta el final**. Al cabo de unos meses eso da un número en lugar de una impresión: cuántas llegaron a objetivo y qué habría rendido seguirlas con las comisiones dentro.
 
 ## Capabilities
 
@@ -31,6 +32,7 @@ Por eso este change no empieza por las señales sino por poder juzgarlas.
 - `strategy-backtest`: cómo se simula un sistema sobre el histórico con costes e impuestos.
 - `risk-management`: tamaño de posición, niveles de salida, concentración y rebalanceo.
 - `decision-journal`: el registro de por qué se hizo cada operación.
+- `external-ideas`: ideas fechadas que llegan de fuera, cómo entran y cómo se mide lo que dieron.
 
 ### Modified Capabilities
 
@@ -42,4 +44,5 @@ Por eso este change no empieza por las señales sino por poder juzgarlas.
 - **Infrastructure**: persistencia de los sistemas y sus versiones, de las señales emitidas y del diario; y el traductor de sistemas descritos en palabras sobre el servicio de Azure OpenAI que ya existe.
 - **Api** y **Client**: pantallas de rendimiento, de sistemas, de señales del día y del resultado de una simulación.
 - **Fuera de alcance**: ejecutar órdenes automáticamente contra las plataformas, y el análisis de sentimiento y noticias. Van en changes aparte.
+- **Las transcripciones no se descargan.** La API oficial de YouTube no da los subtítulos de un canal ajeno, y hacerlo por otra vía va contra sus términos. Kapea avisa de que hay publicación nueva y el usuario pega el texto; de él se guardan las ideas, no la transcripción.
 - **Sin consejo de inversión.** Kapea calcula y enseña lo que dicen las reglas que el usuario ha escrito; no recomienda comprar ni vender, y la pantalla lo dice.
