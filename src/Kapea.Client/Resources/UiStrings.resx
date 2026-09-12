@@ -475,6 +475,90 @@
   <data name="Nav_Journal" xml:space="preserve">
     <value>Diario</value>
   </data>
+  <data name="Nav_Ideas" xml:space="preserve">
+    <value>Ideas</value>
+  </data>
+  <data name="Ideas_Title" xml:space="preserve">
+    <value>Ideas</value>
+  </data>
+  <data name="Ideas_Heading" xml:space="preserve">
+    <value>Ideas de fuentes externas</value>
+  </data>
+  <data name="Ideas_Intro" xml:space="preserve">
+    <value>Lo que otros proponen sobre un valor, con su fecha y sus niveles. Se sigue hasta el final para saber qué dio.</value>
+  </data>
+  <data name="Ideas_Paste" xml:space="preserve">
+    <value>Pegar una publicación</value>
+  </data>
+  <data name="Ideas_PasteHelp" xml:space="preserve">
+    <value>Pega aquí el texto y Kapea propondrá las ideas. El texto no se guarda: solo las ideas y el enlace.</value>
+  </data>
+  <data name="Ideas_Extract" xml:space="preserve">
+    <value>Sacar ideas</value>
+  </data>
+  <data name="Ideas_Source" xml:space="preserve">
+    <value>Fuente</value>
+  </data>
+  <data name="Ideas_NewSource" xml:space="preserve">
+    <value>Nueva fuente</value>
+  </data>
+  <data name="Ideas_SourceName" xml:space="preserve">
+    <value>Nombre de la fuente</value>
+  </data>
+  <data name="Ideas_Channel" xml:space="preserve">
+    <value>Canal, si se puede consultar</value>
+  </data>
+  <data name="Ideas_Url" xml:space="preserve">
+    <value>Enlace de la publicación</value>
+  </data>
+  <data name="Ideas_Add" xml:space="preserve">
+    <value>Guardar idea</value>
+  </data>
+  <data name="Ideas_Empty" xml:space="preserve">
+    <value>No hay ninguna idea anotada.</value>
+  </data>
+  <data name="Ideas_Outcome" xml:space="preserve">
+    <value>Desenlace</value>
+  </data>
+  <data name="Ideas_Open" xml:space="preserve">
+    <value>Viva</value>
+  </data>
+  <data name="Ideas_Reached" xml:space="preserve">
+    <value>Llegó al objetivo</value>
+  </data>
+  <data name="Ideas_Stopped" xml:space="preserve">
+    <value>Saltó la salida</value>
+  </data>
+  <data name="Ideas_Expired" xml:space="preserve">
+    <value>Caducada</value>
+  </data>
+  <data name="Ideas_Track" xml:space="preserve">
+    <value>Actualizar desenlaces</value>
+  </data>
+  <data name="Ideas_Balance" xml:space="preserve">
+    <value>Balance por fuente</value>
+  </data>
+  <data name="Ideas_Return" xml:space="preserve">
+    <value>Rendimiento neto de comisiones</value>
+  </data>
+  <data name="Ideas_NoReturn" xml:space="preserve">
+    <value>Sin ideas resueltas todavía</value>
+  </data>
+  <data name="Ideas_NotUnderstood" xml:space="preserve">
+    <value>No he sabido sacar esto</value>
+  </data>
+  <data name="Ideas_Unavailable" xml:space="preserve">
+    <value>No hay servicio de extracción configurado. Las ideas se anotan a mano.</value>
+  </data>
+  <data name="Ideas_NoSource" xml:space="preserve">
+    <value>Da de alta una fuente antes de anotar ideas.</value>
+  </data>
+  <data name="Ideas_Saved" xml:space="preserve">
+    <value>Idea guardada.</value>
+  </data>
+  <data name="Ideas_Tracked" xml:space="preserve">
+    <value>Desenlaces actualizados.</value>
+  </data>
   <data name="Journal_Title" xml:space="preserve">
     <value>Diario</value>
   </data>

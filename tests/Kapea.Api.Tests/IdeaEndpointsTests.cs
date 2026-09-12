@@ -87,6 +87,23 @@ public class IdeaEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task An_idea_past_its_term_is_resolved_as_expired()
+    {
+        // El plazo corre aunque no haya precios: una idea de hace meses ya no está viva.
+        var client = factory.CreateClientFor(Guid.NewGuid());
+        var source = await Source(client);
+
+        await client.PostAsJsonAsync("/api/ideas", new CreateIdeaRequest(
+            source.Id, "BTC", "Buy", new DateOnly(2026, 1, 1), 100m, 120m, 90m, null, null));
+
+        await client.PostAsync("/api/ideas/track", null);
+
+        var ideas = await client.GetFromJsonAsync<List<IdeaResponse>>("/api/ideas");
+
+        Assert.Equal("Expired", Assert.Single(ideas!).Outcome);
+    }
+
+    [Fact]
     public async Task The_balance_of_a_source_without_resolved_ideas_says_so_instead_of_zero()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());
@@ -109,8 +126,9 @@ public class IdeaEndpointsTests(KapeaApiFactory factory)
         var client = factory.CreateClientFor(Guid.NewGuid());
         var source = await Source(client);
 
+        // Publicada hoy: una idea antigua caducaría por plazo y eso sí la resuelve.
         await client.PostAsJsonAsync("/api/ideas", new CreateIdeaRequest(
-            source.Id, "BTC", "Buy", new DateOnly(2026, 3, 1), 100m, 120m, 90m, null, null));
+            source.Id, "BTC", "Buy", DateOnly.FromDateTime(DateTime.UtcNow), 100m, 120m, 90m, null, null));
 
         var response = await client.PostAsync("/api/ideas/track", null);
 

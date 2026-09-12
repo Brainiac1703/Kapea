@@ -1,0 +1,269 @@
+@page "/ideas"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Ideas_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Ideas_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Ideas_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowSync())" OnClick="TrackAsync">
+        @Ui["Ideas_Track"]
+    </FluentButton>
+</FluentToolbar>
+
+<div class="card">
+    <FluentLabel Typo="Typography.H4">@Ui["Ideas_NewSource"]</FluentLabel>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+        <FluentTextField @bind-Value="_sourceName" Label="@Ui["Ideas_SourceName"]" />
+        <FluentTextField @bind-Value="_sourceChannel" Label="@Ui["Ideas_Channel"]" />
+        <FluentButton Disabled="@(_sourceName.Length == 0)" OnClick="AddSourceAsync">@Ui["Common_Add"]</FluentButton>
+    </FluentStack>
+</div>
+
+@if (_sources.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Ideas_NoSource"]</FluentMessageBar>
+}
+else
+{
+    <div class="card">
+        <FluentLabel Typo="Typography.H4">@Ui["Ideas_Paste"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Ideas_PasteHelp"]</FluentLabel>
+
+        @if (!_extractionAvailable)
+        {
+            <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">@Ui["Ideas_Unavailable"]</FluentMessageBar>
+        }
+
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+            <FluentSelect TOption="IdeaSourceResponse"
+                          Label="@Ui["Ideas_Source"]"
+                          Items="@_sources"
+                          OptionValue="@(source => source.Id.ToString())"
+                          OptionText="@(source => source.Name)"
+                          Value="@_sourceId.ToString()"
+                          ValueChanged="@(value => _sourceId = Guid.TryParse(value, out var id) ? id : Guid.Empty)" />
+
+            <FluentTextField @bind-Value="_url" Label="@Ui["Ideas_Url"]" />
+        </FluentStack>
+
+        <FluentTextArea @bind-Value="_text" Rows="6" Style="width: 100%" />
+
+        <FluentButton IconStart="@(new Icons.Regular.Size16.Lightbulb())"
+                      Disabled="@(!_extractionAvailable || _text.Length == 0)"
+                      OnClick="ExtractAsync">
+            @Ui["Ideas_Extract"]
+        </FluentButton>
+
+        @if (_notUnderstood.Count > 0)
+        {
+            <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+                @Ui["Ideas_NotUnderstood"]: @string.Join(" · ", _notUnderstood)
+            </FluentMessageBar>
+        }
+
+        @* Lo propuesto se revisa antes de guardar: nada entra solo. *@
+        @foreach (var proposal in _proposals)
+        {
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Center">
+                <FluentLabel Typo="Typography.Body">
+                    <strong>@proposal.Symbol</strong> · @Direction(proposal.Direction) ·
+                    @Format.Euros(proposal.Entry, Ui["Strategies_NoLevel"]) →
+                    @Format.Euros(proposal.Target, Ui["Strategies_NoLevel"]) /
+                    @Format.Euros(proposal.StopLoss, Ui["Strategies_NoLevel"])
+                </FluentLabel>
+                <FluentButton OnClick="@(() => SaveAsync(proposal))">@Ui["Ideas_Add"]</FluentButton>
+            </FluentStack>
+        }
+    </div>
+}
+
+@if (_balances.Count > 0)
+{
+    <FluentLabel Typo="Typography.H4">@Ui["Ideas_Balance"]</FluentLabel>
+
+    <FluentDataGrid Items="@_balances.AsQueryable()"
+                    TGridItem="SourceBalanceResponse"
+                    GridTemplateColumns="2fr 1fr 1fr 1fr 1fr 2fr">
+        <TemplateColumn Title="@Ui["Ideas_Source"]">@context.SourceName</TemplateColumn>
+        <TemplateColumn Title="@Ui["Ideas_Reached"]">@context.Reached</TemplateColumn>
+        <TemplateColumn Title="@Ui["Ideas_Stopped"]">@context.Stopped</TemplateColumn>
+        <TemplateColumn Title="@Ui["Ideas_Expired"]">@context.Expired</TemplateColumn>
+        <TemplateColumn Title="@Ui["Ideas_Open"]">@context.Open</TemplateColumn>
+        <TemplateColumn Title="@Ui["Ideas_Return"]">
+            <span class="@Format.Sign(context.ReturnNetOfFees)">
+                @Format.Rate(context.ReturnNetOfFees, Ui["Ideas_NoReturn"])
+            </span>
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@if (_ideas is null)
+{
+    <FluentProgressRing />
+}
+else if (_ideas.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Ideas_Empty"]</FluentMessageBar>
+}
+else
+{
+    <FluentDataGrid Items="@_ideas.AsQueryable()"
+                    TGridItem="IdeaResponse"
+                    GridTemplateColumns="1fr 1fr 1fr 1.5fr 1fr 2fr">
+        <TemplateColumn Title="@Ui["Common_Date"]">@Format.Day(context.PublishedOn)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Asset"]">@context.Symbol</TemplateColumn>
+        <TemplateColumn Title="@Ui["Signals_Direction"]">@Direction(context.Direction)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Strategies_Target"]">
+            @Format.Euros(context.TargetInEuros, Ui["Strategies_NoLevel"])
+            <div class="moment">
+                @Ui["Strategies_Stop"]: @Format.Euros(context.StopLossInEuros, Ui["Strategies_NoLevel"])
+            </div>
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Ideas_Outcome"]">@Outcome(context.Outcome)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Ideas_Source"]">
+            @context.SourceName
+            @if (context.Url is { Length: > 0 } url)
+            {
+                <div class="moment">
+                    <FluentAnchor Href="@url" Target="_blank" Appearance="Appearance.Hypertext">@url</FluentAnchor>
+                </div>
+            }
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    private IReadOnlyList<IdeaSourceResponse> _sources = [];
+    private IReadOnlyList<SourceBalanceResponse> _balances = [];
+    private IReadOnlyList<IdeaResponse>? _ideas;
+    private List<CreateIdeaRequest> _proposals = [];
+    private IReadOnlyList<string> _notUnderstood = [];
+    private Guid _sourceId;
+    private string _sourceName = string.Empty;
+    private string _sourceChannel = string.Empty;
+    private string _text = string.Empty;
+    private string _url = string.Empty;
+    private bool _extractionAvailable;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Se pregunta una vez con un texto vacío: la respuesta dice si el servicio
+            // está configurado sin gastar una llamada al modelo.
+            _extractionAvailable = (await Api.ExtractIdeasAsync(string.Empty)).Available;
+        }
+        catch (KapeaApiException)
+        {
+            _extractionAvailable = false;
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _sources = await Api.ListIdeaSourcesAsync();
+            _ideas = await Api.ListIdeasAsync();
+            _balances = await Api.ListSourceBalancesAsync();
+
+            if (_sourceId == Guid.Empty && _sources.Count > 0)
+            {
+                _sourceId = _sources[0].Id;
+            }
+        }
+        catch (KapeaApiException exception)
+        {
+            _ideas = null;
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task AddSourceAsync()
+    {
+        try
+        {
+            await Api.CreateIdeaSourceAsync(new CreateIdeaSourceRequest(_sourceName, Empty(_sourceChannel)));
+
+            _sourceName = string.Empty;
+            _sourceChannel = string.Empty;
+
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task ExtractAsync()
+    {
+        try
+        {
+            var extraction = await Api.ExtractIdeasAsync(_text);
+
+            _proposals = [.. extraction.Ideas];
+            _notUnderstood = extraction.NotUnderstood;
+
+            if (extraction.Note is { Length: > 0 } note)
+            {
+                Toasts.ShowInfo(note);
+            }
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task SaveAsync(CreateIdeaRequest proposal)
+    {
+        try
+        {
+            await Api.CreateIdeaAsync(proposal with { SourceId = _sourceId, Url = Empty(_url) });
+
+            _proposals.Remove(proposal);
+            Toasts.ShowSuccess(Ui["Ideas_Saved"]);
+
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task TrackAsync()
+    {
+        try
+        {
+            await Api.TrackIdeasAsync();
+
+            Toasts.ShowSuccess(Ui["Ideas_Tracked"]);
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private string Direction(string direction) =>
+        direction == "Sell" ? Ui["Signals_Exit"] : Ui["Signals_Entry"];
+
+    private string Outcome(string outcome) => outcome switch
+    {
+        "Reached" => Ui["Ideas_Reached"],
+        "Stopped" => Ui["Ideas_Stopped"],
+        "Expired" => Ui["Ideas_Expired"],
+        _ => Ui["Ideas_Open"],
+    };
+
+    private static string? Empty(string value) => string.IsNullOrWhiteSpace(value) ? null : value;
+}

@@ -475,6 +475,90 @@
   <data name="Nav_Journal" xml:space="preserve">
     <value>Journal</value>
   </data>
+  <data name="Nav_Ideas" xml:space="preserve">
+    <value>Ideas</value>
+  </data>
+  <data name="Ideas_Title" xml:space="preserve">
+    <value>Ideas</value>
+  </data>
+  <data name="Ideas_Heading" xml:space="preserve">
+    <value>Ideas from external sources</value>
+  </data>
+  <data name="Ideas_Intro" xml:space="preserve">
+    <value>What others propose about an asset, with its date and levels. Tracked to the end so you know what it gave.</value>
+  </data>
+  <data name="Ideas_Paste" xml:space="preserve">
+    <value>Paste a publication</value>
+  </data>
+  <data name="Ideas_PasteHelp" xml:space="preserve">
+    <value>Paste the text and Kapea will propose the ideas. The text is not stored: only the ideas and the link.</value>
+  </data>
+  <data name="Ideas_Extract" xml:space="preserve">
+    <value>Extract ideas</value>
+  </data>
+  <data name="Ideas_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Ideas_NewSource" xml:space="preserve">
+    <value>New source</value>
+  </data>
+  <data name="Ideas_SourceName" xml:space="preserve">
+    <value>Source name</value>
+  </data>
+  <data name="Ideas_Channel" xml:space="preserve">
+    <value>Channel, if it can be queried</value>
+  </data>
+  <data name="Ideas_Url" xml:space="preserve">
+    <value>Link to the publication</value>
+  </data>
+  <data name="Ideas_Add" xml:space="preserve">
+    <value>Save idea</value>
+  </data>
+  <data name="Ideas_Empty" xml:space="preserve">
+    <value>No ideas recorded yet.</value>
+  </data>
+  <data name="Ideas_Outcome" xml:space="preserve">
+    <value>Outcome</value>
+  </data>
+  <data name="Ideas_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Ideas_Reached" xml:space="preserve">
+    <value>Reached target</value>
+  </data>
+  <data name="Ideas_Stopped" xml:space="preserve">
+    <value>Hit exit level</value>
+  </data>
+  <data name="Ideas_Expired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Ideas_Track" xml:space="preserve">
+    <value>Update outcomes</value>
+  </data>
+  <data name="Ideas_Balance" xml:space="preserve">
+    <value>Balance by source</value>
+  </data>
+  <data name="Ideas_Return" xml:space="preserve">
+    <value>Return net of fees</value>
+  </data>
+  <data name="Ideas_NoReturn" xml:space="preserve">
+    <value>No resolved ideas yet</value>
+  </data>
+  <data name="Ideas_NotUnderstood" xml:space="preserve">
+    <value>I could not extract this</value>
+  </data>
+  <data name="Ideas_Unavailable" xml:space="preserve">
+    <value>No extraction service configured. Ideas are recorded by hand.</value>
+  </data>
+  <data name="Ideas_NoSource" xml:space="preserve">
+    <value>Register a source before recording ideas.</value>
+  </data>
+  <data name="Ideas_Saved" xml:space="preserve">
+    <value>Idea saved.</value>
+  </data>
+  <data name="Ideas_Tracked" xml:space="preserve">
+    <value>Outcomes updated.</value>
+  </data>
   <data name="Journal_Title" xml:space="preserve">
     <value>Journal</value>
   </data>

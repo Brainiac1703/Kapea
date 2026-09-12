@@ -76,7 +76,7 @@
 - [x] 9.5 Implementar el aviso de publicación nueva contra la interfaz oficial de la fuente, degradando a registro manual cuando no haya forma de consultarla; verificar con tests contra respuestas grabadas
 - [x] 9.6 Implementar el seguimiento de cada idea contra la serie de precios hasta objetivo, salida o caducidad; verificar con tests de los tres desenlaces
 - [x] 9.7 Implementar el balance por fuente con el rendimiento neto de comisiones; verificar con tests, incluido el de una fuente sin ideas resueltas
-- [ ] 9.8 Añadir la pantalla de ideas con el pegado de texto, la revisión de lo propuesto y el balance por fuente; verificar manualmente
+- [x] 9.8 Añadir la pantalla de ideas con el pegado de texto, la revisión de lo propuesto y el balance por fuente; verificar manualmente
 
 ## 10. Validación con los datos del usuario
 

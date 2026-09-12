@@ -361,6 +361,64 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<StrategyResponse>(response, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<IdeaSourceResponse>> ListIdeaSourcesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/ideas/sources", cancellationToken);
+
+        return await ReadAsync<List<IdeaSourceResponse>>(response, cancellationToken);
+    }
+
+    public async Task<IdeaSourceResponse> CreateIdeaSourceAsync(
+        CreateIdeaSourceRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/ideas/sources", request, cancellationToken);
+
+        return await ReadAsync<IdeaSourceResponse>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<IdeaResponse>> ListIdeasAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/ideas", cancellationToken);
+
+        return await ReadAsync<List<IdeaResponse>>(response, cancellationToken);
+    }
+
+    public async Task<IdeaResponse> CreateIdeaAsync(
+        CreateIdeaRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/ideas", request, cancellationToken);
+
+        return await ReadAsync<IdeaResponse>(response, cancellationToken);
+    }
+
+    public async Task<IdeaExtractionResponse> ExtractIdeasAsync(
+        string text,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            "api/ideas/extract", new ExtractIdeasRequest(text), cancellationToken);
+
+        return await ReadAsync<IdeaExtractionResponse>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SourceBalanceResponse>> ListSourceBalancesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/ideas/balance", cancellationToken);
+
+        return await ReadAsync<List<SourceBalanceResponse>>(response, cancellationToken);
+    }
+
+    public async Task TrackIdeasAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync("api/ideas/track", content: null, cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<DecisionNoteResponse>> ListJournalAsync(
         CancellationToken cancellationToken = default)
     {
