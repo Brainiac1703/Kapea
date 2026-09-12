@@ -1,0 +1,28 @@
+@* Sin clase elegida el nivel no se declara, y el sistema lo dirá en lugar de
+   inventarse uno. *@
+<FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+    <FluentSelect TOption="NamedValueResponse"
+                  Items="@Kinds"
+                  OptionValue="@(option => option.Value)"
+                  OptionText="@(option => option.Label)"
+                  Value="@Level.Kind"
+                  ValueChanged="@(value => Level.Kind = value)" />
+
+    @if (Level.Kind is { Length: > 0 })
+    {
+        <FluentNumberField @bind-Value="Level.Factor" Label="@Ui["Strategies_Factor"]" Step="0.01" />
+    }
+</FluentStack>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required LevelModel Level { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public required StrategyVocabularyResponse Vocabulary { get; set; }
+
+    private IEnumerable<NamedValueResponse> Kinds =>
+        [new NamedValueResponse(string.Empty, Ui["Strategies_NoLevel"]), .. Vocabulary.LevelKinds];
+}

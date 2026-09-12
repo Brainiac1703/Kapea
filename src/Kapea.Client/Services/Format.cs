@@ -61,6 +61,9 @@ public static class Format
     public static string Rate(decimal? rate, string whenMissing) =>
         rate is { } value ? value.ToString("+0.##%;-0.##%;0%", CultureInfo.CurrentCulture) : whenMissing;
 
+    /// <summary>Un día, en el formato corto del idioma activo.</summary>
+    public static string Day(DateOnly date) => date.ToString("d", CultureInfo.CurrentCulture);
+
     /// <summary>Instante en la zona de quien mira, con minutos y sin segundos.</summary>
     public static string Moment(DateTimeOffset instant) =>
         instant.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);

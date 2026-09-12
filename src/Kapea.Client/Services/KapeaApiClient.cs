@@ -325,6 +325,73 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<PerformanceResponse>(response, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<StrategyResponse>> ListStrategiesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/strategies", cancellationToken);
+
+        return await ReadAsync<List<StrategyResponse>>(response, cancellationToken);
+    }
+
+    public async Task<StrategyVocabularyResponse> GetStrategyVocabularyAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/strategies/vocabulary", cancellationToken);
+
+        return await ReadAsync<StrategyVocabularyResponse>(response, cancellationToken);
+    }
+
+    public async Task<StrategyResponse> CreateStrategyAsync(
+        CreateStrategyRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/strategies", request, cancellationToken);
+
+        return await ReadAsync<StrategyResponse>(response, cancellationToken);
+    }
+
+    public async Task<StrategyResponse> ReviseStrategyAsync(
+        Guid strategyId,
+        ReviseStrategyRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            $"api/strategies/{strategyId}/versions", request, cancellationToken);
+
+        return await ReadAsync<StrategyResponse>(response, cancellationToken);
+    }
+
+    public async Task<SignalRunResponse> RunStrategiesAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync("api/strategies/run", content: null, cancellationToken);
+
+        return await ReadAsync<SignalRunResponse>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SignalResponse>> ListSignalsAsync(
+        int? days = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync(
+            days is { } span ? $"api/strategies/signals?days={span}" : "api/strategies/signals", cancellationToken);
+
+        return await ReadAsync<List<SignalResponse>>(response, cancellationToken);
+    }
+
+    public async Task<BacktestResponse> SimulateAsync(
+        Guid strategyId,
+        Guid assetId,
+        decimal capital,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync(
+            $"api/strategies/{strategyId}/simulate?assetId={assetId}&capital={capital.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+            content: null,
+            cancellationToken);
+
+        return await ReadAsync<BacktestResponse>(response, cancellationToken);
+    }
+
     /// <summary>Acota el periodo contando hacia atrás desde hoy.</summary>
     private static string Range(string path, int? days) => days is { } span
         ? $"{path}?from={DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-span):yyyy-MM-dd}"

@@ -1,0 +1,65 @@
+@implements IDialogContentComponent<StrategyModel>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    @* El motivo del rechazo, encima de los campos y sin caducar. *@
+    @if (Content.Error is { Length: > 0 } error)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false">@error</FluentMessageBar>
+    }
+
+    <FluentTextField @bind-Value="Content.Name" Label="@Ui["Common_Name"]" Required="true" Style="width: 100%" />
+
+    <FluentTextArea @bind-Value="Content.Description" Label="@Ui["Common_Origin"]" Rows="2" Style="width: 100%" />
+
+    <FluentLabel Typo="Typography.H5">@Ui["Strategies_Entry"]</FluentLabel>
+
+    <FluentSelect TOption="NamedValueResponse"
+                  Label="@Ui["Strategies_Junction"]"
+                  Items="@Junctions"
+                  OptionValue="@(option => option.Value)"
+                  OptionText="@(option => option.Label)"
+                  Value="@Content.Junction"
+                  ValueChanged="@(value => Content.Junction = value)" />
+
+    @foreach (var condition in Content.Entry)
+    {
+        <ComparisonEditor Condition="condition" Vocabulary="Vocabulary" />
+
+        @if (Content.Entry.Count > 1)
+        {
+            <FluentButton OnClick="@(() => Content.Entry.Remove(condition))">
+                @Ui["Strategies_RemoveCondition"]
+            </FluentButton>
+        }
+    }
+
+    <FluentButton IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Content.Entry.Add(new()))">
+        @Ui["Strategies_AddCondition"]
+    </FluentButton>
+
+    <FluentCheckbox @bind-Value="Content.HasExit" Label="@Ui["Strategies_Exit"]" />
+
+    @if (Content.HasExit)
+    {
+        <ComparisonEditor Condition="Content.Exit" Vocabulary="Vocabulary" />
+    }
+
+    <FluentLabel Typo="Typography.H5">@Ui["Strategies_Stop"]</FluentLabel>
+    <LevelEditor Level="Content.StopLoss" Vocabulary="Vocabulary" />
+
+    <FluentLabel Typo="Typography.H5">@Ui["Strategies_Target"]</FluentLabel>
+    <LevelEditor Level="Content.Target" Vocabulary="Vocabulary" />
+</FluentStack>
+
+@code {
+    [Parameter]
+    public StrategyModel Content { get; set; } = new();
+
+    /// <summary>Lo que una regla puede nombrar. Lo da el servidor.</summary>
+    [Parameter]
+    [EditorRequired]
+    public required StrategyVocabularyResponse Vocabulary { get; set; }
+
+    private IEnumerable<NamedValueResponse> Junctions =>
+        Vocabulary.Junctions.Where(junction => junction.Value != "Comparison");
+}

@@ -1,0 +1,55 @@
+@* Un lado, un operador y el otro lado. Los operandos y los operadores vienen del
+   servidor, así que un indicador nuevo aparece aquí sin tocar la pantalla. *@
+<FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" VerticalAlignment="VerticalAlignment.Bottom">
+    <FluentSelect TOption="OperandResponse"
+                  Items="@Vocabulary.Operands"
+                  OptionValue="@(option => option.Operand)"
+                  OptionText="@(option => option.Label)"
+                  Value="@Condition.LeftOperand"
+                  ValueChanged="@(value => Condition.LeftOperand = value)" />
+
+    @if (NeedsWindow(Condition.LeftOperand))
+    {
+        <FluentNumberField @bind-Value="Condition.LeftWindow" Label="@Ui["Strategies_Window"]" Min="2" />
+    }
+    else if (Condition.LeftOperand == "Constant")
+    {
+        <FluentNumberField @bind-Value="Condition.LeftValue" Label="@Ui["Strategies_Number"]" />
+    }
+
+    <FluentSelect TOption="NamedValueResponse"
+                  Items="@Vocabulary.Comparisons"
+                  OptionValue="@(option => option.Value)"
+                  OptionText="@(option => option.Label)"
+                  Value="@Condition.Comparison"
+                  ValueChanged="@(value => Condition.Comparison = value)" />
+
+    <FluentSelect TOption="OperandResponse"
+                  Items="@Vocabulary.Operands"
+                  OptionValue="@(option => option.Operand)"
+                  OptionText="@(option => option.Label)"
+                  Value="@Condition.RightOperand"
+                  ValueChanged="@(value => Condition.RightOperand = value)" />
+
+    @if (NeedsWindow(Condition.RightOperand))
+    {
+        <FluentNumberField @bind-Value="Condition.RightWindow" Label="@Ui["Strategies_Window"]" Min="2" />
+    }
+    else if (Condition.RightOperand == "Constant")
+    {
+        <FluentNumberField @bind-Value="Condition.RightValue" Label="@Ui["Strategies_Number"]" />
+    }
+</FluentStack>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required ComparisonModel Condition { get; set; }
+
+    [Parameter]
+    [EditorRequired]
+    public required StrategyVocabularyResponse Vocabulary { get; set; }
+
+    private bool NeedsWindow(string operand) =>
+        Vocabulary.Operands.FirstOrDefault(entry => entry.Operand == operand)?.NeedsWindow ?? false;
+}

@@ -1,0 +1,135 @@
+@page "/strategies/{StrategyId:guid}/simulate"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Backtest_Heading"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Backtest_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Backtest_Intro"]</FluentLabel>
+
+<FluentStack Orientation="Orientation.Horizontal" HorizontalGap="16" VerticalAlignment="VerticalAlignment.Bottom">
+    <FluentSelect TOption="OpenPositionResponse"
+                  Label="@Ui["Backtest_Asset"]"
+                  Items="@_assets"
+                  OptionValue="@(asset => asset.AssetId.ToString())"
+                  OptionText="@(asset => asset.AssetSymbol)"
+                  Value="@_assetId.ToString()"
+                  ValueChanged="@(value => _assetId = Guid.TryParse(value, out var id) ? id : Guid.Empty)" />
+
+    <FluentNumberField @bind-Value="_capital" Label="@Ui["Backtest_Capital"]" Min="1" Step="100" />
+
+    <FluentButton Appearance="Appearance.Accent" Disabled="@(_assetId == Guid.Empty || _running)" OnClick="RunAsync">
+        @Ui["Backtest_Run"]
+    </FluentButton>
+</FluentStack>
+
+@if (_running)
+{
+    <FluentProgressRing />
+}
+else if (_result is { } result)
+{
+    @* El contraste con no hacer nada va arriba: es la única pregunta que importa antes
+       de mirar cualquier otra cifra. *@
+    <FluentMessageBar Intent="@(result.BeatsBuyAndHold ? MessageIntent.Success : MessageIntent.Warning)"
+                      AllowDismiss="false">
+        @(result.BeatsBuyAndHold ? Ui["Backtest_Beats"] : Ui["Backtest_Loses"])
+    </FluentMessageBar>
+
+    @if (result.FeeRate > 0m)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+            @string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                Ui["Backtest_FeeWarning"].Value, Format.Rate(result.FeeRate * 2m, "?"))
+        </FluentMessageBar>
+    }
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
+        <Amount Label="@Ui["Backtest_Result"]" Value="@result.ResultInEuros" />
+        <Amount Label="@Ui["Backtest_AfterTax"]" Value="@result.ResultAfterTaxInEuros" />
+        <Amount Label="@Ui["Backtest_BuyAndHold"]" Value="@result.BuyAndHoldInEuros" />
+        <Amount Label="@Ui["Backtest_Fees"]" Value="@result.FeesInEuros" />
+        <Amount Label="@Ui["Backtest_Tax"]" Value="@result.TaxInEuros" />
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
+        <Count Label="@Ui["Backtest_Trades"]" Value="@result.Trades" />
+        <Count Label="@Ui["Backtest_Winners"]" Value="@result.Winners" />
+        <div class="count">
+            <div class="count-value loss">@Format.Rate(-result.MaximumDrawdown, "0")</div>
+            <div class="count-label">@Ui["Backtest_Drawdown"]</div>
+        </div>
+    </FluentStack>
+
+    <FluentLabel Typo="Typography.H4">@Ui["Backtest_Detail"]</FluentLabel>
+
+    <FluentDataGrid Items="@result.Detail.AsQueryable()"
+                    TGridItem="SimulatedTradeResponse"
+                    GridTemplateColumns="1fr 1fr 1fr 1fr 1fr 3fr">
+        <TemplateColumn Title="@Ui["Signals_Entry"]">
+            @Format.Day(context.EntryDate)
+            <div class="moment">@Format.Euros(context.EntryPrice)</div>
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Signals_Exit"]">
+            @(context.ExitDate is { } exit ? Format.Day(exit) : Ui["Backtest_Open"].Value)
+            <div class="moment">@Format.Euros(context.ExitPrice, Ui["Charts_NoValue"])</div>
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Quantity"]">@Format.Quantity(context.Quantity)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Backtest_Result"]">
+            <span class="@Format.Sign(context.ResultInEuros)">@Format.Euros(context.ResultInEuros)</span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Backtest_Fees"]">@Format.Euros(context.FeesInEuros)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Signals_Reason"]">
+            @context.EntryReason
+            @if (context.ExitReason is { Length: > 0 } reason)
+            {
+                <div class="moment">@reason</div>
+            }
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    private IReadOnlyList<OpenPositionResponse> _assets = [];
+    private BacktestResponse? _result;
+    private Guid _assetId;
+    private decimal _capital = 1000m;
+    private bool _running;
+
+    [Parameter]
+    public Guid StrategyId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var portfolio = await Api.GetPortfolioAsync();
+
+            _assets = [.. portfolio.Positions.OrderBy(position => position.AssetSymbol, StringComparer.Ordinal)];
+            _assetId = _assets.Count > 0 ? _assets[0].AssetId : Guid.Empty;
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task RunAsync()
+    {
+        _running = true;
+
+        try
+        {
+            _result = await Api.SimulateAsync(StrategyId, _assetId, _capital);
+        }
+        catch (KapeaApiException exception)
+        {
+            _result = null;
+            Toasts.ShowApiError(exception);
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+}

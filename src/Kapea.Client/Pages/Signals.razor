@@ -1,0 +1,103 @@
+@page "/signals"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Signals_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Signals_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Signals_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentButton IconStart="@(new Icons.Regular.Size16.Play())" Disabled="@_running" OnClick="RunAsync">
+        @Ui["Signals_Run"]
+    </FluentButton>
+</FluentToolbar>
+
+@if (_signals is null)
+{
+    <FluentProgressRing />
+}
+else if (_signals.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Signals_Empty"]</FluentMessageBar>
+}
+else
+{
+    <FluentDataGrid Items="@_signals.AsQueryable()"
+                    TGridItem="SignalResponse"
+                    GridTemplateColumns="1fr 1fr 0.8fr 1fr 1fr 3fr">
+        <TemplateColumn Title="@Ui["Common_Date"]">
+            @Format.Day(context.Date)
+            <div class="moment">
+                @(context.DaysOld == 0
+                    ? Ui["Signals_Today"].Value
+                    : string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                        Ui["Signals_Age"].Value, context.DaysOld))
+            </div>
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Asset"]">
+            <FluentAnchor Href="@($"evolution/{context.AssetId}")" Appearance="Appearance.Hypertext">
+                @context.AssetSymbol
+            </FluentAnchor>
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Signals_Direction"]">
+            <span class="@(context.Direction == "Entry" ? "gain" : "loss")">
+                @(context.Direction == "Entry" ? Ui["Signals_Entry"] : Ui["Signals_Exit"])
+            </span>
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]">@Format.Euros(context.PriceInEuros)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Strategies_Target"]">
+            @Format.Euros(context.TargetInEuros, Ui["Strategies_NoLevel"])
+            <div class="moment">
+                @Ui["Strategies_Stop"]: @Format.Euros(context.StopLossInEuros, Ui["Strategies_NoLevel"])
+            </div>
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Signals_Reason"]">
+            @context.Reason
+            <div class="moment">@context.StrategyName · @Ui["Strategies_Version"] @context.StrategyVersion</div>
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    private IReadOnlyList<SignalResponse>? _signals;
+    private bool _running;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _signals = await Api.ListSignalsAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            _signals = null;
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task RunAsync()
+    {
+        _running = true;
+
+        try
+        {
+            var run = await Api.RunStrategiesAsync();
+
+            Toasts.ShowSuccess(string.Format(
+                System.Globalization.CultureInfo.CurrentCulture, Ui["Signals_Ran"].Value, run.Emitted, run.New));
+
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+}

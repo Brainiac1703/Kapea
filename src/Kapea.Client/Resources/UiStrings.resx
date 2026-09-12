@@ -466,6 +466,168 @@
   <data name="Evolution_Title" xml:space="preserve">
     <value>Evolución</value>
   </data>
+  <data name="Nav_Strategies" xml:space="preserve">
+    <value>Sistemas</value>
+  </data>
+  <data name="Nav_Signals" xml:space="preserve">
+    <value>Señales</value>
+  </data>
+  <data name="Strategies_Title" xml:space="preserve">
+    <value>Sistemas</value>
+  </data>
+  <data name="Strategies_Heading" xml:space="preserve">
+    <value>Sistemas de especulación</value>
+  </data>
+  <data name="Strategies_Intro" xml:space="preserve">
+    <value>Tus reglas escritas para que Kapea las evalúe siempre igual. Kapea no recomienda comprar ni vender: aplica lo que tú has escrito.</value>
+  </data>
+  <data name="Strategies_New" xml:space="preserve">
+    <value>Nuevo sistema</value>
+  </data>
+  <data name="Strategies_Revise" xml:space="preserve">
+    <value>Corregir</value>
+  </data>
+  <data name="Strategies_Simulate" xml:space="preserve">
+    <value>Simular</value>
+  </data>
+  <data name="Strategies_Entry" xml:space="preserve">
+    <value>Entrada</value>
+  </data>
+  <data name="Strategies_Exit" xml:space="preserve">
+    <value>Salida</value>
+  </data>
+  <data name="Strategies_Target" xml:space="preserve">
+    <value>Objetivo</value>
+  </data>
+  <data name="Strategies_Stop" xml:space="preserve">
+    <value>Nivel de salida</value>
+  </data>
+  <data name="Strategies_Version" xml:space="preserve">
+    <value>Versión</value>
+  </data>
+  <data name="Strategies_Versions" xml:space="preserve">
+    <value>Versiones</value>
+  </data>
+  <data name="Strategies_RequiredDays" xml:space="preserve">
+    <value>Necesita {0} días de histórico</value>
+  </data>
+  <data name="Strategies_Empty" xml:space="preserve">
+    <value>No hay ningún sistema. Crea uno para empezar.</value>
+  </data>
+  <data name="Strategies_Junction" xml:space="preserve">
+    <value>Se cumple</value>
+  </data>
+  <data name="Strategies_AddCondition" xml:space="preserve">
+    <value>Añadir condición</value>
+  </data>
+  <data name="Strategies_RemoveCondition" xml:space="preserve">
+    <value>Quitar</value>
+  </data>
+  <data name="Strategies_Window" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="Strategies_Number" xml:space="preserve">
+    <value>Número</value>
+  </data>
+  <data name="Strategies_Factor" xml:space="preserve">
+    <value>Factor</value>
+  </data>
+  <data name="Strategies_NoLevel" xml:space="preserve">
+    <value>Sin declarar</value>
+  </data>
+  <data name="Strategies_Saved" xml:space="preserve">
+    <value>Sistema guardado.</value>
+  </data>
+  <data name="Signals_Title" xml:space="preserve">
+    <value>Señales</value>
+  </data>
+  <data name="Signals_Heading" xml:space="preserve">
+    <value>Señales de tus sistemas</value>
+  </data>
+  <data name="Signals_Intro" xml:space="preserve">
+    <value>Lo que dicen tus reglas, con la condición que las disparó. Decidir sigue siendo tuyo.</value>
+  </data>
+  <data name="Signals_Run" xml:space="preserve">
+    <value>Calcular señales</value>
+  </data>
+  <data name="Signals_Empty" xml:space="preserve">
+    <value>No hay señales en este periodo.</value>
+  </data>
+  <data name="Signals_Direction" xml:space="preserve">
+    <value>Sentido</value>
+  </data>
+  <data name="Signals_Entry" xml:space="preserve">
+    <value>Entrada</value>
+  </data>
+  <data name="Signals_Exit" xml:space="preserve">
+    <value>Salida</value>
+  </data>
+  <data name="Signals_Reason" xml:space="preserve">
+    <value>Por qué</value>
+  </data>
+  <data name="Signals_Age" xml:space="preserve">
+    <value>Hace {0} días</value>
+  </data>
+  <data name="Signals_Today" xml:space="preserve">
+    <value>Hoy</value>
+  </data>
+  <data name="Signals_Ran" xml:space="preserve">
+    <value>Calculadas {0} señales, {1} nuevas.</value>
+  </data>
+  <data name="Backtest_Heading" xml:space="preserve">
+    <value>Simulación</value>
+  </data>
+  <data name="Backtest_Intro" xml:space="preserve">
+    <value>Qué habría pasado aplicando el sistema a este activo, con tus comisiones y tus impuestos dentro.</value>
+  </data>
+  <data name="Backtest_Capital" xml:space="preserve">
+    <value>Capital por operación</value>
+  </data>
+  <data name="Backtest_Asset" xml:space="preserve">
+    <value>Activo</value>
+  </data>
+  <data name="Backtest_Result" xml:space="preserve">
+    <value>Resultado</value>
+  </data>
+  <data name="Backtest_AfterTax" xml:space="preserve">
+    <value>Después de impuestos</value>
+  </data>
+  <data name="Backtest_Fees" xml:space="preserve">
+    <value>Comisiones</value>
+  </data>
+  <data name="Backtest_Tax" xml:space="preserve">
+    <value>Impuestos</value>
+  </data>
+  <data name="Backtest_BuyAndHold" xml:space="preserve">
+    <value>Comprar y no tocar</value>
+  </data>
+  <data name="Backtest_Trades" xml:space="preserve">
+    <value>Operaciones</value>
+  </data>
+  <data name="Backtest_Winners" xml:space="preserve">
+    <value>Acertadas</value>
+  </data>
+  <data name="Backtest_Drawdown" xml:space="preserve">
+    <value>Mayor caída</value>
+  </data>
+  <data name="Backtest_Beats" xml:space="preserve">
+    <value>El sistema bate a no hacer nada.</value>
+  </data>
+  <data name="Backtest_Loses" xml:space="preserve">
+    <value>No hacer nada habría salido mejor.</value>
+  </data>
+  <data name="Backtest_FeeWarning" xml:space="preserve">
+    <value>Con un {0} por operación, cada compra y venta se lleva esa parte antes de ganar nada.</value>
+  </data>
+  <data name="Backtest_Detail" xml:space="preserve">
+    <value>Detalle</value>
+  </data>
+  <data name="Backtest_Open" xml:space="preserve">
+    <value>Abierta</value>
+  </data>
+  <data name="Backtest_Run" xml:space="preserve">
+    <value>Simular</value>
+  </data>
   <data name="Performance_Heading" xml:space="preserve">
     <value>Rendimiento</value>
   </data>

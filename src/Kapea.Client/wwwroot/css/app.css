@@ -228,3 +228,12 @@ table.sample th {
     border-radius: 50%;
     display: inline-block;
 }
+
+/* Cada sistema en su tarjeta: sus reglas se leen en varias líneas y una tabla las
+   aplastaría. */
+.card {
+    border: 1px solid var(--neutral-stroke-divider-rest);
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
