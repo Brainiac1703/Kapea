@@ -22,6 +22,15 @@ public sealed class PortfolioQueries(
     IExchangeRateProvider exchangeRates,
     IPriceHistoryStore priceHistory) : IPortfolioQueries
 {
+    /// <summary>Cuántas posiciones se miran al avisar de concentración.</summary>
+    private const int TopPositions = 3;
+
+    /// <summary>A partir de cuánto entre las tres mayores se avisa.</summary>
+    private const decimal ConcentrationThreshold = 0.7m;
+
+    /// <summary>Tope por posición a partir del cual se señala.</summary>
+    private const decimal PositionCap = 0.25m;
+
     // El catálogo es de la instalación, no de cada usuario, así que se salta el filtro
     // global: sin esto no devolvería nada, porque las plataformas no tienen dueño.
     public async Task<IReadOnlyList<PlatformResponse>> ListPlatformsAsync(
@@ -313,12 +322,16 @@ public sealed class PortfolioQueries(
             // o su ganancia no puede desaparecer del acumulado por dejar de tenerlos.
             realized.Aggregate(Money.Euros(0m), (total, result) => total + result.ResultInEuros));
 
+        // Los niveles vienen de la última señal de entrada de cada activo: el sistema que
+        // propuso entrar es el que dijo dónde salir, y repetirlos aquí sería inventarlos.
+        var levels = await LevelsAsync(cancellationToken).ConfigureAwait(false);
+
         var aliases = await context.Accounts
             .ToDictionaryAsync(account => account.Id, account => account.Alias, cancellationToken)
             .ConfigureAwait(false);
 
         return new PortfolioResponse(
-            [.. summary.Groups.Select(group => ToResponse(group, responsesByAsset))],
+            [.. summary.Groups.Select(group => ToResponse(group, responsesByAsset, levels))],
             [.. balances.Balances.Select(balance => new CashBalanceResponse(
                 balance.AccountId,
                 aliases.GetValueOrDefault(balance.AccountId, string.Empty),
@@ -340,12 +353,90 @@ public sealed class PortfolioQueries(
             transfers.Count(transfer => transfer.Status == InternalTransferStatus.Proposed),
             [],
             summary.Wealth.MissingPrices,
-            summary.Wealth.MissingCash);
+            summary.Wealth.MissingCash,
+            Risk(summary, responsesByAsset),
+            Weights(summary, responsesByAsset));
+    }
+
+    /// <summary>
+    /// Cuánto concentra la cartera, si se pasa del umbral.
+    /// </summary>
+    /// <remarks>
+    /// Tres activos y un setenta por ciento: no dice que concentrar esté mal, dice cuánto
+    /// se está concentrando, que es lo que no se ve mirando una tabla de doce filas.
+    /// </remarks>
+    private static ConcentrationResponse? Risk(
+        PortfolioSummary summary,
+        IReadOnlyDictionary<Guid, (string Symbol, bool Verified)> named)
+    {
+        var warning = Domain.Risk.Concentration.Check(
+            [.. Weighted(summary, named)], TopPositions, ConcentrationThreshold);
+
+        return warning is null
+            ? null
+            : new ConcentrationResponse(
+                [.. warning.Top.Select(weight => Weight(weight))],
+                warning.Share,
+                warning.Threshold);
+    }
+
+    private static (Money? Target, Money? Stop) Level(
+        IReadOnlyDictionary<Guid, (Money? Target, Money? Stop)> levels,
+        Guid assetId) =>
+        levels.TryGetValue(assetId, out var level) ? level : (null, null);
+
+    private static bool Reached(OpenPosition position, Money? level, bool above) =>
+        position.MarketPriceInEuros is { } price
+        && level is { } target
+        && (above ? price.Amount >= target.Amount : price.Amount <= target.Amount);
+
+    private static IReadOnlyList<RiskWeightResponse> Weights(
+        PortfolioSummary summary,
+        IReadOnlyDictionary<Guid, (string Symbol, bool Verified)> named) =>
+        [.. Weighted(summary, named).OrderByDescending(weight => weight.Share).Select(weight => Weight(weight))];
+
+    private static RiskWeightResponse Weight(Domain.Risk.Weight weight) =>
+        new(weight.Name, weight.ValueInEuros.Amount, weight.Share, weight.Share > PositionCap);
+
+    private static IEnumerable<Domain.Risk.Weight> Weighted(
+        PortfolioSummary summary,
+        IReadOnlyDictionary<Guid, (string Symbol, bool Verified)> named) =>
+        summary.Positions
+            .Where(position => position.Weight is not null)
+            .Select(position => new Domain.Risk.Weight(
+                named.GetValueOrDefault(
+                    position.Position.AssetId,
+                    (Symbol: position.Position.AssetId.ToString(), Verified: false)).Symbol,
+                position.Position.MarketValueInEuros ?? Money.Euros(0m),
+                position.Weight!.Value));
+
+    /// <summary>
+    /// El objetivo y el nivel de salida vigentes de cada activo.
+    /// </summary>
+    /// <remarks>
+    /// De la última señal de entrada, que es la que los fijó. Sin señales no hay niveles,
+    /// y entonces la posición se enseña sin ellos en lugar de con unos calculados.
+    /// </remarks>
+    private async Task<IReadOnlyDictionary<Guid, (Money? Target, Money? Stop)>> LevelsAsync(
+        CancellationToken cancellationToken)
+    {
+        var signals = await context.EmittedSignals
+            .Where(signal => signal.Direction == Domain.Strategies.SignalDirection.Entry)
+            .OrderByDescending(signal => signal.Date)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return signals
+            .GroupBy(signal => signal.AssetId)
+            .ToDictionary(
+                group => group.Key,
+                group => (group.First().Target, Stop: group.First().StopLoss));
     }
 
     private static PortfolioGroupResponse ToResponse(
         PortfolioGroup group,
-        IReadOnlyDictionary<Guid, (string Symbol, bool Verified)> named) =>
+        IReadOnlyDictionary<Guid, (string Symbol, bool Verified)> named,
+        IReadOnlyDictionary<Guid, (Money? Target, Money? Stop)> levels) =>
         new(
             group.Class.ToString(),
             [.. group.Positions.Select(entry =>
@@ -367,7 +458,14 @@ public sealed class PortfolioQueries(
                     entry.Class.ToString(),
                     entry.FeesInEuros.Amount,
                     entry.RealizedResultInEuros.Amount,
-                    entry.Weight);
+                    entry.Weight,
+                    Level(levels, position.AssetId).Target?.Amount,
+                    Level(levels, position.AssetId).Stop?.Amount,
+
+                    // Alcanzado significa que el último precio ya está en el nivel. Es un
+                    // aviso, no una orden: Kapea no ejecuta nada.
+                    Reached(position, Level(levels, position.AssetId).Target, above: true),
+                    Reached(position, Level(levels, position.AssetId).Stop, above: false));
             })],
             group.CostInEuros.Amount,
             group.MarketValueInEuros.Amount,

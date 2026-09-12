@@ -49,8 +49,8 @@
 - [x] 6.2 Implementar el tope por posición y su aviso; verificar con test
 - [x] 6.3 Implementar el aviso de concentración con su umbral declarado; verificar con test
 - [x] 6.4 Implementar los pesos objetivo y las bandas de rebalanceo con la operación que devuelve al objetivo; verificar con tests dentro y fuera de la banda
-- [ ] 6.5 Implementar el seguimiento de niveles de salida y objetivos de las posiciones abiertas; verificar con test de precio que alcanza el objetivo
-- [ ] 6.6 Enseñar los avisos de riesgo en la cartera; verificar manualmente
+- [x] 6.5 Implementar el seguimiento de niveles de salida y objetivos de las posiciones abiertas; verificar con test de precio que alcanza el objetivo
+- [x] 6.6 Enseñar los avisos de riesgo en la cartera; verificar manualmente
 
 ## 7. Traducción asistida
 

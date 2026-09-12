@@ -366,6 +366,54 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task A_position_reaching_its_target_is_flagged_in_the_portfolio()
+    {
+        // El aviso sale de la última señal de entrada, que es la que fijó los niveles, y
+        // es un aviso: Kapea no ejecuta nada.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con niveles", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id, "ZEC");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+        var position = portfolio!.Positions.Single();
+
+        // Sin señales no hay niveles, y la posición se enseña sin ellos.
+        Assert.Null(position.TargetInEuros);
+        Assert.False(position.ReachedTarget);
+
+        await SeedSignalAsync(user, position.AssetId, target: 1m, stop: 0.5m);
+
+        var after = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        Assert.Equal(1m, after!.Positions.Single().TargetInEuros);
+    }
+
+    [Fact]
+    public async Task A_portfolio_without_prices_has_no_concentration_warning()
+    {
+        // Sin precios no hay pesos, y avisar de una concentración calculada sobre nada
+        // sería inventarla.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Sin precios", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id, "XMR");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        Assert.Null(portfolio!.Concentration);
+        Assert.Empty(portfolio.Weights);
+    }
+
+    [Fact]
     public async Task The_performance_of_an_empty_portfolio_is_zero_and_not_an_error()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());
@@ -839,6 +887,27 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         return await response.Content.ReadFromJsonAsync<ImportPreviewResponse>();
     }
 
+
+    /// <summary>Deja una señal de entrada con sus niveles para ese activo.</summary>
+    private async Task SeedSignalAsync(Guid user, Guid assetId, decimal target, decimal stop)
+    {
+        await using var context = factory.CreateContext(user);
+
+        context.EmittedSignals.Add(Domain.Strategies.EmittedSignal.From(
+            new Domain.ValueObjects.UserId(user),
+            Guid.NewGuid(),
+            1,
+            new Domain.Strategies.Signal(
+                assetId,
+                DateOnly.FromDateTime(DateTime.UtcNow),
+                Domain.Strategies.SignalDirection.Entry,
+                Domain.ValueObjects.Money.Euros(0.8m),
+                "sembrada para la prueba",
+                Domain.ValueObjects.Money.Euros(target),
+                Domain.ValueObjects.Money.Euros(stop))));
+
+        await context.SaveChangesAsync();
+    }
 
     /// <summary>Deja un activo con un lote abierto y la compra que lo originó.</summary>
     private async Task SeedPositionAsync(Guid user, Guid accountId, string symbol = "BTC")

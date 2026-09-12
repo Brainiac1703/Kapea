@@ -880,6 +880,15 @@
   <data name="Portfolio_Wealth" xml:space="preserve">
     <value>Patrimonio</value>
   </data>
+  <data name="Risk_Concentration" xml:space="preserve">
+    <value>Tus {0} mayores posiciones son el {1} de la cartera.</value>
+  </data>
+  <data name="Risk_Weights" xml:space="preserve">
+    <value>Peso por posición</value>
+  </data>
+  <data name="Risk_OverCap" xml:space="preserve">
+    <value>Por encima del tope de posición</value>
+  </data>
   <data name="Portfolio_Accumulated" xml:space="preserve">
     <value>Resultado acumulado</value>
   </data>

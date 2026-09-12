@@ -46,6 +46,14 @@ else
         </FluentMessageBar>
     }
 
+    @* La concentración no es un error, pero no se ve mirando una tabla de doce filas. *@
+    @if (_portfolio.Concentration is { } concentration)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+            @Concentration(concentration)
+        </FluentMessageBar>
+    }
+
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
         <Amount Label="@Ui["Portfolio_Wealth"]" Value="@_portfolio.WealthInEuros" />
         <Amount Label="@Ui["Portfolio_TotalValue"]" Value="@_portfolio.TotalMarketValueInEuros" />
@@ -122,6 +130,30 @@ else
             <TemplateColumn Title="@Ui["Portfolio_Fees"]">@Format.Euros(context.FeesInEuros)</TemplateColumn>
             <TemplateColumn Title="@Ui["Portfolio_Weight"]">
                 @Format.Percent(context.Weight, Ui["Portfolio_NoPrice"])
+
+                @* Los niveles del sistema que propuso entrar, con el aviso cuando el
+                   precio ya los ha alcanzado. Es un aviso: Kapea no ejecuta nada. *@
+                @if (context.TargetInEuros is not null || context.StopLossInEuros is not null)
+                {
+                    <div class="moment">
+                        @Ui["Strategies_Target"]: @Euros(context.TargetInEuros)
+                        @if (context.ReachedTarget)
+                        {
+                            <FluentIcon Value="@(new Icons.Regular.Size16.CheckmarkCircle())"
+                                        Color="Color.Success"
+                                        Title="@Ui["Ideas_Reached"]" />
+                        }
+                    </div>
+                    <div class="moment">
+                        @Ui["Strategies_Stop"]: @Euros(context.StopLossInEuros)
+                        @if (context.ReachedStopLoss)
+                        {
+                            <FluentIcon Value="@(new Icons.Regular.Size16.Warning())"
+                                        Color="Color.Warning"
+                                        Title="@Ui["Ideas_Stopped"]" />
+                        }
+                    </div>
+                }
             </TemplateColumn>
         </FluentDataGrid>
     }
@@ -212,6 +244,13 @@ else
         "Crypto" => Ui["Portfolio_ClassCrypto"],
         _ => assetClass,
     };
+
+    /// <summary>Cuánto concentran las mayores posiciones, dicho en una línea.</summary>
+    private string Concentration(ConcentrationResponse concentration) => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        Ui["Risk_Concentration"].Value,
+        concentration.Top.Count,
+        Format.Percent(concentration.Share, "?"));
 
     /// <summary>Un valor ausente se dice, no se disimula con un cero.</summary>
     private string Euros(decimal? amount) => Format.Euros(amount, Ui["Portfolio_NoPrice"]);

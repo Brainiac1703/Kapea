@@ -108,7 +108,11 @@ public sealed record OpenPositionResponse(
     string AssetClass,
     decimal FeesInEuros,
     decimal RealizedResultInEuros,
-    decimal? Weight);
+    decimal? Weight,
+    decimal? TargetInEuros = null,
+    decimal? StopLossInEuros = null,
+    bool ReachedTarget = false,
+    bool ReachedStopLoss = false);
 
 /// <summary>Las posiciones de una clase de activo con sus subtotales.</summary>
 public sealed record PortfolioGroupResponse(
@@ -128,6 +132,18 @@ public sealed record IncomeByClassResponse(
     decimal WithholdingInEuros,
     decimal NetInEuros);
 
+/// <summary>Lo que pesa un activo y si se ha pasado de su tope.</summary>
+public sealed record RiskWeightResponse(string Name, decimal ValueInEuros, decimal Share, bool OverCap);
+
+/// <summary>
+/// Aviso de que unos pocos activos concentran demasiado.
+/// </summary>
+/// <param name="Top">Los que más pesan, del mayor al menor.</param>
+public sealed record ConcentrationResponse(
+    IReadOnlyList<RiskWeightResponse> Top,
+    decimal Share,
+    decimal Threshold);
+
 /// <summary>Cartera completa, con la advertencia visible cuando las cifras están incompletas.</summary>
 public sealed record PortfolioResponse(
     IReadOnlyList<PortfolioGroupResponse> Groups,
@@ -144,8 +160,13 @@ public sealed record PortfolioResponse(
     int PendingTransferCount,
     IReadOnlyList<string> Inconsistencies,
     bool MissingPrices,
-    bool MissingCash)
+    bool MissingCash,
+    ConcentrationResponse? Concentration = null,
+    IReadOnlyList<RiskWeightResponse>? Weights = null)
 {
+    /// <summary>Lo que pesa cada activo, para poder ver de un golpe si algo se ha disparado.</summary>
+    public IReadOnlyList<RiskWeightResponse> Weights { get; init; } = Weights ?? [];
+
     /// <summary>
     /// Todas las posiciones seguidas, sin agrupar.
     /// </summary>
