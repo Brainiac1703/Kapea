@@ -102,6 +102,87 @@ internal sealed class CapitalIncomeConfiguration : IEntityTypeConfiguration<Capi
 }
 
 /// <summary>
+/// Sistemas de especulación y sus versiones.
+/// </summary>
+/// <remarks>
+/// Las reglas se guardan como JSON en una columna. Son un árbol y se consultan enteras,
+/// nunca por partes, así que desmenuzarlas en tablas solo añadiría uniones para volver a
+/// juntarlas al leer.
+/// </remarks>
+internal sealed class StrategyConfiguration : IEntityTypeConfiguration<Domain.Strategies.Strategy>
+{
+    public void Configure(EntityTypeBuilder<Domain.Strategies.Strategy> builder)
+    {
+        builder.ToTable("Strategies");
+        builder.HasKey(strategy => strategy.Id);
+
+        builder.Property(strategy => strategy.UserId).IsRequired();
+        builder.Property(strategy => strategy.Name).HasMaxLength(120).IsRequired();
+        builder.Property(strategy => strategy.Description).HasMaxLength(2000);
+
+        builder.Ignore(strategy => strategy.CurrentVersion);
+        builder.Ignore(strategy => strategy.Current);
+
+        builder.OwnsMany(strategy => strategy.Versions, version =>
+        {
+            version.ToTable("StrategyVersions");
+            version.WithOwner().HasForeignKey("StrategyId");
+            version.HasKey(entity => entity.Id);
+
+            version.Property(entity => entity.Number).IsRequired();
+            version.Property(entity => entity.CreatedAt).IsRequired();
+            version.Property(entity => entity.Entry).HasConversion<ConditionConverter>().IsRequired();
+            version.Property(entity => entity.Exit).HasConversion<ConditionConverter>();
+            version.Property(entity => entity.Target).HasConversion<LevelConverter>();
+            version.Property(entity => entity.StopLoss).HasConversion<LevelConverter>();
+
+            version.Ignore(entity => entity.RequiredDays);
+
+            version.HasIndex("StrategyId", nameof(Domain.Strategies.StrategyVersion.Number)).IsUnique();
+        });
+
+        builder.Navigation(strategy => strategy.Versions).AutoInclude();
+        builder.HasIndex(strategy => new { strategy.UserId, strategy.Name }).IsUnique();
+    }
+}
+
+/// <summary>Señales emitidas. La huella impide guardar dos veces la misma.</summary>
+internal sealed class EmittedSignalConfiguration : IEntityTypeConfiguration<Domain.Strategies.EmittedSignal>
+{
+    public void Configure(EntityTypeBuilder<Domain.Strategies.EmittedSignal> builder)
+    {
+        builder.ToTable("EmittedSignals");
+        builder.HasKey(signal => signal.Id);
+
+        builder.Property(signal => signal.UserId).IsRequired();
+        builder.Property(signal => signal.Direction).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Property(signal => signal.Reason).HasMaxLength(1000).IsRequired();
+
+        Amount(builder.ComplexProperty(signal => signal.PriceInEuros), "Price", required: true);
+        Amount(builder.ComplexProperty(signal => signal.Target), "Target", required: false);
+        Amount(builder.ComplexProperty(signal => signal.StopLoss), "Stop", required: false);
+
+        builder.Property(signal => signal.Fingerprint).HasMaxLength(200).IsRequired();
+        builder.HasIndex(signal => signal.Fingerprint).IsUnique();
+        builder.HasIndex(signal => new { signal.UserId, signal.Date });
+    }
+
+    /// <summary>Un importe en dos columnas, con su divisa.</summary>
+    private static void Amount(
+        Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexPropertyBuilder<Domain.ValueObjects.Money> builder,
+        string prefix,
+        bool required)
+    {
+        builder.IsRequired(required);
+        builder.Property(value => value.Amount).HasColumnName(prefix + "Amount")
+            .HasPrecision(ValueObjectConverters.MoneyPrecision, ValueObjectConverters.MoneyScale);
+        builder.Property(value => value.Currency).HasColumnName(prefix + "Currency").HasMaxLength(3);
+        builder.Ignore(value => value.IsZero);
+        builder.Ignore(value => value.IsNegative);
+    }
+}
+
+/// <summary>
 /// Precios diarios. La clave es activo y fecha, que es lo que impide que el mismo día
 /// acabe con dos precios distintos según quién lo trajera.
 /// </summary>

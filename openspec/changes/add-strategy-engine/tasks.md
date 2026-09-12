@@ -19,7 +19,7 @@
 - [x] 3.1 Modelar la condición y su combinación por conjunción y disyunción, con los operandos que el motor sabe evaluar; verificar con tests de cada tipo de condición
 - [x] 3.2 Modelar el sistema con sus reglas de entrada, de salida, de objetivo y de nivel de salida, con validación que rechaza lo que no se sabrá ejecutar; verificar con tests, incluido el del indicador desconocido
 - [x] 3.3 Implementar el versionado, conservando las versiones anteriores; verificar con tests de corrección y de simulación de una versión antigua
-- [ ] 3.4 Persistir sistemas y versiones; verificar con test de integración que una versión guardada se recupera igual
+- [x] 3.4 Persistir sistemas y versiones; verificar con test de integración que una versión guardada se recupera igual
 - [ ] 3.5 Añadir la pantalla de sistemas con alta, corrección y consulta de versiones; verificar manualmente
 - [ ] 3.6 Dar de alta un sistema de serie, sencillo y documentado, para tener con qué empezar; verificar con test que se puede simular sin tocar nada
 

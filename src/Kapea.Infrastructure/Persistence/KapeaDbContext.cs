@@ -54,6 +54,10 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<Domain.MarketData.DailyPrice> DailyPrices => Set<Domain.MarketData.DailyPrice>();
 
+    public DbSet<Domain.Strategies.Strategy> Strategies => Set<Domain.Strategies.Strategy>();
+
+    public DbSet<Domain.Strategies.EmittedSignal> EmittedSignals => Set<Domain.Strategies.EmittedSignal>();
+
     internal UserId CurrentUserId => currentUser.Id;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -82,6 +86,10 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
         modelBuilder.Entity<PlatformAccount>().HasQueryFilter(account => account.UserId == CurrentUserId);
         modelBuilder.Entity<Transaction>().HasQueryFilter(transaction => transaction.UserId == CurrentUserId);
         modelBuilder.Entity<Lot>().HasQueryFilter(lot => lot.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Strategies.Strategy>()
+            .HasQueryFilter(strategy => strategy.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Strategies.EmittedSignal>()
+            .HasQueryFilter(signal => signal.UserId == CurrentUserId);
         modelBuilder.Entity<RealizedResult>().HasQueryFilter(result => result.UserId == CurrentUserId);
         modelBuilder.Entity<CapitalIncome>().HasQueryFilter(income => income.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Credentials.BrokerCredential>().HasQueryFilter(credential => credential.UserId == CurrentUserId);
