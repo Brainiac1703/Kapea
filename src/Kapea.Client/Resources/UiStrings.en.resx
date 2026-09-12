@@ -472,6 +472,42 @@
   <data name="Nav_Signals" xml:space="preserve">
     <value>Signals</value>
   </data>
+  <data name="Nav_Journal" xml:space="preserve">
+    <value>Journal</value>
+  </data>
+  <data name="Journal_Title" xml:space="preserve">
+    <value>Journal</value>
+  </data>
+  <data name="Journal_Heading" xml:space="preserve">
+    <value>Decision journal</value>
+  </data>
+  <data name="Journal_Intro" xml:space="preserve">
+    <value>Why you did what you did. Six months from now this is worth more than the signal.</value>
+  </data>
+  <data name="Journal_Empty" xml:space="preserve">
+    <value>No notes yet.</value>
+  </data>
+  <data name="Journal_Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Journal_About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Journal_Outcome" xml:space="preserve">
+    <value>What happened</value>
+  </data>
+  <data name="Journal_Written" xml:space="preserve">
+    <value>Written</value>
+  </data>
+  <data name="Journal_Write" xml:space="preserve">
+    <value>Write a note</value>
+  </data>
+  <data name="Journal_Saved" xml:space="preserve">
+    <value>Note saved.</value>
+  </data>
+  <data name="Journal_Placeholder" xml:space="preserve">
+    <value>Why you did it, or why you did not.</value>
+  </data>
   <data name="Strategies_Title" xml:space="preserve">
     <value>Systems</value>
   </data>

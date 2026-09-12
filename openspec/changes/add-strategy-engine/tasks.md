@@ -62,10 +62,10 @@
 
 ## 8. Diario de decisiones
 
-- [ ] 8.1 Modelar la anotación sobre un movimiento o una señal, con su fecha; verificar con tests
-- [ ] 8.2 Comprobar que anotar no altera el movimiento ni su huella de duplicado; verificar con test de reimportación
-- [ ] 8.3 Implementar la consulta del diario de un periodo con lo que pasó después; verificar con test
-- [ ] 8.4 Añadir la anotación a las pantallas de movimientos y de señales; verificar manualmente
+- [x] 8.1 Modelar la anotación sobre un movimiento o una señal, con su fecha; verificar con tests
+- [x] 8.2 Comprobar que anotar no altera el movimiento ni su huella de duplicado; verificar con test de reimportación
+- [x] 8.3 Implementar la consulta del diario de un periodo con lo que pasó después; verificar con test
+- [x] 8.4 Añadir la anotación a las pantallas de movimientos y de señales; verificar manualmente
 
 ## 9. Ideas de fuentes externas
 

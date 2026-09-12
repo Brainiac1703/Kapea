@@ -1,0 +1,47 @@
+@page "/journal"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Journal_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Journal_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Journal_Intro"]</FluentLabel>
+
+@if (_notes is null)
+{
+    <FluentProgressRing />
+}
+else if (_notes.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Journal_Empty"]</FluentMessageBar>
+}
+else
+{
+    <FluentDataGrid Items="@_notes.AsQueryable()"
+                    TGridItem="DecisionNoteResponse"
+                    GridTemplateColumns="1fr 1fr 1fr 3fr">
+        <TemplateColumn Title="@Ui["Journal_Written"]">@Format.Moment(context.WrittenAt)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Journal_About"]">@(context.About ?? Ui["Charts_NoValue"].Value)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Journal_Outcome"]">@(context.Outcome ?? Ui["Charts_NoValue"].Value)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Journal_Note"]">@context.Text</TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    private IReadOnlyList<DecisionNoteResponse>? _notes;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _notes = await Api.ListJournalAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            _notes = null;
+            Toasts.ShowApiError(exception);
+        }
+    }
+}

@@ -34,6 +34,7 @@ public static class PortfolioEndpoints
         api.MapPortfolio();
         api.MapTransfers();
         api.MapStrategies();
+        api.MapJournal();
     }
 
     private static void MapAccounts(this RouteGroupBuilder api)

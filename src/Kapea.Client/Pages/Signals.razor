@@ -55,11 +55,25 @@ else
         <TemplateColumn Title="@Ui["Signals_Reason"]">
             @context.Reason
             <div class="moment">@context.StrategyName · @Ui["Strategies_Version"] @context.StrategyVersion</div>
+
+            @* Anotar aquí es donde más se aprende: sobre una señal que no se siguió,
+               saber por qué vale más dentro de seis meses que la señal misma. *@
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                <FluentTextField Value="@Draft(context.Id)"
+                                 ValueChanged="@(value => _drafts[context.Id] = value ?? string.Empty)"
+                                 Placeholder="@Ui["Journal_Placeholder"]" />
+                <FluentButton Disabled="@(Draft(context.Id).Length == 0)"
+                              OnClick="@(() => WriteAsync(context.Id))">
+                    @Ui["Journal_Write"]
+                </FluentButton>
+            </FluentStack>
         </TemplateColumn>
     </FluentDataGrid>
 }
 
 @code {
+    private readonly Dictionary<Guid, string> _drafts = [];
+
     private IReadOnlyList<SignalResponse>? _signals;
     private bool _running;
 
@@ -74,6 +88,23 @@ else
         catch (KapeaApiException exception)
         {
             _signals = null;
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private string Draft(Guid signalId) => _drafts.GetValueOrDefault(signalId, string.Empty);
+
+    private async Task WriteAsync(Guid signalId)
+    {
+        try
+        {
+            await Api.WriteNoteAsync(new WriteNoteRequest(null, signalId, Draft(signalId)));
+
+            _drafts.Remove(signalId);
+            Toasts.ShowSuccess(Ui["Journal_Saved"]);
+        }
+        catch (KapeaApiException exception)
+        {
             Toasts.ShowApiError(exception);
         }
     }

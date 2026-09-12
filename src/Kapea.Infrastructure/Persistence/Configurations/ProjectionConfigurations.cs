@@ -146,6 +146,31 @@ internal sealed class StrategyConfiguration : IEntityTypeConfiguration<Domain.St
     }
 }
 
+/// <summary>
+/// Anotaciones del diario.
+/// </summary>
+/// <remarks>
+/// Sin clave foránea al movimiento a propósito: borrar una importación no puede llevarse
+/// por delante lo que el usuario escribió, que es lo único de la fila que no se puede
+/// volver a descargar.
+/// </remarks>
+internal sealed class DecisionNoteConfiguration : IEntityTypeConfiguration<Domain.Journal.DecisionNote>
+{
+    public void Configure(EntityTypeBuilder<Domain.Journal.DecisionNote> builder)
+    {
+        builder.ToTable("DecisionNotes");
+        builder.HasKey(note => note.Id);
+
+        builder.Property(note => note.UserId).IsRequired();
+        builder.Property(note => note.Text).HasMaxLength(4000).IsRequired();
+        builder.Property(note => note.WrittenAt).IsRequired();
+
+        builder.HasIndex(note => new { note.UserId, note.WrittenAt });
+        builder.HasIndex(note => note.TransactionId);
+        builder.HasIndex(note => note.SignalId);
+    }
+}
+
 /// <summary>Señales emitidas. La huella impide guardar dos veces la misma.</summary>
 internal sealed class EmittedSignalConfiguration : IEntityTypeConfiguration<Domain.Strategies.EmittedSignal>
 {

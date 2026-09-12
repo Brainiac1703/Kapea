@@ -58,6 +58,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<Domain.Strategies.EmittedSignal> EmittedSignals => Set<Domain.Strategies.EmittedSignal>();
 
+    public DbSet<Domain.Journal.DecisionNote> DecisionNotes => Set<Domain.Journal.DecisionNote>();
+
     internal UserId CurrentUserId => currentUser.Id;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -90,6 +92,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
             .HasQueryFilter(strategy => strategy.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Strategies.EmittedSignal>()
             .HasQueryFilter(signal => signal.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Journal.DecisionNote>()
+            .HasQueryFilter(note => note.UserId == CurrentUserId);
         modelBuilder.Entity<RealizedResult>().HasQueryFilter(result => result.UserId == CurrentUserId);
         modelBuilder.Entity<CapitalIncome>().HasQueryFilter(income => income.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Credentials.BrokerCredential>().HasQueryFilter(credential => credential.UserId == CurrentUserId);

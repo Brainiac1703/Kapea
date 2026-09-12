@@ -138,3 +138,17 @@ public sealed record StrategyProposalResponse(
 
 /// <summary>Qué dicen unas reglas, en castellano corriente.</summary>
 public sealed record StrategyExplanationResponse(string? Explanation);
+
+/// <summary>Una anotación del diario, con lo que acompaña.</summary>
+/// <param name="Outcome">Qué pasó después, cuando se puede saber.</param>
+public sealed record DecisionNoteResponse(
+    Guid Id,
+    Guid? TransactionId,
+    Guid? SignalId,
+    string Text,
+    DateTimeOffset WrittenAt,
+    string? About,
+    string? Outcome);
+
+/// <summary>Texto de una anotación, sobre un movimiento o sobre una señal.</summary>
+public sealed record WriteNoteRequest(Guid? TransactionId, Guid? SignalId, string Text);

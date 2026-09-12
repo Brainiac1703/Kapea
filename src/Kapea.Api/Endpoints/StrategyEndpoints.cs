@@ -224,6 +224,130 @@ internal static class StrategyEndpoints
     }
 
     /// <summary>
+    /// El diario de decisiones.
+    /// </summary>
+    /// <remarks>
+    /// Va en su propio grupo porque no es del motor: anota por qué se hizo algo, y eso
+    /// vale igual con sistemas que sin ellos.
+    /// </remarks>
+    internal static void MapJournal(this RouteGroupBuilder api)
+    {
+        var journal = api.MapGroup("/journal");
+
+        journal.MapGet("/", async (
+            DateOnly? from,
+            KapeaDbContext context,
+            TimeProvider time,
+            CancellationToken token) =>
+        {
+            var since = from ?? DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime).AddDays(-365);
+            var earliest = new DateTimeOffset(since.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+
+            var notes = await context.DecisionNotes
+                .Where(note => note.WrittenAt >= earliest)
+                .OrderByDescending(note => note.WrittenAt)
+                .ToListAsync(token);
+
+            if (notes.Count == 0)
+            {
+                return new List<DecisionNoteResponse>();
+            }
+
+            // Lo que pasó después: para un movimiento, qué fue; para una señal, si el
+            // precio llegó a su objetivo o a su salida. Es la mitad del valor del diario.
+            var transactions = await context.Transactions
+                .Where(transaction => notes.Select(note => note.TransactionId).Contains(transaction.Id))
+                .ToDictionaryAsync(transaction => transaction.Id, token);
+
+            var signals = await context.EmittedSignals
+                .Where(signal => notes.Select(note => note.SignalId).Contains(signal.Id))
+                .ToDictionaryAsync(signal => signal.Id, token);
+
+            var symbols = await context.Assets
+                .ToDictionaryAsync(asset => asset.Id, asset => asset.CanonicalSymbol, token);
+
+            return notes
+                .Select(note => new DecisionNoteResponse(
+                    note.Id,
+                    note.TransactionId,
+                    note.SignalId,
+                    note.Text,
+                    note.WrittenAt,
+                    About(note, transactions, signals, symbols),
+                    Outcome(note, transactions, signals)))
+                .ToList();
+        });
+
+        journal.MapPost("/", async (
+            WriteNoteRequest request,
+            KapeaDbContext context,
+            ICurrentUser user,
+            TimeProvider time,
+            CancellationToken token) =>
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            if (request.TransactionId is null && request.SignalId is null)
+            {
+                return Results.BadRequest("Una anotación acompaña a un movimiento o a una señal.");
+            }
+
+            var note = request.TransactionId is { } transactionId
+                ? Domain.Journal.DecisionNote.ForTransaction(user.Id, transactionId, request.Text, time.GetUtcNow())
+                : Domain.Journal.DecisionNote.ForSignal(user.Id, request.SignalId!.Value, request.Text, time.GetUtcNow());
+
+            context.DecisionNotes.Add(note);
+            await context.SaveChangesAsync(token);
+
+            return Results.Created($"/api/journal/{note.Id}", new DecisionNoteResponse(
+                note.Id, note.TransactionId, note.SignalId, note.Text, note.WrittenAt, null, null));
+        });
+    }
+
+    /// <summary>A qué acompaña la anotación, dicho en una línea.</summary>
+    private static string? About(
+        Domain.Journal.DecisionNote note,
+        IReadOnlyDictionary<Guid, Domain.Transactions.Transaction> transactions,
+        IReadOnlyDictionary<Guid, EmittedSignal> signals,
+        IReadOnlyDictionary<Guid, string> symbols)
+    {
+        if (note.TransactionId is { } transactionId && transactions.TryGetValue(transactionId, out var transaction))
+        {
+            var symbol = transaction.AssetId is { } assetId ? symbols.GetValueOrDefault(assetId) : null;
+
+            return $"{transaction.Type} {symbol}".Trim();
+        }
+
+        if (note.SignalId is { } signalId && signals.TryGetValue(signalId, out var signal))
+        {
+            return $"{signal.Direction} {symbols.GetValueOrDefault(signal.AssetId)}".Trim();
+        }
+
+        return null;
+    }
+
+    /// <summary>Qué pasó después, cuando se puede saber.</summary>
+    private static string? Outcome(
+        Domain.Journal.DecisionNote note,
+        IReadOnlyDictionary<Guid, Domain.Transactions.Transaction> transactions,
+        IReadOnlyDictionary<Guid, EmittedSignal> signals)
+    {
+        if (note.TransactionId is { } transactionId && transactions.TryGetValue(transactionId, out var transaction))
+        {
+            return $"{transaction.GrossAmountInEuros.Amount:0.00} €";
+        }
+
+        if (note.SignalId is { } signalId && signals.TryGetValue(signalId, out var signal))
+        {
+            return signal.Target is { } target
+                ? $"objetivo {target.Amount:0.00} €"
+                : null;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Lo que una regla puede nombrar.
     /// </summary>
     /// <remarks>
