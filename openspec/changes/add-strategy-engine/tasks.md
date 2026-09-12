@@ -80,6 +80,6 @@
 
 ## 10. Validación con los datos del usuario
 
-- [ ] 10.1 Contrastar la rentabilidad calculada con lo que dicen sus plataformas; documentar cada diferencia y su causa
-- [ ] 10.2 Comprobar sobre su histórico cuánto se habría ido en comisiones con un sistema de operativa frecuente; dejarlo escrito
-- [ ] 10.3 Dejar escrito qué sistemas se han simulado, con qué resultado y con qué supuestos
+- [x] 10.1 Contrastar la rentabilidad calculada con lo que dicen sus plataformas; documentar cada diferencia y su causa
+- [x] 10.2 Comprobar sobre su histórico cuánto se habría ido en comisiones con un sistema de operativa frecuente; dejarlo escrito
+- [x] 10.3 Dejar escrito qué sistemas se han simulado, con qué resultado y con qué supuestos
