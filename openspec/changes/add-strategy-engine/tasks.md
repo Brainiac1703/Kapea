@@ -1,10 +1,10 @@
 ## 1. Medir antes de decidir
 
-- [ ] 1.1 Implementar la rentabilidad ponderada por tiempo encadenando los tramos diarios; verificar con tests de una aportación sin rendimiento, de dos periodos encadenados y de un periodo sin movimientos
-- [ ] 1.2 Implementar la rentabilidad ponderada por dinero; verificar con test que coincide con la anterior sin aportaciones y que la supera cuando se aporta justo antes de una subida
-- [ ] 1.3 Implementar volatilidad, caída máxima desde el pico y tiempo de recuperación; verificar con tests de caída recuperada y de caída aún abierta
-- [ ] 1.4 Implementar la comparación con una referencia aplicándole las mismas aportaciones en las mismas fechas; verificar con tests, incluido el de una referencia a la que le falta algún día
-- [ ] 1.5 Marcar como incompletas las métricas calculadas sobre periodos con días sin precio; verificar con test
+- [x] 1.1 Implementar la rentabilidad ponderada por tiempo encadenando los tramos diarios; verificar con tests de una aportación sin rendimiento, de dos periodos encadenados y de un periodo sin movimientos
+- [x] 1.2 Implementar la rentabilidad ponderada por dinero; verificar con test que coincide con la anterior sin aportaciones y que la supera cuando se aporta justo antes de una subida
+- [x] 1.3 Implementar volatilidad, caída máxima desde el pico y tiempo de recuperación; verificar con tests de caída recuperada y de caída aún abierta
+- [x] 1.4 Implementar la comparación con una referencia aplicándole las mismas aportaciones en las mismas fechas; verificar con tests, incluido el de una referencia a la que le falta algún día
+- [x] 1.5 Marcar como incompletas las métricas calculadas sobre periodos con días sin precio; verificar con test
 - [ ] 1.6 Exponer el rendimiento en la API y en una pantalla, con el periodo seleccionable; verificar con test de integración y manualmente
 
 ## 2. Indicadores que faltan
