@@ -12,24 +12,24 @@
 - [x] 2.1 Implementar el MACD con sus dos medias y su línea de señal; verificar con tests de serie corta y de cruce
 - [x] 2.2 Implementar las bandas de Bollinger; verificar con tests de serie plana y de precio fuera de banda
 - [x] 2.3 Implementar el recorrido medio verdadero; verificar con tests de dos activos con recorridos distintos y de serie de un solo día
-- [ ] 2.4 Añadir la media de 200 días como filtro de tendencia disponible para las reglas; verificar con test
+- [x] 2.4 Añadir la media de 200 días como filtro de tendencia disponible para las reglas; verificar con test
 
 ## 3. Sistemas de especulación como dato
 
-- [ ] 3.1 Modelar la condición y su combinación por conjunción y disyunción, con los operandos que el motor sabe evaluar; verificar con tests de cada tipo de condición
-- [ ] 3.2 Modelar el sistema con sus reglas de entrada, de salida, de objetivo y de nivel de salida, con validación que rechaza lo que no se sabrá ejecutar; verificar con tests, incluido el del indicador desconocido
-- [ ] 3.3 Implementar el versionado, conservando las versiones anteriores; verificar con tests de corrección y de simulación de una versión antigua
+- [x] 3.1 Modelar la condición y su combinación por conjunción y disyunción, con los operandos que el motor sabe evaluar; verificar con tests de cada tipo de condición
+- [x] 3.2 Modelar el sistema con sus reglas de entrada, de salida, de objetivo y de nivel de salida, con validación que rechaza lo que no se sabrá ejecutar; verificar con tests, incluido el del indicador desconocido
+- [x] 3.3 Implementar el versionado, conservando las versiones anteriores; verificar con tests de corrección y de simulación de una versión antigua
 - [ ] 3.4 Persistir sistemas y versiones; verificar con test de integración que una versión guardada se recupera igual
 - [ ] 3.5 Añadir la pantalla de sistemas con alta, corrección y consulta de versiones; verificar manualmente
 - [ ] 3.6 Dar de alta un sistema de serie, sencillo y documentado, para tener con qué empezar; verificar con test que se puede simular sin tocar nada
 
 ## 4. Motor de señales
 
-- [ ] 4.1 Implementar el evaluador de condiciones sobre la serie de un activo; verificar con tests de cada operador y de una condición compuesta
-- [ ] 4.2 Implementar el recorrido día a día que produce señales con su regla y su versión; verificar con tests de determinismo y de explicación de la señal
-- [ ] 4.3 Comprobar que ninguna señal usa datos posteriores a su día; verificar con test que evaluar el histórico entero da las mismas señales que evaluar día a día
-- [ ] 4.4 Implementar objetivo y nivel de salida cuando el sistema los declare; verificar con tests de sistema con objetivo y sin él
-- [ ] 4.5 No emitir señal cuando falten días en la ventana que la regla necesita, diciendo por qué; verificar con test
+- [x] 4.1 Implementar el evaluador de condiciones sobre la serie de un activo; verificar con tests de cada operador y de una condición compuesta
+- [x] 4.2 Implementar el recorrido día a día que produce señales con su regla y su versión; verificar con tests de determinismo y de explicación de la señal
+- [x] 4.3 Comprobar que ninguna señal usa datos posteriores a su día; verificar con test que evaluar el histórico entero da las mismas señales que evaluar día a día
+- [x] 4.4 Implementar objetivo y nivel de salida cuando el sistema los declare; verificar con tests de sistema con objetivo y sin él
+- [x] 4.5 No emitir señal cuando falten días en la ventana que la regla necesita, diciendo por qué; verificar con test
 - [ ] 4.6 Persistir las señales emitidas y exponerlas en la API; verificar con test de integración
 - [ ] 4.7 Añadir la pantalla de señales vigentes, con el sistema del que viene cada una; verificar manualmente
 
