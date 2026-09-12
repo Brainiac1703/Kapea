@@ -41,7 +41,7 @@
 - [x] 5.4 Implementar la comparación con no hacer nada en el mismo periodo; verificar con test de un sistema peor que la referencia
 - [x] 5.5 Devolver el detalle de la simulación: operaciones, aciertos, caída máxima, comisiones e impuestos; verificar con test
 - [x] 5.6 Exponer la simulación en la API y en una pantalla con su detalle operación a operación; verificar con test de integración y manualmente
-- [ ] 5.7 Simular el sistema de serie sobre el histórico real del usuario y dejar escrito el resultado frente a no hacer nada
+- [x] 5.7 Simular el sistema de serie sobre el histórico real del usuario y dejar escrito el resultado frente a no hacer nada
 
 ## 6. Gestión del riesgo
 

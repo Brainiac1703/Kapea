@@ -76,8 +76,30 @@ public sealed record Term(Operand Operand, int? Window = null, decimal? Value = 
     internal string Describe() => Operand switch
     {
         Operand.Constant => Value?.ToString("0.####", System.Globalization.CultureInfo.CurrentCulture) ?? "?",
-        Operand.Price => "precio",
-        _ => Window is { } window ? $"{Operand} de {window} días" : Operand.ToString(),
+        Operand.Price => "el precio",
+        _ => Window is { } window ? $"su {Name(Operand)} de {window} días" : Name(Operand),
+    };
+
+    /// <summary>
+    /// Cómo se llama el indicador al leer una regla.
+    /// </summary>
+    /// <remarks>
+    /// El nombre del enumerado no vale: «SimpleMovingAverage de 50 días» no se lee, y la
+    /// explicación de una señal es justamente lo que la hace útil.
+    /// </remarks>
+    private static string Name(Operand operand) => operand switch
+    {
+        Operand.SimpleMovingAverage => "media móvil simple",
+        Operand.ExponentialMovingAverage => "media móvil exponencial",
+        Operand.RelativeStrengthIndex => "fuerza relativa",
+        Operand.MacdLine => "línea MACD",
+        Operand.MacdSignal => "señal del MACD",
+        Operand.MacdDistance => "distancia del MACD a su señal",
+        Operand.BollingerUpper => "banda superior",
+        Operand.BollingerMiddle => "banda central",
+        Operand.BollingerLower => "banda inferior",
+        Operand.AverageDailyRange => "recorrido medio diario",
+        _ => operand.ToString(),
     };
 }
 

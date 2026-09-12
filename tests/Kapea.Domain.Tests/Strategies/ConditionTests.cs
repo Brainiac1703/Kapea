@@ -60,8 +60,9 @@ public class ConditionTests
         var condition = Condition.When(
             Term.Close, Comparison.CrossesAbove, Term.Indicator(Operand.SimpleMovingAverage, 50));
 
-        Assert.Contains("precio", condition.Describe(), StringComparison.Ordinal);
-        Assert.Contains("cruza al alza", condition.Describe(), StringComparison.Ordinal);
+        // El nombre del enumerado no vale: la explicación de una señal es justamente lo
+        // que la hace útil, y «SimpleMovingAverage de 50 días» no se lee.
+        Assert.Equal("el precio cruza al alza su media móvil simple de 50 días", condition.Describe());
     }
 }
 
