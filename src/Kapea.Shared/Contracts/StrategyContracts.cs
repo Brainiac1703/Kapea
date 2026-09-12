@@ -118,3 +118,23 @@ public sealed record StrategyVocabularyResponse(
 public sealed record OperandResponse(string Operand, string Label, bool NeedsWindow);
 
 public sealed record NamedValueResponse(string Value, string Label);
+
+/// <summary>Un método descrito en palabras, para traducirlo a reglas.</summary>
+public sealed record TranslateStrategyRequest(string Description);
+
+/// <summary>
+/// Lo que el traductor propone.
+/// </summary>
+/// <param name="Available">Falso cuando no hay servicio configurado.</param>
+/// <param name="NotUnderstood">Lo que no se ha sabido traducir, dicho tal cual.</param>
+/// <param name="Note">Por qué no hay propuesta, cuando no la hay.</param>
+public sealed record StrategyProposalResponse(
+    bool Available,
+    string? Name,
+    StrategyRulesRequest? Rules,
+    IReadOnlyList<string> NotUnderstood,
+    double Confidence,
+    string? Note);
+
+/// <summary>Qué dicen unas reglas, en castellano corriente.</summary>
+public sealed record StrategyExplanationResponse(string? Explanation);

@@ -54,11 +54,11 @@
 
 ## 7. Traducción asistida
 
-- [ ] 7.1 Definir el contrato de traducción de una descripción a reglas, con lo que no se ha sabido traducir marcado aparte; verificar con tests contra respuestas grabadas
-- [ ] 7.2 Implementar el traductor sobre el servicio existente, sin permitir guardar sin aprobación; verificar con test que una propuesta no aceptada no se guarda
-- [ ] 7.3 Implementar la explicación en castellano de lo que dicen las reglas de un sistema; verificar con test contra respuesta grabada
-- [ ] 7.4 Comprobar que sin servicio configurado todo sigue funcionando a mano; verificar con test
-- [ ] 7.5 Añadir a la pantalla de sistemas la revisión de una propuesta antes de guardarla; verificar manualmente
+- [x] 7.1 Definir el contrato de traducción de una descripción a reglas, con lo que no se ha sabido traducir marcado aparte; verificar con tests contra respuestas grabadas
+- [x] 7.2 Implementar el traductor sobre el servicio existente, sin permitir guardar sin aprobación; verificar con test que una propuesta no aceptada no se guarda
+- [x] 7.3 Implementar la explicación en castellano de lo que dicen las reglas de un sistema; verificar con test contra respuesta grabada
+- [x] 7.4 Comprobar que sin servicio configurado todo sigue funcionando a mano; verificar con test
+- [x] 7.5 Añadir a la pantalla de sistemas la revisión de una propuesta antes de guardarla; verificar manualmente
 
 ## 8. Diario de decisiones
 

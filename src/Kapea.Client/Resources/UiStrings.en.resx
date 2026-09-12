@@ -484,6 +484,24 @@
   <data name="Strategies_New" xml:space="preserve">
     <value>New system</value>
   </data>
+  <data name="Strategies_Describe" xml:space="preserve">
+    <value>Describe in words</value>
+  </data>
+  <data name="Strategies_DescribeHelp" xml:space="preserve">
+    <value>Paste the description of the method and Kapea will propose the rules. Review them before saving: whatever it cannot translate it will tell you instead of making it up.</value>
+  </data>
+  <data name="Strategies_Translate" xml:space="preserve">
+    <value>Propose rules</value>
+  </data>
+  <data name="Strategies_NotUnderstood" xml:space="preserve">
+    <value>I could not translate this</value>
+  </data>
+  <data name="Strategies_Confidence" xml:space="preserve">
+    <value>Translator confidence: {0}</value>
+  </data>
+  <data name="Strategies_Unavailable" xml:space="preserve">
+    <value>No translation service configured. Rules are written by hand.</value>
+  </data>
   <data name="Strategies_Revise" xml:space="preserve">
     <value>Correct</value>
   </data>

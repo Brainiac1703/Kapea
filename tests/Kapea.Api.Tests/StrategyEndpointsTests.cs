@@ -161,6 +161,33 @@ public class StrategyEndpointsTests(KapeaApiFactory factory)
         Assert.Empty(signals!);
     }
 
+    [Fact]
+    public async Task Without_a_translation_service_the_screen_is_told_so_instead_of_failing()
+    {
+        // Las pruebas no configuran Azure OpenAI, que es el mismo caso que un despliegue
+        // sin el servicio: las reglas se declaran a mano y la pantalla lo dice.
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var proposal = await (await client.PostAsJsonAsync(
+                "/api/strategies/translate", new TranslateStrategyRequest("Compro cuando cruza su media.")))
+            .Content.ReadFromJsonAsync<StrategyProposalResponse>();
+
+        Assert.False(proposal!.Available);
+        Assert.Null(proposal.Rules);
+        Assert.NotNull(proposal.Note);
+    }
+
+    [Fact]
+    public async Task Without_a_translation_service_there_is_no_explanation_either()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var explanation = await (await client.PostAsJsonAsync("/api/strategies/explain", Rules()))
+            .Content.ReadFromJsonAsync<StrategyExplanationResponse>();
+
+        Assert.Null(explanation!.Explanation);
+    }
+
     private static StrategyRulesRequest Rules(int window = 14) =>
         new(
             new ConditionResponse(

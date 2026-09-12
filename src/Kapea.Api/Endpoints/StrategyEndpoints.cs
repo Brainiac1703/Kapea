@@ -89,6 +89,38 @@ internal static class StrategyEndpoints
             return Results.Ok(StrategyMapping.ToResponse(strategy));
         });
 
+        // Traducir no guarda nada: devuelve la propuesta para que una persona la revise.
+        strategies.MapPost("/translate", async (
+            TranslateStrategyRequest request,
+            IStrategyTranslator translator,
+            CancellationToken token) =>
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            if (!translator.IsAvailable)
+            {
+                return Results.Ok(new StrategyProposalResponse(
+                    false, null, null, [], 0d, "No hay servicio de traducción configurado."));
+            }
+
+            var proposal = await translator.TranslateAsync(request.Description, token);
+
+            if (proposal is null)
+            {
+                return Results.Ok(new StrategyProposalResponse(
+                    true, null, null, [], 0d, "No se ha podido sacar ninguna regla de ese texto."));
+            }
+
+            return Results.Ok(new StrategyProposalResponse(
+                true, proposal.Name, proposal.Rules, proposal.NotUnderstood, proposal.Confidence, null));
+        });
+
+        strategies.MapPost("/explain", async (
+            StrategyRulesRequest rules,
+            IStrategyTranslator translator,
+            CancellationToken token) =>
+            new StrategyExplanationResponse(await translator.ExplainAsync(rules, token)));
+
         strategies.MapPost("/run", async (StrategyService service, CancellationToken token) =>
         {
             var run = await service.RunAsync(token);

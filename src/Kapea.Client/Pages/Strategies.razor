@@ -75,6 +75,7 @@ else
 @code {
     private IReadOnlyList<StrategyResponse>? _strategies;
     private StrategyVocabularyResponse? _vocabulary;
+    private bool _translationAvailable;
 
     protected override async Task OnInitializedAsync()
     {
@@ -85,6 +86,17 @@ else
         catch (KapeaApiException exception)
         {
             Toasts.ShowApiError(exception);
+        }
+
+        // Se pregunta una vez si hay traductor, con un texto vacío: la respuesta dice si
+        // el servicio está configurado sin gastar una llamada al modelo.
+        try
+        {
+            _translationAvailable = (await Api.TranslateStrategyAsync(string.Empty)).Available;
+        }
+        catch (KapeaApiException)
+        {
+            _translationAvailable = false;
         }
 
         await ReloadAsync();
@@ -105,7 +117,7 @@ else
 
     private Task OpenNewAsync() =>
         AskUntilAcceptedAsync(
-            new StrategyModel(),
+            Prepared(new StrategyModel()),
             Ui["Strategies_New"],
             Ui["Common_Add"],
             model => Api.CreateStrategyAsync(
@@ -113,7 +125,7 @@ else
 
     private Task OpenReviseAsync(StrategyResponse strategy) =>
         AskUntilAcceptedAsync(
-            StrategyModel.From(strategy),
+            Prepared(StrategyModel.From(strategy)),
             Ui["Strategies_Revise"],
             Ui["Common_Save"],
             model => Api.ReviseStrategyAsync(
@@ -177,6 +189,21 @@ else
                 model.Error = exception.Message;
             }
         }
+    }
+
+    /// <summary>
+    /// Deja el modelo con lo que el diálogo necesita.
+    /// </summary>
+    /// <remarks>
+    /// El traductor solo se ofrece si hay servicio: un botón que nunca funciona es peor
+    /// que no tenerlo.
+    /// </remarks>
+    private StrategyModel Prepared(StrategyModel model)
+    {
+        model.Vocabulary = _vocabulary;
+        model.Translate = _translationAvailable ? description => Api.TranslateStrategyAsync(description) : null;
+
+        return model;
     }
 
     private static StrategyVersionResponse Current(StrategyResponse strategy) =>

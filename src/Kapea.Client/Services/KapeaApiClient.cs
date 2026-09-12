@@ -361,6 +361,16 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<StrategyResponse>(response, cancellationToken);
     }
 
+    public async Task<StrategyProposalResponse> TranslateStrategyAsync(
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            "api/strategies/translate", new TranslateStrategyRequest(description), cancellationToken);
+
+        return await ReadAsync<StrategyProposalResponse>(response, cancellationToken);
+    }
+
     public async Task<SignalRunResponse> RunStrategiesAsync(CancellationToken cancellationToken = default)
     {
         var response = await http.PostAsync("api/strategies/run", content: null, cancellationToken);

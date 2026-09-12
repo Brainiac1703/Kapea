@@ -207,16 +207,28 @@ public static class DependencyInjection
         if (!options.IsConfigured)
         {
             services.AddScoped<IMappingProposer, Import.Mapping.UnavailableMappingProposer>();
+            services.AddScoped<
+                Application.Strategies.IStrategyTranslator,
+                Application.Strategies.UnavailableStrategyTranslator>();
 
             return;
         }
 
         services.AddHttpClient<IMappingProposer, Import.Mapping.AzureOpenAiMappingProposer>(client =>
-        {
-            client.BaseAddress = new Uri(options.Endpoint!.TrimEnd('/') + "/");
-            client.DefaultRequestHeaders.Add("api-key", options.ApiKey);
-            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-        });
+            Configure(client, options));
+
+        // El mismo servicio, otro trabajo: traducir a reglas lo que se describe con
+        // palabras. Comparte configuración porque comparte despliegue.
+        services.AddHttpClient<
+            Application.Strategies.IStrategyTranslator,
+            Strategies.AzureOpenAiStrategyTranslator>(client => Configure(client, options));
+    }
+
+    private static void Configure(HttpClient client, Import.Mapping.AzureOpenAiOptions options)
+    {
+        client.BaseAddress = new Uri(options.Endpoint!.TrimEnd('/') + "/");
+        client.DefaultRequestHeaders.Add("api-key", options.ApiKey);
+        client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
     }
 
     private static void TryAddTimeProvider(this IServiceCollection services)

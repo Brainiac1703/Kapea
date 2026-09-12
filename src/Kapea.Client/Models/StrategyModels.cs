@@ -96,6 +96,55 @@ public sealed class StrategyModel
     /// <summary>El error de lo último que se intentó guardar, para no cerrar el formulario con él.</summary>
     public string? Error { get; set; }
 
+    /// <summary>
+    /// Lo que una regla puede nombrar y con qué traducir una descripción.
+    /// </summary>
+    /// <remarks>
+    /// Viajan en el modelo y no como parámetros del diálogo porque el diálogo solo recibe
+    /// su contenido, igual que ocurre con las cuentas en el alta de una credencial.
+    /// </remarks>
+    public StrategyVocabularyResponse? Vocabulary { get; set; }
+
+    /// <summary>Con qué traducir una descripción. Nulo cuando no hay servicio.</summary>
+    public Func<string, Task<StrategyProposalResponse>>? Translate { get; set; }
+
+    /// <summary>El método descrito con palabras, para que el traductor lo convierta en reglas.</summary>
+    public string Description2 { get; set; } = string.Empty;
+
+    /// <summary>Lo que el traductor no ha sabido traducir, para enseñarlo sin ocultarlo.</summary>
+    public IReadOnlyList<string> NotUnderstood { get; set; } = [];
+
+    /// <summary>Seguridad declarada por el traductor de la última propuesta.</summary>
+    public double? Confidence { get; set; }
+
+    /// <summary>Sustituye las reglas por las propuestas, conservando lo demás.</summary>
+    public void Apply(StrategyProposalResponse proposal)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+
+        NotUnderstood = proposal.NotUnderstood;
+        Confidence = proposal.Confidence;
+
+        if (proposal.Rules is not { } rules)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Name) && proposal.Name is { Length: > 0 } name)
+        {
+            Name = name;
+        }
+
+        Junction = rules.Entry.Junction == "Comparison" ? "All" : rules.Entry.Junction;
+        Entry = rules.Entry.Junction == "Comparison"
+            ? [ComparisonModel.From(rules.Entry)]
+            : [.. (rules.Entry.Children ?? []).Select(ComparisonModel.From)];
+        HasExit = rules.Exit is not null;
+        Exit = rules.Exit is null ? new ComparisonModel() : ComparisonModel.From(rules.Exit);
+        Target = LevelModel.From(rules.Target);
+        StopLoss = LevelModel.From(rules.StopLoss);
+    }
+
     public StrategyRulesRequest ToRules() =>
         new(
             Entry.Count == 1

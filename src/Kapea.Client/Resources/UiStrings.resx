@@ -484,6 +484,24 @@
   <data name="Strategies_New" xml:space="preserve">
     <value>Nuevo sistema</value>
   </data>
+  <data name="Strategies_Describe" xml:space="preserve">
+    <value>Describir con palabras</value>
+  </data>
+  <data name="Strategies_DescribeHelp" xml:space="preserve">
+    <value>Pega la descripción del método y Kapea propondrá las reglas. Revísalas antes de guardar: lo que no sepa traducir te lo dirá en lugar de inventarlo.</value>
+  </data>
+  <data name="Strategies_Translate" xml:space="preserve">
+    <value>Proponer reglas</value>
+  </data>
+  <data name="Strategies_NotUnderstood" xml:space="preserve">
+    <value>No he sabido traducir esto</value>
+  </data>
+  <data name="Strategies_Confidence" xml:space="preserve">
+    <value>Seguridad del traductor: {0}</value>
+  </data>
+  <data name="Strategies_Unavailable" xml:space="preserve">
+    <value>No hay servicio de traducción configurado. Las reglas se declaran a mano.</value>
+  </data>
   <data name="Strategies_Revise" xml:space="preserve">
     <value>Corregir</value>
   </data>

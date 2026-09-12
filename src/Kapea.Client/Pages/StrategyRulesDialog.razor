@@ -11,6 +11,34 @@
 
     <FluentTextArea @bind-Value="Content.Description" Label="@Ui["Common_Origin"]" Rows="2" Style="width: 100%" />
 
+    @* Traducir no guarda nada: rellena el formulario y quien decide sigue siendo quien
+       mira. Lo que el traductor no sepa traducir se enseña, no se completa. *@
+    @if (Content.Translate is not null)
+    {
+        <FluentLabel Typo="Typography.H5">@Ui["Strategies_Describe"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Strategies_DescribeHelp"]</FluentLabel>
+
+        <FluentTextArea @bind-Value="Content.Description2" Rows="5" Style="width: 100%" />
+
+        <FluentButton IconStart="@(new Icons.Regular.Size16.Lightbulb())"
+                      Disabled="@_translating"
+                      OnClick="TranslateAsync">
+            @Ui["Strategies_Translate"]
+        </FluentButton>
+
+        @if (Content.Confidence is { } confidence)
+        {
+            <FluentLabel Typo="Typography.Body" Class="intro">@Confidence(confidence)</FluentLabel>
+        }
+
+        @if (Content.NotUnderstood.Count > 0)
+        {
+            <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+                @Ui["Strategies_NotUnderstood"]: @string.Join(" · ", Content.NotUnderstood)
+            </FluentMessageBar>
+        }
+    }
+
     <FluentLabel Typo="Typography.H5">@Ui["Strategies_Entry"]</FluentLabel>
 
     <FluentSelect TOption="NamedValueResponse"
@@ -23,7 +51,7 @@
 
     @foreach (var condition in Content.Entry)
     {
-        <ComparisonEditor Condition="condition" Vocabulary="Vocabulary" />
+        <ComparisonEditor Condition="condition" Vocabulary="Content.Vocabulary!" />
 
         @if (Content.Entry.Count > 1)
         {
@@ -41,25 +69,47 @@
 
     @if (Content.HasExit)
     {
-        <ComparisonEditor Condition="Content.Exit" Vocabulary="Vocabulary" />
+        <ComparisonEditor Condition="Content.Exit" Vocabulary="Content.Vocabulary!" />
     }
 
     <FluentLabel Typo="Typography.H5">@Ui["Strategies_Stop"]</FluentLabel>
-    <LevelEditor Level="Content.StopLoss" Vocabulary="Vocabulary" />
+    <LevelEditor Level="Content.StopLoss" Vocabulary="Content.Vocabulary!" />
 
     <FluentLabel Typo="Typography.H5">@Ui["Strategies_Target"]</FluentLabel>
-    <LevelEditor Level="Content.Target" Vocabulary="Vocabulary" />
+    <LevelEditor Level="Content.Target" Vocabulary="Content.Vocabulary!" />
 </FluentStack>
 
 @code {
+    private bool _translating;
+
     [Parameter]
     public StrategyModel Content { get; set; } = new();
 
-    /// <summary>Lo que una regla puede nombrar. Lo da el servidor.</summary>
-    [Parameter]
-    [EditorRequired]
-    public required StrategyVocabularyResponse Vocabulary { get; set; }
+    /// <summary>Cuánta seguridad declara el traductor, dicho en una línea.</summary>
+    private string Confidence(double confidence) => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        Ui["Strategies_Confidence"].Value,
+        Format.Rate((decimal)confidence, "?"));
+
+    private async Task TranslateAsync()
+    {
+        if (Content.Translate is null || string.IsNullOrWhiteSpace(Content.Description2))
+        {
+            return;
+        }
+
+        _translating = true;
+
+        try
+        {
+            Content.Apply(await Content.Translate(Content.Description2));
+        }
+        finally
+        {
+            _translating = false;
+        }
+    }
 
     private IEnumerable<NamedValueResponse> Junctions =>
-        Vocabulary.Junctions.Where(junction => junction.Value != "Comparison");
+        (Content.Vocabulary?.Junctions ?? []).Where(junction => junction.Value != "Comparison");
 }
