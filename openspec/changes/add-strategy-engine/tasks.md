@@ -69,13 +69,13 @@
 
 ## 9. Ideas de fuentes externas
 
-- [ ] 9.1 Modelar la idea con su activo, sentido, fecha, fuente, enlace y niveles opcionales; verificar con tests, incluido el de una idea sin niveles
-- [ ] 9.2 Modelar la fuente vigilada con su última publicación conocida; verificar con test de integración que se recupera igual
-- [ ] 9.3 Definir el contrato de extracción de ideas de un texto, con lo no extraído marcado aparte; verificar con tests contra respuestas grabadas, incluido un texto sin ninguna idea concreta
-- [ ] 9.4 Implementar la extracción sobre el servicio de IA existente, sin guardar el texto pegado ni permitir guardar sin aprobación; verificar con tests
-- [ ] 9.5 Implementar el aviso de publicación nueva contra la interfaz oficial de la fuente, degradando a registro manual cuando no haya forma de consultarla; verificar con tests contra respuestas grabadas
-- [ ] 9.6 Implementar el seguimiento de cada idea contra la serie de precios hasta objetivo, salida o caducidad; verificar con tests de los tres desenlaces
-- [ ] 9.7 Implementar el balance por fuente con el rendimiento neto de comisiones; verificar con tests, incluido el de una fuente sin ideas resueltas
+- [x] 9.1 Modelar la idea con su activo, sentido, fecha, fuente, enlace y niveles opcionales; verificar con tests, incluido el de una idea sin niveles
+- [x] 9.2 Modelar la fuente vigilada con su última publicación conocida; verificar con test de integración que se recupera igual
+- [x] 9.3 Definir el contrato de extracción de ideas de un texto, con lo no extraído marcado aparte; verificar con tests contra respuestas grabadas, incluido un texto sin ninguna idea concreta
+- [x] 9.4 Implementar la extracción sobre el servicio de IA existente, sin guardar el texto pegado ni permitir guardar sin aprobación; verificar con tests
+- [x] 9.5 Implementar el aviso de publicación nueva contra la interfaz oficial de la fuente, degradando a registro manual cuando no haya forma de consultarla; verificar con tests contra respuestas grabadas
+- [x] 9.6 Implementar el seguimiento de cada idea contra la serie de precios hasta objetivo, salida o caducidad; verificar con tests de los tres desenlaces
+- [x] 9.7 Implementar el balance por fuente con el rendimiento neto de comisiones; verificar con tests, incluido el de una fuente sin ideas resueltas
 - [ ] 9.8 Añadir la pantalla de ideas con el pegado de texto, la revisión de lo propuesto y el balance por fuente; verificar manualmente
 
 ## 10. Validación con los datos del usuario

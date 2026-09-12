@@ -152,3 +152,63 @@ public sealed record DecisionNoteResponse(
 
 /// <summary>Texto de una anotación, sobre un movimiento o sobre una señal.</summary>
 public sealed record WriteNoteRequest(Guid? TransactionId, Guid? SignalId, string Text);
+
+/// <summary>Una fuente externa que se sigue.</summary>
+public sealed record IdeaSourceResponse(
+    Guid Id,
+    string Name,
+    string? Channel,
+    DateTimeOffset? LastSeenAt,
+    string? LastSeenUrl,
+    bool CanBeWatched);
+
+public sealed record CreateIdeaSourceRequest(string Name, string? Channel);
+
+/// <summary>Una idea con su desenlace.</summary>
+public sealed record IdeaResponse(
+    Guid Id,
+    Guid SourceId,
+    string SourceName,
+    string Symbol,
+    Guid? AssetId,
+    string Direction,
+    DateOnly PublishedOn,
+    decimal? EntryInEuros,
+    decimal? TargetInEuros,
+    decimal? StopLossInEuros,
+    string? Url,
+    string? Note,
+    string Outcome,
+    DateOnly? ResolvedOn);
+
+/// <summary>Una idea que se registra, ya revisada.</summary>
+public sealed record CreateIdeaRequest(
+    Guid SourceId,
+    string Symbol,
+    string Direction,
+    DateOnly PublishedOn,
+    decimal? Entry,
+    decimal? Target,
+    decimal? StopLoss,
+    string? Url,
+    string? Note);
+
+/// <summary>Un texto pegado, para sacar ideas de él. El texto no se guarda.</summary>
+public sealed record ExtractIdeasRequest(string Text);
+
+/// <summary>Lo que se ha sacado del texto, para revisar antes de guardar.</summary>
+public sealed record IdeaExtractionResponse(
+    bool Available,
+    IReadOnlyList<CreateIdeaRequest> Ideas,
+    IReadOnlyList<string> NotUnderstood,
+    string? Note);
+
+/// <summary>Lo que ha dado una fuente.</summary>
+public sealed record SourceBalanceResponse(
+    Guid SourceId,
+    string SourceName,
+    int Reached,
+    int Stopped,
+    int Expired,
+    int Open,
+    decimal? ReturnNetOfFees);

@@ -64,6 +64,10 @@ public static class DependencyInjection
         services.AddScoped<Application.Strategies.IStrategyRepository, StrategyStore>();
         services.AddScoped<Application.Strategies.IStrategyDataSource, StrategyDataSource>();
         services.AddScoped<Application.Strategies.StrategyService>();
+
+        // Sin forma oficial de consultar una fuente, se registra el vigilante que no
+        // vigila: así la pantalla puede decirlo y el registro manual sigue funcionando.
+        services.AddScoped<Application.Ideas.ISourceWatcher, Application.Ideas.UnavailableSourceWatcher>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<UserSignInService>();
         services.AddScoped<DevelopmentDataAdoption>();
@@ -210,6 +214,7 @@ public static class DependencyInjection
             services.AddScoped<
                 Application.Strategies.IStrategyTranslator,
                 Application.Strategies.UnavailableStrategyTranslator>();
+            services.AddScoped<Application.Ideas.IIdeaExtractor, Application.Ideas.UnavailableIdeaExtractor>();
 
             return;
         }
@@ -222,6 +227,10 @@ public static class DependencyInjection
         services.AddHttpClient<
             Application.Strategies.IStrategyTranslator,
             Strategies.AzureOpenAiStrategyTranslator>(client => Configure(client, options));
+
+        services.AddHttpClient<
+            Application.Ideas.IIdeaExtractor,
+            Ideas.AzureOpenAiIdeaExtractor>(client => Configure(client, options));
     }
 
     private static void Configure(HttpClient client, Import.Mapping.AzureOpenAiOptions options)

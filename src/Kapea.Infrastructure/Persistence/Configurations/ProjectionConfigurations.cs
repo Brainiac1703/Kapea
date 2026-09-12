@@ -146,6 +146,70 @@ internal sealed class StrategyConfiguration : IEntityTypeConfiguration<Domain.St
     }
 }
 
+/// <summary>Fuentes externas que se siguen. Del contenido ajeno solo se guarda el enlace.</summary>
+internal sealed class IdeaSourceConfiguration : IEntityTypeConfiguration<Domain.Ideas.IdeaSource>
+{
+    public void Configure(EntityTypeBuilder<Domain.Ideas.IdeaSource> builder)
+    {
+        builder.ToTable("IdeaSources");
+        builder.HasKey(source => source.Id);
+
+        builder.Property(source => source.UserId).IsRequired();
+        builder.Property(source => source.Name).HasMaxLength(120).IsRequired();
+        builder.Property(source => source.Channel).HasMaxLength(200);
+        builder.Property(source => source.LastSeenUrl).HasMaxLength(500);
+
+        builder.HasIndex(source => new { source.UserId, source.Name }).IsUnique();
+    }
+}
+
+/// <summary>
+/// Ideas que llegan de fuera.
+/// </summary>
+/// <remarks>
+/// El símbolo se guarda tal como lo nombró la fuente, además del activo resuelto: si
+/// mañana el catálogo cambia de nombre un activo, la idea sigue diciendo de qué hablaba
+/// la publicación.
+/// </remarks>
+internal sealed class ExternalIdeaConfiguration : IEntityTypeConfiguration<Domain.Ideas.ExternalIdea>
+{
+    public void Configure(EntityTypeBuilder<Domain.Ideas.ExternalIdea> builder)
+    {
+        builder.ToTable("ExternalIdeas");
+        builder.HasKey(idea => idea.Id);
+
+        builder.Property(idea => idea.UserId).IsRequired();
+        builder.Property(idea => idea.Symbol).HasMaxLength(32).IsRequired();
+        builder.Property(idea => idea.Direction).HasConversion<string>().HasMaxLength(8).IsRequired();
+        builder.Property(idea => idea.Outcome).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Property(idea => idea.Url).HasMaxLength(500);
+        builder.Property(idea => idea.Note).HasMaxLength(2000);
+
+        Amount(builder.ComplexProperty(idea => idea.Entry), "Entry", required: false);
+        Amount(builder.ComplexProperty(idea => idea.Target), "Target", required: false);
+        Amount(builder.ComplexProperty(idea => idea.StopLoss), "Stop", required: false);
+
+        builder.Ignore(idea => idea.CanBeTracked);
+
+        builder.HasIndex(idea => new { idea.UserId, idea.PublishedOn });
+        builder.HasIndex(idea => idea.SourceId);
+    }
+
+    /// <summary>Un importe en dos columnas, con su divisa.</summary>
+    private static void Amount(
+        Microsoft.EntityFrameworkCore.Metadata.Builders.ComplexPropertyBuilder<Domain.ValueObjects.Money> builder,
+        string prefix,
+        bool required)
+    {
+        builder.IsRequired(required);
+        builder.Property(value => value.Amount).HasColumnName(prefix + "Amount")
+            .HasPrecision(ValueObjectConverters.MoneyPrecision, ValueObjectConverters.MoneyScale);
+        builder.Property(value => value.Currency).HasColumnName(prefix + "Currency").HasMaxLength(3);
+        builder.Ignore(value => value.IsZero);
+        builder.Ignore(value => value.IsNegative);
+    }
+}
+
 /// <summary>
 /// Anotaciones del diario.
 /// </summary>
