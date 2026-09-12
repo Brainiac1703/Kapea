@@ -35,11 +35,11 @@
 
 ## 5. Simulador
 
-- [ ] 5.1 Implementar el recorrido de la simulación ejecutando al día siguiente de la señal; verificar con test que una compra nunca usa el precio del día de la señal
+- [x] 5.1 Implementar el recorrido de la simulación ejecutando al día siguiente de la señal; verificar con test que una compra nunca usa el precio del día de la señal
 - [ ] 5.2 Declarar la comisión junto a cada plataforma y aplicarla en cada operación simulada; verificar con tests de comisión dentro del precio y de comisión aparte
-- [ ] 5.3 Implementar el resultado después de impuestos con criterio FIFO y tramos configurables; verificar con tests de ganancia realizada y de cambio de tramos
-- [ ] 5.4 Implementar la comparación con no hacer nada en el mismo periodo; verificar con test de un sistema peor que la referencia
-- [ ] 5.5 Devolver el detalle de la simulación: operaciones, aciertos, caída máxima, comisiones e impuestos; verificar con test
+- [x] 5.3 Implementar el resultado después de impuestos con criterio FIFO y tramos configurables; verificar con tests de ganancia realizada y de cambio de tramos
+- [x] 5.4 Implementar la comparación con no hacer nada en el mismo periodo; verificar con test de un sistema peor que la referencia
+- [x] 5.5 Devolver el detalle de la simulación: operaciones, aciertos, caída máxima, comisiones e impuestos; verificar con test
 - [ ] 5.6 Exponer la simulación en la API y en una pantalla con su detalle operación a operación; verificar con test de integración y manualmente
 - [ ] 5.7 Simular el sistema de serie sobre el histórico real del usuario y dejar escrito el resultado frente a no hacer nada
 
