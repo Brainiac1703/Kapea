@@ -725,15 +725,26 @@ public sealed class PortfolioQueries(
         return Response(from, to, performance, contributed, days, asset?.CanonicalSymbol, benchmark);
     }
 
-    /// <summary>La mayor posición del último día, que es la referencia por omisión.</summary>
+    /// <summary>
+    /// La mayor posición del último día con precios, que es la referencia por omisión.
+    /// </summary>
+    /// <remarks>
+    /// El último día del periodo suele ser hoy, y hoy todavía no ha cerrado: mirar solo
+    /// ese día dejaba la comparación sin referencia toda la jornada.
+    /// </remarks>
     private static Guid? Largest(IReadOnlyList<PortfolioDay> days) =>
-        days.Count == 0
-            ? null
-            : days[^1].Assets
+        days
+            .Reverse()
+            .Select(day => day.Assets
                 .Where(asset => asset.ValueInEuros is not null)
                 .OrderByDescending(asset => asset.ValueInEuros!.Value.Amount)
                 .Select(asset => (Guid?)asset.AssetId)
-                .FirstOrDefault();
+                .FirstOrDefault())
+            .FirstOrDefault(assetId => assetId is not null);
+
+    /// <summary>Valor del último día que lo tiene, o cero si ninguno.</summary>
+    private static Money LastValued(IReadOnlyList<PortfolioDay> days) =>
+        days.LastOrDefault(day => day.IsComplete)?.ValueInEuros ?? Money.Euros(0m);
 
     private static PerformanceResponse Response(
         DateOnly from,
@@ -744,7 +755,9 @@ public sealed class PortfolioQueries(
         string? benchmarkSymbol,
         BenchmarkResult? benchmark)
     {
-        var value = days.Count == 0 ? Money.Euros(0m) : days[^1].ValueInEuros;
+        // El último día con valor, no el último del periodo: hoy todavía no ha cerrado y
+        // enseñar su cero haría parecer que la cartera vale nada.
+        var value = LastValued(days);
 
         // El rendimiento de la referencia se mide con la misma regla que el de la
         // cartera, o no serían comparables.
@@ -762,7 +775,7 @@ public sealed class PortfolioQueries(
             value.Amount,
             benchmarkSymbol,
             benchmarkReturn,
-            benchmark?.Days is { Count: > 0 } series ? series[^1].ValueInEuros.Amount : null,
+            benchmark is null ? null : LastValued(benchmark.Days).Amount,
             performance.IsComplete,
             benchmark?.IsComplete ?? false);
     }

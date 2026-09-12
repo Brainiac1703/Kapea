@@ -46,22 +46,57 @@ public static class PortfolioPerformance
     {
         ArgumentNullException.ThrowIfNull(days);
 
-        if (days.Count < 2)
+        var complete = days.All(day => day.IsComplete);
+
+        // Un día al que le falta un precio no es un día en que la cartera valiera cero.
+        // Contarlo hundiría la cadena a menos cien por cien y dejaría una caída máxima
+        // del cien por cien, que es lo que pasaba antes de apartarlos.
+        var usable = Usable(days);
+
+        if (usable.Count < 2)
         {
-            return new PerformanceResult(0m, null, 0m, 0m, null, days.All(day => day.IsComplete));
+            return new PerformanceResult(0m, null, 0m, 0m, null, complete);
         }
 
-        var daily = DailyReturns(days);
+        var daily = DailyReturns(usable);
 
-        var (drawdown, recovered) = Drawdown(days);
+        var (drawdown, recovered) = Drawdown(usable);
 
         return new PerformanceResult(
             Chain(daily),
-            MoneyWeighted(days),
+            MoneyWeighted(usable),
             Volatility(daily),
             drawdown,
             recovered,
-            days.All(day => day.IsComplete));
+            complete);
+    }
+
+    /// <summary>
+    /// Los días cuyo valor se puede usar, arrastrando a ellos lo aportado en los que no.
+    /// </summary>
+    /// <remarks>
+    /// Si la aportación de un día apartado se perdiera, el día siguiente parecería haber
+    /// ganado ese dinero. Se acumula y se suma al primer día que sí sirve.
+    /// </remarks>
+    private static List<PortfolioDay> Usable(IReadOnlyList<PortfolioDay> days)
+    {
+        var usable = new List<PortfolioDay>(days.Count);
+        var pending = Money.Euros(0m);
+
+        foreach (var day in days)
+        {
+            if (!day.IsComplete)
+            {
+                pending += day.NetContributionInEuros;
+
+                continue;
+            }
+
+            usable.Add(day with { NetContributionInEuros = day.NetContributionInEuros + pending });
+            pending = Money.Euros(0m);
+        }
+
+        return usable;
     }
 
     /// <summary>

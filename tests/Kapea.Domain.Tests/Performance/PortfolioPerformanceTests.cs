@@ -91,6 +91,40 @@ public class PortfolioPerformanceTests
     }
 
     [Fact]
+    public void A_day_without_a_price_is_not_a_day_the_portfolio_went_to_zero()
+    {
+        // Contarlo hundía la cadena a menos cien por cien y daba una caída máxima del
+        // cien por cien con la cartera intacta.
+        var days = new List<PortfolioDay>
+        {
+            Day(new DateOnly(2026, 3, 1), 1000m, 1000m, complete: true),
+            Day(new DateOnly(2026, 3, 2), 0m, 0m, complete: false),
+            Day(new DateOnly(2026, 3, 3), 1100m, 0m, complete: true),
+        };
+
+        var performance = PortfolioPerformance.Of(days);
+
+        Assert.Equal(0.1m, decimal.Round(performance.TimeWeighted, 4));
+        Assert.Equal(0m, performance.MaximumDrawdown);
+        Assert.False(performance.IsComplete);
+    }
+
+    [Fact]
+    public void What_was_contributed_on_a_day_without_a_price_is_not_a_gain()
+    {
+        // Si la aportación del día apartado se perdiera, el día siguiente parecería
+        // haber ganado ese dinero.
+        var days = new List<PortfolioDay>
+        {
+            Day(new DateOnly(2026, 3, 1), 1000m, 1000m, complete: true),
+            Day(new DateOnly(2026, 3, 2), 0m, 500m, complete: false),
+            Day(new DateOnly(2026, 3, 3), 1500m, 0m, complete: true),
+        };
+
+        Assert.Equal(0m, decimal.Round(PortfolioPerformance.Of(days).TimeWeighted, 4));
+    }
+
+    [Fact]
     public void A_period_with_days_without_prices_is_marked_incomplete()
     {
         // La cifra se da igual, pero quien la lea tiene que saber sobre qué se calculó.
