@@ -246,6 +246,14 @@ az containerapp revision restart --name ca-kapea-api --resource-group rg-kapea \
 
 ---
 
+## Aplicar siempre desde el flujo
+
+Con la aplicación activada, no lances `terraform apply` desde tu máquina. Terraform
+concede roles del almacén de secretos a la identidad que aplica, y desde tu sesión
+esa identidad eres tú: el plan quitaría esos roles al registro del flujo para
+dártelos a ti, y el siguiente despliegue fallaría. Para la primera etapa, antes de
+que exista la aplicación, no pasa nada.
+
 ## 4. Qué cuesta y qué se puede apagar
 
 Estimación mensual para una cartera personal, en la región de despliegue y con
