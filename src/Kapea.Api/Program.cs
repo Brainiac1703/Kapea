@@ -1,5 +1,5 @@
 using Kapea.Api.Authentication;
-using Microsoft.AspNetCore.DataProtection;
+using Kapea.Api.Hosting;
 using Kapea.Api.Endpoints;
 using Kapea.Application.Abstractions;
 using Kapea.Application.Credentials;
@@ -14,23 +14,18 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddKapeaInfrastructure(builder.Configuration);
+// Antes de cualquier registro: el proveedor de identidad se configura leyendo la
+// configuración, así que su secreto tiene que estar ya dentro.
+builder.Configuration.AddManagedSecrets();
+
+builder.Services.AddKapeaInfrastructure(builder.Configuration, builder.Environment.IsDevelopment());
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 
 builder.Services.AddKapeaAuthentication(builder.Configuration, builder.Environment.IsDevelopment());
 
-// Las claves que cifran la cookie viven en memoria si nadie dice lo contrario, así que
-// cada reinicio echaba a todo el mundo de su sesión. En un directorio persistente
-// sobreviven al despliegue; sin directorio configurado se sigue como hasta ahora.
-if (builder.Configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
-{
-    builder.Services
-        .AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
-        .SetApplicationName("Kapea");
-}
+var sessionKeys = builder.Services.AddKapeaSessionKeys(builder.Configuration);
 
 builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
@@ -44,6 +39,13 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration["ApplicationInsights:Connec
 }
 
 var app = builder.Build();
+
+if (sessionKeys == SessionKeyStorage.Memory)
+{
+    app.Logger.LogWarning(
+        "Las claves de sesión viven en memoria: un reinicio cerrará la sesión de quien esté dentro. " +
+        "Configura DataProtection:BlobUri en Azure o DataProtection:KeysPath en local.");
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -111,6 +113,12 @@ app.MapStaticAssets();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Punto de comprobación del servicio: dice si el proceso está vivo, y nada más. No
+// consulta la base de datos a propósito: con la base en serverless y pausada, una
+// consulta aquí haría que el servicio diera por muerta una revisión sana que solo
+// estaba esperando a que la base despertara.
+app.MapGet("/health", () => Results.NoContent()).AllowAnonymous();
 
 app.MapIdentityEndpoints();
 app.MapKapeaEndpoints();
