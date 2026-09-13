@@ -1,0 +1,55 @@
+name: Prepare Terraform
+description: >-
+  Instala Terraform e inicializa el estado remoto. Vive en Deploy/actions y no en
+  .github porque una acción compuesta sí puede estar en cualquier ruta, al
+  contrario que un flujo. La usan los trabajos de plan y de apply, que necesitan
+  exactamente la misma inicialización.
+
+inputs:
+  storage-account:
+    description: Cuenta de almacenamiento del estado
+    required: true
+  container:
+    description: Contenedor del estado
+    required: true
+  key:
+    description: Ruta del blob de estado, propia de este proyecto
+    required: true
+  version:
+    description: Versión de Terraform
+    required: false
+    default: 1.14.4
+
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.version }}
+
+    - name: Initialise the backend
+      shell: bash
+      working-directory: Deploy/infra
+      run: |
+        # terraform init sale a registry.terraform.io a resolver el proveedor, y un
+        # corte de red ahi tumba el despliegue completo. No es un fallo del
+        # proyecto, asi que se reintenta en lugar de darlo por perdido.
+        #
+        # El fichero .terraform.lock.hcl fija la version y los hashes, asi que
+        # reintentar no puede traer un proveedor distinto al revisado.
+        for attempt in 1 2 3; do
+          if terraform init \
+            -backend-config="storage_account_name=${{ inputs.storage-account }}" \
+            -backend-config="container_name=${{ inputs.container }}" \
+            -backend-config="key=${{ inputs.key }}" \
+            -backend-config="use_azuread_auth=true"; then
+            exit 0
+          fi
+
+          espera=$((attempt * 15))
+          echo "El intento $attempt de terraform init ha fallado. Reintento en ${espera}s."
+          sleep "$espera"
+        done
+
+        echo "::error::terraform init ha fallado tres veces."
+        exit 1
