@@ -11,6 +11,9 @@
     <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowSync())" OnClick="RecalculateAsync">
         @Ui["Portfolio_Recalculate"]
     </FluentButton>
+    <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowClockwise())" OnClick="ReloadAsync">
+        @Ui["Portfolio_Refresh"]
+    </FluentButton>
 </FluentToolbar>
 
 @if (_portfolio is null)
@@ -19,9 +22,9 @@
 }
 else
 {
-    @* La advertencia va arriba y no al pie: quien mira estas cifras tiene que saber
-       antes de leerlas que están incompletas. *@
-    @if (!_portfolio.IsComplete)
+    @* Las advertencias van arriba y no al pie: quien mira estas cifras tiene que saber
+       que están incompletas antes de leerlas, no después. *@
+    @if (_portfolio.UnclassifiedTransactionCount > 0 || _portfolio.PendingTransferCount > 0)
     {
         <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
             @Ui["Portfolio_Incomplete"]
@@ -29,22 +32,76 @@ else
         </FluentMessageBar>
     }
 
-    @if (_portfolio.Positions.Count == 0)
+    @if (_portfolio.MissingPrices)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+            @Ui["Portfolio_MissingPrices"]
+        </FluentMessageBar>
+    }
+
+    @if (_portfolio.MissingCash)
+    {
+        <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+            @Ui["Portfolio_MissingCash"]
+        </FluentMessageBar>
+    }
+
+    @* La concentración no es un error, pero no se ve mirando una tabla de doce filas. *@
+    @if (_portfolio.Concentration is { } concentration)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+            @Concentration(concentration)
+        </FluentMessageBar>
+    }
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
+        <Amount Label="@Ui["Portfolio_Wealth"]" Value="@_portfolio.WealthInEuros" />
+        <Amount Label="@Ui["Portfolio_TotalValue"]" Value="@_portfolio.TotalMarketValueInEuros" />
+        <Amount Label="@Ui["Portfolio_TotalCost"]" Value="@_portfolio.TotalCostInEuros" />
+        <Amount Label="@Ui["Portfolio_Realized"]" Value="@_portfolio.RealizedResultInEuros" />
+        <Amount Label="@Ui["Portfolio_Unrealised"]" Value="@_portfolio.UnrealisedResultInEuros" />
+        <Amount Label="@Ui["Portfolio_Accumulated"]"
+                Value="@(_portfolio.RealizedResultInEuros + _portfolio.UnrealisedResultInEuros)" />
+    </FluentStack>
+
+    @if (_loadedAt is { } loaded)
+    {
+        <FluentLabel Typo="Typography.Body" Class="intro">
+            @Ui["Portfolio_UpdatedAt"] @Format.Moment(loaded)
+        </FluentLabel>
+    }
+
+    @if (_portfolio.Groups.Count == 0)
     {
         <FluentMessageBar Intent="MessageIntent.Info">@Ui["Portfolio_Empty"]</FluentMessageBar>
     }
-    else
+
+    @* Un grupo por clase de activo, con sus subtotales. Salen de los datos, así que una
+       clase nueva aparece sola sin tocar la pantalla. *@
+    @foreach (var group in _portfolio.Groups)
     {
+        <FluentLabel Typo="Typography.H4">@ClassName(group.AssetClass)</FluentLabel>
+
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
-            <Amount Label="@Ui["Portfolio_TotalCost"]" Value="@_portfolio.TotalCostInEuros" />
-            <Amount Label="@Ui["Portfolio_TotalValue"]" Value="@_portfolio.TotalMarketValueInEuros" />
+            <Amount Label="@Ui["Portfolio_MarketValue"]" Value="@group.MarketValueInEuros" />
+            <Amount Label="@Ui["Portfolio_Cost"]" Value="@group.CostInEuros" />
+            <div class="count">
+                <div class="count-value">@Format.Percent(group.Weight, Ui["Portfolio_NoPrice"])</div>
+                <div class="count-label">@Ui["Portfolio_Weight"]</div>
+            </div>
         </FluentStack>
 
-        <FluentDataGrid Items="@_portfolio.Positions.AsQueryable()"
+        <FluentDataGrid Items="@group.Positions.AsQueryable()"
                         TGridItem="OpenPositionResponse"
-                        GridTemplateColumns="1fr 1fr 1fr 1fr 1fr 1fr 1fr">
+                        GridTemplateColumns="1.2fr 1fr 1fr 1.2fr 1fr 1fr 1fr 1fr 0.8fr">
             <TemplateColumn Title="@Ui["Common_Asset"]">
-                @context.AssetSymbol
+                @* El símbolo lleva a su evolución: es donde se mira cuando una posición
+                   llama la atención en la tabla. *@
+                <FluentAnchor Href="@($"evolution/{context.AssetId}")"
+                              Appearance="Appearance.Hypertext"
+                              Title="@Ui["Asset_Chart"]">
+                    @context.AssetSymbol
+                </FluentAnchor>
                 @if (!context.AssetIsVerified)
                 {
                     <FluentIcon Value="@(new Icons.Regular.Size16.Warning())"
@@ -52,19 +109,97 @@ else
                 }
             </TemplateColumn>
             <TemplateColumn Title="@Ui["Common_Quantity"]">@Format.Quantity(context.Quantity)</TemplateColumn>
-            <TemplateColumn Title="@Ui["Portfolio_Cost"]">@Euros(context.CostInEuros)</TemplateColumn>
             <TemplateColumn Title="@Ui["Portfolio_AverageCost"]">@Euros(context.AverageCostInEuros)</TemplateColumn>
-            <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]">@Euros(context.MarketPriceInEuros)</TemplateColumn>
+
+            @* El instante acompaña al precio: un precio sin fecha no se puede contrastar
+               con nada, y uno de hace tres días se lee como el de ahora. *@
+            <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]">
+                @Euros(context.MarketPriceInEuros)
+                @if (context.PriceAsOf is { } asOf)
+                {
+                    <div class="moment">@Ui["Portfolio_PriceAsOf"] @Format.Moment(asOf)</div>
+                }
+            </TemplateColumn>
             <TemplateColumn Title="@Ui["Portfolio_MarketValue"]">@Euros(context.MarketValueInEuros)</TemplateColumn>
             <TemplateColumn Title="@Ui["Portfolio_Unrealised"]">
                 <span class="@Sign(context.UnrealisedResultInEuros)">@Euros(context.UnrealisedResultInEuros)</span>
             </TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Realized"]">
+                <span class="@Sign(context.RealizedResultInEuros)">@Format.Euros(context.RealizedResultInEuros)</span>
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Fees"]">@Format.Euros(context.FeesInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Weight"]">
+                @Format.Percent(context.Weight, Ui["Portfolio_NoPrice"])
+
+                @* Los niveles del sistema que propuso entrar, con el aviso cuando el
+                   precio ya los ha alcanzado. Es un aviso: Kapea no ejecuta nada. *@
+                @if (context.TargetInEuros is not null || context.StopLossInEuros is not null)
+                {
+                    <div class="moment">
+                        @Ui["Strategies_Target"]: @Euros(context.TargetInEuros)
+                        @if (context.ReachedTarget)
+                        {
+                            <FluentIcon Value="@(new Icons.Regular.Size16.CheckmarkCircle())"
+                                        Color="Color.Success"
+                                        Title="@Ui["Ideas_Reached"]" />
+                        }
+                    </div>
+                    <div class="moment">
+                        @Ui["Strategies_Stop"]: @Euros(context.StopLossInEuros)
+                        @if (context.ReachedStopLoss)
+                        {
+                            <FluentIcon Value="@(new Icons.Regular.Size16.Warning())"
+                                        Color="Color.Warning"
+                                        Title="@Ui["Ideas_Stopped"]" />
+                        }
+                    </div>
+                }
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+
+    <FluentLabel Typo="Typography.H4">@Ui["Portfolio_Cash"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Portfolio_CashNote"]</FluentLabel>
+
+    @if (_portfolio.Cash.Count == 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info">@Ui["Portfolio_CashEmpty"]</FluentMessageBar>
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
+            <Amount Label="@Ui["Common_Total"]" Value="@_portfolio.CashTotalInEuros" />
+        </FluentStack>
+
+        <FluentDataGrid Items="@_portfolio.Cash.AsQueryable()"
+                        TGridItem="CashBalanceResponse"
+                        GridTemplateColumns="2fr 1fr 1fr">
+            <TemplateColumn Title="@Ui["Portfolio_Account"]">@context.AccountAlias</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Currency"]">@context.Currency</TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Amount"]">
+                @Format.Money(context.Amount, context.Currency)
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+
+    @if (_portfolio.Income.Count > 0)
+    {
+        <FluentLabel Typo="Typography.H4">@Ui["Portfolio_Income"]</FluentLabel>
+
+        <FluentDataGrid Items="@_portfolio.Income.AsQueryable()"
+                        TGridItem="IncomeByClassResponse"
+                        GridTemplateColumns="2fr 1fr 1fr 1fr">
+            <TemplateColumn Title="@Ui["Common_Asset"]">@ClassName(context.AssetClass)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Gross"]">@Format.Euros(context.GrossInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Withholding"]">@Format.Euros(context.WithholdingInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Net"]">@Format.Euros(context.NetInEuros)</TemplateColumn>
         </FluentDataGrid>
     }
 }
 
 @code {
     private PortfolioResponse? _portfolio;
+    private DateTimeOffset? _loadedAt;
 
     protected override Task OnInitializedAsync() => ReloadAsync();
 
@@ -73,11 +208,12 @@ else
         try
         {
             _portfolio = await Api.GetPortfolioAsync();
+            _loadedAt = DateTimeOffset.Now;
         }
         catch (KapeaApiException exception)
         {
             _portfolio = null;
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 
@@ -89,11 +225,32 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
 
         await ReloadAsync();
     }
+
+    /// <summary>
+    /// Nombre de la clase de activo.
+    /// </summary>
+    /// <remarks>
+    /// Una clase que el servidor conozca y la pantalla no se enseña con su código en
+    /// lugar de desaparecer: es feo, pero el dinero sigue estando a la vista.
+    /// </remarks>
+    private string ClassName(string assetClass) => assetClass switch
+    {
+        "Equity" => Ui["Portfolio_ClassEquity"],
+        "Crypto" => Ui["Portfolio_ClassCrypto"],
+        _ => assetClass,
+    };
+
+    /// <summary>Cuánto concentran las mayores posiciones, dicho en una línea.</summary>
+    private string Concentration(ConcentrationResponse concentration) => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        Ui["Risk_Concentration"].Value,
+        concentration.Top.Count,
+        Format.Percent(concentration.Share, "?"));
 
     /// <summary>Un valor ausente se dice, no se disimula con un cero.</summary>
     private string Euros(decimal? amount) => Format.Euros(amount, Ui["Portfolio_NoPrice"]);

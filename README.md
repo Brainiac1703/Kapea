@@ -35,15 +35,89 @@ que sincronizar.
 
 ### Identidad en desarrollo
 
-Sin `AUTH_AUTHORITY` configurado, la API arranca con autenticación de desarrollo y
-atribuye toda petición a un usuario fijo. Es deliberado que esto **solo** valga en
-`Development`: fuera de él la API se niega a arrancar sin identidad configurada, en
-lugar de abrirse a cualquiera.
+Kapea no guarda contraseñas: se entra con un proveedor externo. Sin
+`GOOGLE_CLIENT_ID` configurado, la pantalla de acceso ofrece entrar como un usuario
+fijo de desarrollo. No es un modo sin sesión: emite la misma cookie que emitiría
+Google, así que cerrar sesión, caducar y volver a entrar recorren el mismo camino que
+en producción. Es deliberado que esto **solo** valga en `Development`: fuera de él la
+API se niega a arrancar sin identidad configurada, en lugar de abrirse a cualquiera.
+
+Para activar Google, crea un ID de cliente de OAuth en Google Cloud con la URI de
+redirección `http://localhost:8082/signin-google` y rellena `GOOGLE_CLIENT_ID` y
+`GOOGLE_CLIENT_SECRET` en el `.env`. Crear esas credenciales es gratuito y no exige
+cuenta de facturación.
+
+Con Google configurado el acceso de desarrollo desaparece. Para conservar los dos a la
+vez mientras se trabaja, pon `DEV_USER_ENABLED=true` en el `.env`: la pantalla de acceso
+ofrecerá ambos botones. Esa bandera **solo** surte efecto en `Development`; fuera de
+ahí la API la ignora, de modo que copiarla por descuido a un despliegue no abre nada.
+
+#### Activar Apple
+
+Apple queda preparado y sin implementar. El modelo ya admite varios proveedores por
+usuario —una identidad es un par de proveedor y sujeto—, así que activarlo no toca el
+esquema de la base de datos ni los datos existentes. Lo que hace falta:
+
+1. Una cuenta de Apple Developer, que es de pago y de renovación anual. Es el único
+   motivo por el que esto no está hecho ya.
+2. En el portal de Apple: un identificador de aplicación con «Sign in with Apple»
+   habilitado, un identificador de servicio para el acceso web, y una clave privada
+   para generar el secreto de cliente.
+3. En Kapea: el paquete de autenticación de Apple para ASP.NET Core, una entrada
+   `Apple` junto a la de Google en `KapeaAuthentication`, y sus credenciales en la
+   configuración con la misma forma que las de Google.
+
+El secreto de cliente de Apple no es una cadena fija: es un JWT firmado con esa clave
+privada y caduca como mucho a los seis meses, así que hay que renovarlo. Conviene
+resolverlo al arrancar y no dejarlo escrito en el `.env`.
+
+La pantalla de acceso no necesita ningún cambio: pinta un botón por cada proveedor que
+la API declara disponible.
+
+### Cada cuándo se sincroniza
+
+El proceso de sincronización corre al arrancar y después cada `SYNC_INTERVAL`, que en
+docker compose son quince minutos y en producción seis horas. Solo mira las cuentas cuya
+credencial está activa: una revocada o rechazada por la plataforma queda fuera hasta que
+se rote.
+
+Tras dar de alta una credencial no hace falta esperar al siguiente ciclo: el botón
+«Sincronizar ahora» de la pantalla de credenciales la lanza en el momento, y solo sobre
+las cuentas de quien la pide.
+
+### Propuesta automática del mapeo
+
+Cuando aparece un formato de fichero que ningún perfil reconoce, Kapea puede pedir a
+Azure OpenAI que deduzca el mapeo. Es opcional: sin `AZURE_OPENAI_ENDPOINT` configurado
+el mapeo se hace a mano y todo lo demás funciona igual.
+
+Al servicio van las cabeceras y **como mucho tres filas** de ejemplo. Un extracto es un
+dato personal, y para saber qué columna es la fecha no hace falta ver el año entero; hay
+un test que inspecciona la petición emitida y falla si se cuela una cuarta fila.
+
+Lo que devuelve es un mapeo, nunca una cifra. Los importes los calcula después el motor
+determinista aplicando el perfil, así que recalcular un ejercicio ya presentado da
+siempre lo mismo. La propuesta se contrasta además con las filas de ejemplo: si la
+columna que dice ser la fecha no se lee como fecha en ninguna, se pregunta aunque el
+modelo declare estar seguro.
+
+`MappingProposals:AzureOpenAi:ConfidenceThreshold` decide cuánta seguridad basta para no
+preguntar. Sale a configuración porque el valor bueno solo se sabe usándolo.
 
 ### Secretos de los brokers
 
 Sin `KEYVAULT_URI` se usa el almacén de desarrollo, un fichero de User Secrets en un
-volumen del contenedor. Guarda en claro, como todo User Secrets: no pongas ahí claves
+volumen del contenedor. La API comprueba al arrancar que puede escribir ahí y se niega
+a levantar si no: un almacén de solo lectura haría fallar el alta de una credencial
+mucho después, con una ruta denegada que no dice qué arreglar. Si eso ocurre, el
+volumen se creó con otro propietario y se resuelve así:
+
+```
+docker compose down
+docker volume rm kapea_broker-secrets
+docker compose up -d --build
+```
+ Guarda en claro, como todo User Secrets: no pongas ahí claves
 de una cuenta con dinero real. En producción manda Key Vault.
 
 ## Desarrollo sin contenedores

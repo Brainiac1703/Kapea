@@ -126,7 +126,7 @@ else
         catch (KapeaApiException exception)
         {
             _results = null;
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 

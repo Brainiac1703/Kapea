@@ -18,15 +18,73 @@ namespace Kapea.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.11")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Kapea.Domain.Accounts.Platform", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<bool>("BuiltIn")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("FeeRate")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("FixedFee")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(28, 8)
+                        .HasColumnType("decimal(28,8)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("ImportKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Code");
+
+                    b.ToTable("Platforms", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Code = "Xtb",
+                            BuiltIn = true,
+                            ImportKind = "File",
+                            Name = "XTB"
+                        },
+                        new
+                        {
+                            Code = "Kraken",
+                            BuiltIn = true,
+                            ImportKind = "Api",
+                            Name = "Kraken"
+                        },
+                        new
+                        {
+                            Code = "Bit2Me",
+                            BuiltIn = true,
+                            ImportKind = "Api",
+                            Name = "Bit2Me"
+                        });
+                });
+
             modelBuilder.Entity("Kapea.Domain.Accounts.PlatformAccount", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Alias")
@@ -57,7 +115,6 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Assets.Asset", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CanonicalSymbol")
@@ -93,7 +150,6 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Calculation.CapitalIncome", b =>
                 {
                     b.Property<Guid>("TransactionId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -234,7 +290,6 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Calculation.RealizedResult", b =>
                 {
                     b.Property<Guid>("DisposalTransactionId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -307,7 +362,6 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Credentials.BrokerCredential", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -379,10 +433,194 @@ namespace Kapea.Infrastructure.Persistence.Migrations
                     b.ToTable("DailyRates", (string)null);
                 });
 
+            modelBuilder.Entity("Kapea.Domain.Ideas.ExternalIdea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("PublishedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ResolvedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Entry", "Kapea.Domain.Ideas.ExternalIdea.Entry#Money", b1 =>
+                        {
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(28, 8)
+                                .HasColumnType("decimal(28,8)")
+                                .HasColumnName("EntryAmount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("nvarchar(3)")
+                                .HasColumnName("EntryCurrency");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "StopLoss", "Kapea.Domain.Ideas.ExternalIdea.StopLoss#Money", b1 =>
+                        {
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(28, 8)
+                                .HasColumnType("decimal(28,8)")
+                                .HasColumnName("StopAmount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("nvarchar(3)")
+                                .HasColumnName("StopCurrency");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Target", "Kapea.Domain.Ideas.ExternalIdea.Target#Money", b1 =>
+                        {
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(28, 8)
+                                .HasColumnType("decimal(28,8)")
+                                .HasColumnName("TargetAmount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("nvarchar(3)")
+                                .HasColumnName("TargetCurrency");
+                        });
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceId");
+
+                    b.HasIndex("UserId", "PublishedOn");
+
+                    b.ToTable("ExternalIdeas", (string)null);
+                });
+
+            modelBuilder.Entity("Kapea.Domain.Ideas.IdeaSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Channel")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset?>("LastSeenAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastSeenUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("IdeaSources", (string)null);
+                });
+
+            modelBuilder.Entity("Kapea.Domain.Identity.ExternalIdentity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("LastSignedInAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("LinkedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Provider", "Subject")
+                        .IsUnique();
+
+                    b.ToTable("ExternalIdentities", (string)null);
+                });
+
+            modelBuilder.Entity("Kapea.Domain.Identity.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<DateTimeOffset?>("LastSignedInAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users", (string)null);
+                });
+
             modelBuilder.Entity("Kapea.Domain.Import.ImportRun", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -410,6 +648,12 @@ namespace Kapea.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
 
+                    b.Property<Guid?>("ProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("ProfileVersion")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset>("StartedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -431,7 +675,6 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Import.StagedRecord", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Fingerprint")
@@ -473,10 +716,67 @@ namespace Kapea.Infrastructure.Persistence.Migrations
                     b.ToTable("ImportStagedRecords", (string)null);
                 });
 
+            modelBuilder.Entity("Kapea.Domain.ImportProfiles.ImportProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("BuiltIn")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Platform");
+
+                    b.ToTable("ImportProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("Kapea.Domain.Journal.DecisionNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SignalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<Guid?>("TransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("WrittenAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SignalId");
+
+                    b.HasIndex("TransactionId");
+
+                    b.HasIndex("UserId", "WrittenAt");
+
+                    b.ToTable("DecisionNotes", (string)null);
+                });
+
             modelBuilder.Entity("Kapea.Domain.Lots.Lot", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -534,10 +834,145 @@ namespace Kapea.Infrastructure.Persistence.Migrations
                     b.ToTable("Lots", (string)null);
                 });
 
+            modelBuilder.Entity("Kapea.Domain.MarketData.DailyPrice", b =>
+                {
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("PriceInEuros")
+                        .HasPrecision(28, 12)
+                        .HasColumnType("decimal(28,12)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("AssetId", "Date");
+
+                    b.ToTable("DailyPrices", (string)null);
+                });
+
+            modelBuilder.Entity("Kapea.Domain.Strategies.EmittedSignal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("StrategyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("StrategyVersion")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "PriceInEuros", "Kapea.Domain.Strategies.EmittedSignal.PriceInEuros#Money", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(28, 8)
+                                .HasColumnType("decimal(28,8)")
+                                .HasColumnName("PriceAmount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("nvarchar(3)")
+                                .HasColumnName("PriceCurrency");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "StopLoss", "Kapea.Domain.Strategies.EmittedSignal.StopLoss#Money", b1 =>
+                        {
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(28, 8)
+                                .HasColumnType("decimal(28,8)")
+                                .HasColumnName("StopAmount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("nvarchar(3)")
+                                .HasColumnName("StopCurrency");
+                        });
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Target", "Kapea.Domain.Strategies.EmittedSignal.Target#Money", b1 =>
+                        {
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(28, 8)
+                                .HasColumnType("decimal(28,8)")
+                                .HasColumnName("TargetAmount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("nvarchar(3)")
+                                .HasColumnName("TargetCurrency");
+                        });
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fingerprint")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Date");
+
+                    b.ToTable("EmittedSignals", (string)null);
+                });
+
+            modelBuilder.Entity("Kapea.Domain.Strategies.Strategy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Strategies", (string)null);
+                });
+
             modelBuilder.Entity("Kapea.Domain.Transactions.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AccountId")
@@ -558,6 +993,11 @@ namespace Kapea.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("Quantity")
                         .HasPrecision(38, 18)
                         .HasColumnType("decimal(38,18)");
+
+                    b.Property<bool>("SettledInCash")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -654,7 +1094,6 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Transfers.InternalTransfer", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("AssetId")
@@ -707,7 +1146,6 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Infrastructure.Persistence.AccountSyncLockRow", b =>
                 {
                     b.Property<Guid>("AccountId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset>("AcquiredAt")
@@ -733,6 +1171,15 @@ namespace Kapea.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Kapea.Domain.Identity.ExternalIdentity", b =>
+                {
+                    b.HasOne("Kapea.Domain.Identity.User", null)
+                        .WithMany("Identities")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Kapea.Domain.Import.StagedRecord", b =>
                 {
                     b.HasOne("Kapea.Domain.Import.ImportRun", null)
@@ -740,6 +1187,146 @@ namespace Kapea.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ImportRunId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Kapea.Domain.ImportProfiles.ImportProfile", b =>
+                {
+                    b.OwnsMany("Kapea.Domain.ImportProfiles.ImportProfileVersion", "_versions", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<bool>("AmountIsAlwaysPositive")
+                                .HasColumnType("bit");
+
+                            b1.Property<bool>("AmountIsNetOfFee")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("bit")
+                                .HasDefaultValue(false);
+
+                            b1.Property<string>("AmountSource")
+                                .IsRequired()
+                                .HasMaxLength(24)
+                                .HasColumnType("nvarchar(24)");
+
+                            b1.Property<DateTimeOffset>("CreatedAt")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<string>("DecimalConvention")
+                                .IsRequired()
+                                .HasMaxLength(16)
+                                .HasColumnType("nvarchar(16)");
+
+                            b1.Property<string>("Delimiter")
+                                .IsRequired()
+                                .HasMaxLength(1)
+                                .HasColumnType("nvarchar(1)");
+
+                            b1.Property<string>("FixedAssetClass")
+                                .HasMaxLength(24)
+                                .HasColumnType("nvarchar(24)");
+
+                            b1.Property<string>("FixedCurrency")
+                                .HasMaxLength(3)
+                                .HasColumnType("nvarchar(3)");
+
+                            b1.Property<int>("Number")
+                                .HasColumnType("int");
+
+                            b1.Property<Guid>("ProfileId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("RowShape")
+                                .IsRequired()
+                                .HasMaxLength(24)
+                                .HasColumnType("nvarchar(24)");
+
+                            b1.Property<string>("TimeZoneId")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)");
+
+                            b1.Property<string>("_columns")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("Columns");
+
+                            b1.Property<string>("_concepts")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("Concepts");
+
+                            b1.Property<string>("_dateFormats")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("DateFormats");
+
+                            b1.Property<string>("_nonFinancialConcepts")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("NonFinancialConcepts");
+
+                            b1.Property<string>("_recognizedHeaders")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)")
+                                .HasColumnName("RecognizedHeaders");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("Number");
+
+                            b1.HasIndex("ProfileId");
+
+                            b1.ToTable("ImportProfileVersions", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProfileId");
+                        });
+
+                    b.Navigation("_versions");
+                });
+
+            modelBuilder.Entity("Kapea.Domain.Strategies.Strategy", b =>
+                {
+                    b.OwnsMany("Kapea.Domain.Strategies.StrategyVersion", "Versions", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTimeOffset>("CreatedAt")
+                                .HasColumnType("datetimeoffset");
+
+                            b1.Property<string>("Entry")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<string>("Exit")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<int>("Number")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("StopLoss")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<Guid>("StrategyId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Target")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("StrategyId", "Number")
+                                .IsUnique();
+
+                            b1.ToTable("StrategyVersions", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("StrategyId");
+                        });
+
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Kapea.Domain.Transactions.Transaction", b =>
@@ -802,6 +1389,14 @@ namespace Kapea.Infrastructure.Persistence.Migrations
                                 .HasColumnType("nvarchar(200)")
                                 .HasColumnName("SourceNaturalId");
 
+                            b1.Property<Guid?>("ProfileId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("SourceProfileId");
+
+                            b1.Property<int?>("ProfileVersion")
+                                .HasColumnType("int")
+                                .HasColumnName("SourceProfileVersion");
+
                             b1.Property<string>("RawContent")
                                 .HasColumnType("nvarchar(max)");
 
@@ -828,6 +1423,11 @@ namespace Kapea.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kapea.Domain.Calculation.RealizedResult", b =>
                 {
                     b.Navigation("ConsumedLots");
+                });
+
+            modelBuilder.Entity("Kapea.Domain.Identity.User", b =>
+                {
+                    b.Navigation("Identities");
                 });
 
             modelBuilder.Entity("Kapea.Domain.Import.ImportRun", b =>

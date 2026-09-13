@@ -19,7 +19,7 @@ namespace Kapea.Infrastructure.Secrets;
 /// </remarks>
 public sealed class KrakenCredentialVerifier(KrakenApiClient client) : ICredentialVerifier
 {
-    public Platform Platform => Platform.Kraken;
+    public PlatformCode Platform => PlatformCode.Kraken;
 
     public async Task<CredentialVerification> VerifyAsync(
         ApiSecret secret,
@@ -53,7 +53,7 @@ public sealed class KrakenCredentialVerifier(KrakenApiClient client) : ICredenti
 /// <summary>Comprueba una credencial de Bit2Me pidiendo el saldo de contado.</summary>
 public sealed class Bit2MeCredentialVerifier(Bit2MeApiClient client) : ICredentialVerifier
 {
-    public Platform Platform => Platform.Bit2Me;
+    public PlatformCode Platform => PlatformCode.Bit2Me;
 
     public async Task<CredentialVerification> VerifyAsync(
         ApiSecret secret,

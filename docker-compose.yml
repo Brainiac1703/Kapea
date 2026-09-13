@@ -45,13 +45,20 @@ services:
         Server=sqlserver,1433;Database=Kapea;User Id=sa;
         Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=True
 
-      # Sin autoridad configurada, la API arranca con autenticación de
-      # desarrollo y atribuye todo al usuario fijo de abajo. Es deliberado que
-      # esto solo valga en Development: fuera de él la API se niega a arrancar
-      # sin identidad configurada, en lugar de abrirse a cualquiera.
-      Authentication__Authority: '${AUTH_AUTHORITY:-}'
-      Authentication__Audience: '${AUTH_AUDIENCE:-}'
-      Authentication__DevelopmentUser__Id: '${DEV_USER_ID:-00000000-0000-0000-0000-000000000001}'
+      # Sin proveedor configurado, la API arranca con autenticación de desarrollo
+      # y atribuye todo al usuario fijo de abajo. Es deliberado que esto solo
+      # valga en Development: fuera de él la API se niega a arrancar sin
+      # identidad configurada, en lugar de abrirse a cualquiera.
+      Authentication__Google__ClientId: '${GOOGLE_CLIENT_ID:-}'
+      Authentication__Google__ClientSecret: '${GOOGLE_CLIENT_SECRET:-}'
+      # Pone el acceso de desarrollo al lado de Google. Solo surte efecto en
+      # Development: fuera de ahí la API lo ignora.
+      Authentication__DevelopmentUser__Enabled: '${DEV_USER_ENABLED:-false}'
+      # Sin estos tres, el mapeo de un formato nuevo se hace a mano.
+      MappingProposals__AzureOpenAi__Endpoint: '${AZURE_OPENAI_ENDPOINT:-}'
+      MappingProposals__AzureOpenAi__Deployment: '${AZURE_OPENAI_DEPLOYMENT:-}'
+      MappingProposals__AzureOpenAi__ApiKey: '${AZURE_OPENAI_KEY:-}'
+      Authentication__DevelopmentUser__LegacyOwnerId: '${LEGACY_OWNER_ID:-00000000-0000-0000-0000-000000000001}'
 
       ApplicationInsights__ConnectionString: '${APPLICATIONINSIGHTS_CONNECTION_STRING:-}'
 
@@ -60,8 +67,13 @@ services:
       # Secrets, y por eso vive fuera de la imagen y del repositorio.
       KeyVault__Uri: '${KEYVAULT_URI:-}'
       UserSecrets__Id: kapea-local
+
+      # Sin esto, las claves que cifran la cookie de sesión viven en memoria y cada
+      # despliegue echa al usuario de su sesión.
+      DataProtection__KeysPath: /home/app/.aspnet/DataProtection-Keys
     volumes:
       - broker-secrets:/home/app/.microsoft/usersecrets
+      - data-protection:/home/app/.aspnet/DataProtection-Keys
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -128,6 +140,10 @@ services:
 
 volumes:
   mssql-data:
+
+  # Las claves que cifran la cookie de sesión. En un volumen para que reiniciar la
+  # API no cierre la sesión de quien esté dentro.
+  data-protection:
 
   # Las credenciales de los brokers en desarrollo. En un volumen y no en la
   # imagen para que sobrevivan a un rebuild y no acaben nunca en un commit.

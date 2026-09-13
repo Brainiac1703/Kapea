@@ -10,6 +10,148 @@ namespace Kapea.Client.Services;
 /// </summary>
 public sealed class KapeaApiClient(HttpClient http)
 {
+    public Task<IReadOnlyList<AuthProviderResponse>> GetAuthProvidersAsync(
+        CancellationToken cancellationToken = default) =>
+        GetListAsync<AuthProviderResponse>("auth/providers", cancellationToken);
+
+    public Task<IReadOnlyList<PlatformResponse>> GetPlatformsAsync(CancellationToken cancellationToken = default) =>
+        GetListAsync<PlatformResponse>("api/platforms", cancellationToken);
+
+    public async Task<PlatformResponse> CreatePlatformAsync(
+        CreatePlatformRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/platforms", request, cancellationToken);
+
+        return await ReadAsync<PlatformResponse>(response, cancellationToken);
+    }
+
+    public async Task DeletePlatformAsync(string code, CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/platforms/{Uri.EscapeDataString(code)}", cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<FileInspectionResponse> InspectFileAsync(
+        Guid accountId,
+        Stream content,
+        string fileName,
+        CancellationToken cancellationToken = default)
+    {
+        using var form = new MultipartFormDataContent
+        {
+            { new StreamContent(content), "file", fileName },
+        };
+
+        var response = await http.PostAsync(
+            $"api/profiles/inspect?accountId={accountId}", form, cancellationToken);
+
+        return await ReadAsync<FileInspectionResponse>(response, cancellationToken);
+    }
+
+    public async Task<MappingProposalResponse> ProposeMappingAsync(
+        string platform,
+        MappingSampleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            $"api/profiles/propose?platform={Uri.EscapeDataString(platform)}", request, cancellationToken);
+
+        return await ReadAsync<MappingProposalResponse>(response, cancellationToken);
+    }
+
+    public async Task<TransactionPageResponse> SearchTransactionsAsync(
+        Guid? accountId = null,
+        string? asset = null,
+        string? type = null,
+        int? year = null,
+        string? search = null,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
+
+        if (accountId is { } id)
+        {
+            query.Add($"accountId={id}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(asset))
+        {
+            query.Add($"asset={Uri.EscapeDataString(asset)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(type))
+        {
+            query.Add($"type={Uri.EscapeDataString(type)}");
+        }
+
+        if (year is { } chosen)
+        {
+            query.Add($"year={chosen}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query.Add($"search={Uri.EscapeDataString(search)}");
+        }
+
+        var response = await http.GetAsync("api/transactions/search?" + string.Join('&', query), cancellationToken);
+
+        return await ReadAsync<TransactionPageResponse>(response, cancellationToken);
+    }
+
+    /// <param name="full">Relee el histórico entero en lugar de pedir solo lo nuevo.</param>
+    public async Task<SynchronizationResponse> SynchroniseAsync(
+        bool full = false,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync(full ? "api/sync?full=true" : "api/sync", content: null, cancellationToken);
+
+        return await ReadAsync<SynchronizationResponse>(response, cancellationToken);
+    }
+
+    public async Task<ReinterpretationResponse> ReinterpretAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync("api/transactions/reinterpret", content: null, cancellationToken);
+
+        return await ReadAsync<ReinterpretationResponse>(response, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<ImportProfileResponse>> GetProfilesAsync(CancellationToken cancellationToken = default) =>
+        GetListAsync<ImportProfileResponse>("api/profiles", cancellationToken);
+
+    public Task<IReadOnlyList<ImportFieldResponse>> GetImportFieldsAsync(CancellationToken cancellationToken = default) =>
+        GetListAsync<ImportFieldResponse>("api/profiles/fields", cancellationToken);
+
+    public async Task<ImportProfileResponse> CreateProfileAsync(
+        CreateImportProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/profiles", request, cancellationToken);
+
+        return await ReadAsync<ImportProfileResponse>(response, cancellationToken);
+    }
+
+    public async Task<ImportProfileResponse> ReviseProfileAsync(
+        Guid profileId,
+        ReviseImportProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync($"api/profiles/{profileId}/versions", request, cancellationToken);
+
+        return await ReadAsync<ImportProfileResponse>(response, cancellationToken);
+    }
+
+    public async Task DeleteProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/profiles/{profileId}", cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public Task<IReadOnlyList<AccountResponse>> GetAccountsAsync(CancellationToken cancellationToken = default) =>
         GetListAsync<AccountResponse>("api/accounts", cancellationToken);
 
@@ -150,6 +292,196 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<PortfolioResponse>(response, cancellationToken);
     }
 
+    /// <param name="days">Cuántos días atrás. Sin valor, el que decida el servidor.</param>
+    public async Task<PortfolioHistoryResponse> GetHistoryAsync(
+        int? days = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync(Range("api/portfolio/history", days), cancellationToken);
+
+        return await ReadAsync<PortfolioHistoryResponse>(response, cancellationToken);
+    }
+
+    public async Task<AssetHistoryResponse> GetAssetHistoryAsync(
+        Guid assetId,
+        int? days = null,
+        int? window = null,
+        CancellationToken cancellationToken = default)
+    {
+        var path = Range($"api/portfolio/history/{assetId}", days);
+        var query = window is { } size ? $"{path}{(path.Contains('?', StringComparison.Ordinal) ? "&" : "?")}window={size}" : path;
+
+        var response = await http.GetAsync(query, cancellationToken);
+
+        return await ReadAsync<AssetHistoryResponse>(response, cancellationToken);
+    }
+
+    public async Task<PerformanceResponse> GetPerformanceAsync(
+        int? days = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync(Range("api/portfolio/performance", days), cancellationToken);
+
+        return await ReadAsync<PerformanceResponse>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<StrategyResponse>> ListStrategiesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/strategies", cancellationToken);
+
+        return await ReadAsync<List<StrategyResponse>>(response, cancellationToken);
+    }
+
+    public async Task<StrategyVocabularyResponse> GetStrategyVocabularyAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/strategies/vocabulary", cancellationToken);
+
+        return await ReadAsync<StrategyVocabularyResponse>(response, cancellationToken);
+    }
+
+    public async Task<StrategyResponse> CreateStrategyAsync(
+        CreateStrategyRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/strategies", request, cancellationToken);
+
+        return await ReadAsync<StrategyResponse>(response, cancellationToken);
+    }
+
+    public async Task<StrategyResponse> ReviseStrategyAsync(
+        Guid strategyId,
+        ReviseStrategyRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            $"api/strategies/{strategyId}/versions", request, cancellationToken);
+
+        return await ReadAsync<StrategyResponse>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<IdeaSourceResponse>> ListIdeaSourcesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/ideas/sources", cancellationToken);
+
+        return await ReadAsync<List<IdeaSourceResponse>>(response, cancellationToken);
+    }
+
+    public async Task<IdeaSourceResponse> CreateIdeaSourceAsync(
+        CreateIdeaSourceRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/ideas/sources", request, cancellationToken);
+
+        return await ReadAsync<IdeaSourceResponse>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<IdeaResponse>> ListIdeasAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/ideas", cancellationToken);
+
+        return await ReadAsync<List<IdeaResponse>>(response, cancellationToken);
+    }
+
+    public async Task<IdeaResponse> CreateIdeaAsync(
+        CreateIdeaRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/ideas", request, cancellationToken);
+
+        return await ReadAsync<IdeaResponse>(response, cancellationToken);
+    }
+
+    public async Task<IdeaExtractionResponse> ExtractIdeasAsync(
+        string text,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            "api/ideas/extract", new ExtractIdeasRequest(text), cancellationToken);
+
+        return await ReadAsync<IdeaExtractionResponse>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SourceBalanceResponse>> ListSourceBalancesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/ideas/balance", cancellationToken);
+
+        return await ReadAsync<List<SourceBalanceResponse>>(response, cancellationToken);
+    }
+
+    public async Task TrackIdeasAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync("api/ideas/track", content: null, cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DecisionNoteResponse>> ListJournalAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/journal", cancellationToken);
+
+        return await ReadAsync<List<DecisionNoteResponse>>(response, cancellationToken);
+    }
+
+    public async Task<DecisionNoteResponse> WriteNoteAsync(
+        WriteNoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/journal", request, cancellationToken);
+
+        return await ReadAsync<DecisionNoteResponse>(response, cancellationToken);
+    }
+
+    public async Task<StrategyProposalResponse> TranslateStrategyAsync(
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            "api/strategies/translate", new TranslateStrategyRequest(description), cancellationToken);
+
+        return await ReadAsync<StrategyProposalResponse>(response, cancellationToken);
+    }
+
+    public async Task<SignalRunResponse> RunStrategiesAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync("api/strategies/run", content: null, cancellationToken);
+
+        return await ReadAsync<SignalRunResponse>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SignalResponse>> ListSignalsAsync(
+        int? days = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync(
+            days is { } span ? $"api/strategies/signals?days={span}" : "api/strategies/signals", cancellationToken);
+
+        return await ReadAsync<List<SignalResponse>>(response, cancellationToken);
+    }
+
+    public async Task<BacktestResponse> SimulateAsync(
+        Guid strategyId,
+        Guid assetId,
+        decimal capital,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync(
+            $"api/strategies/{strategyId}/simulate?assetId={assetId}&capital={capital.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+            content: null,
+            cancellationToken);
+
+        return await ReadAsync<BacktestResponse>(response, cancellationToken);
+    }
+
+    /// <summary>Acota el periodo contando hacia atrás desde hoy.</summary>
+    private static string Range(string path, int? days) => days is { } span
+        ? $"{path}?from={DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-span):yyyy-MM-dd}"
+        : path;
+
     public async Task<PortfolioResponse> RecalculatePortfolioAsync(CancellationToken cancellationToken = default)
     {
         var response = await http.PostAsync("api/portfolio/recalculate", content: null, cancellationToken);
@@ -164,6 +496,31 @@ public sealed class KapeaApiClient(HttpClient http)
         var response = await http.GetAsync($"api/results/{taxYear}", cancellationToken);
 
         return await ReadAsync<TaxYearResultsResponse>(response, cancellationToken);
+    }
+
+    /// <summary>
+    /// Quién tiene la sesión. Devuelve null si no hay ninguna, en lugar de fallar: no
+    /// estar autenticado no es un error, es el estado inicial de cualquier visita.
+    /// </summary>
+    public async Task<CurrentUserResponse?> GetCurrentUserAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/me", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
+
+        return await ReadAsync<CurrentUserResponse>(response, cancellationToken);
+    }
+
+    public async Task<CurrentUserResponse> UnlinkIdentityAsync(
+        Guid identityId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/me/identities/{identityId}", cancellationToken);
+
+        return await ReadAsync<CurrentUserResponse>(response, cancellationToken);
     }
 
     private async Task<IReadOnlyList<T>> GetListAsync<T>(string url, CancellationToken cancellationToken)

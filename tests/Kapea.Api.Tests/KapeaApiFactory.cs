@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -32,6 +33,24 @@ public sealed class KapeaApiFactory : WebApplicationFactory<Program>, IAsyncLife
 
     /// <summary>Usuario que presentará el cliente autenticado. Se cambia por test.</summary>
     public Guid CurrentUserId { get; set; } = Guid.NewGuid();
+
+    /// <summary>
+    /// Da de alta un usuario con una identidad de proveedor y devuelve un cliente con
+    /// su sesión. Es el camino que recorre una persona de verdad, y así los tests
+    /// ejercitan el registro además del aislamiento.
+    /// </summary>
+    public async Task<(HttpClient Client, Guid UserId)> CreateSignedInClientAsync(
+        string provider = "Google",
+        string? subject = null)
+    {
+        using var scope = Services.CreateScope();
+
+        var signIn = scope.ServiceProvider.GetRequiredService<Application.Identity.UserSignInService>();
+        var result = await signIn.SignInAsync(new Application.Identity.ExternalPrincipal(
+            provider, subject ?? Guid.NewGuid().ToString("N"), "Persona de prueba", null));
+
+        return (CreateClientFor(result.User.Id.Value), result.User.Id.Value);
+    }
 
     public async Task InitializeAsync()
     {
@@ -74,6 +93,10 @@ public sealed class KapeaApiFactory : WebApplicationFactory<Program>, IAsyncLife
     {
         builder.UseEnvironment("Development");
 
+        // Sin esto el 500 de una importación llega al test como un código y nada más,
+        // y averiguar la causa exige adivinar.
+        builder.ConfigureLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Warning));
+
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
@@ -91,7 +114,24 @@ public sealed class KapeaApiFactory : WebApplicationFactory<Program>, IAsyncLife
                 options.DefaultAuthenticateScheme = TestAuthenticationHandler.SchemeName;
                 options.DefaultChallengeScheme = TestAuthenticationHandler.SchemeName;
             });
+
+            // Sin esto las pruebas salían a CoinGecko de verdad: la cartera valía lo que
+            // valiera bitcoin esa mañana, y sin red no valía nada. Un proveedor que no
+            // cubre ningún símbolo deja las posiciones sin valorar, que es justo el caso
+            // que las pruebas necesitan poder afirmar.
+            services.RemoveAll<Application.Abstractions.IMarketPriceProvider>();
+            services.AddSingleton<Application.Abstractions.IMarketPriceProvider, NoPrices>();
         });
+    }
+
+    /// <summary>Proveedor que no cubre ningún símbolo.</summary>
+    private sealed class NoPrices : Application.Abstractions.IMarketPriceProvider
+    {
+        public Task<IReadOnlyDictionary<string, Application.Abstractions.MarketPrice>> GetPricesAsync(
+            IReadOnlyCollection<string> canonicalSymbols,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyDictionary<string, Application.Abstractions.MarketPrice>>(
+                new Dictionary<string, Application.Abstractions.MarketPrice>(StringComparer.OrdinalIgnoreCase));
     }
 
     private sealed class FixedUser(Guid id) : Application.Abstractions.ICurrentUser
@@ -117,7 +157,8 @@ public sealed class TestAuthenticationHandler(
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
-        var identity = new ClaimsIdentity([new Claim("oid", userId.ToString())], SchemeName);
+        var identity = new ClaimsIdentity(
+            [new Claim(Kapea.Api.Authentication.KapeaAuthentication.UserIdClaim, userId.ToString())], SchemeName);
 
         return Task.FromResult(AuthenticateResult.Success(
             new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));

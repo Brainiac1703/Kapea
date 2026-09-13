@@ -1,6 +1,7 @@
 using Kapea.Application.Abstractions;
 using Kapea.Domain.Accounts;
 using Kapea.Domain.Credentials;
+using Kapea.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace Kapea.Application.Credentials;
@@ -21,31 +22,42 @@ public sealed class BrokerCredentialService(
     TimeProvider timeProvider,
     ILogger<BrokerCredentialService> logger)
 {
-    private readonly Dictionary<Platform, ICredentialVerifier> _verifiers =
+    private readonly Dictionary<PlatformCode, ICredentialVerifier> _verifiers =
         verifiers.ToDictionary(verifier => verifier.Platform);
 
+    /// <param name="account">
+    /// La cuenta, no su identificador. Para tenerla hay que haberla leído con el filtro
+    /// por usuario puesto, así que pasar la de otra persona deja de ser posible.
+    /// </param>
     public async Task<BrokerCredential> RegisterAsync(
-        Guid accountId,
-        Platform platform,
+        PlatformAccount account,
+        PlatformCode platform,
         string alias,
         ApiSecret secret,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(account);
         ArgumentNullException.ThrowIfNull(secret);
+
+        if (account.UserId != currentUser.Id)
+        {
+            throw new UnauthorizedAccessException(
+                "La cuenta no es de quien tiene la sesión iniciada.");
+        }
 
         var verification = await VerifyAsync(platform, secret, cancellationToken).ConfigureAwait(false);
 
         // El nombre del secreto se decide aquí y no lo aporta el llamante: así una
         // petición no puede hacer que la credencial apunte a un secreto ajeno.
-        var secretName = SecretNameFor(accountId, platform);
+        var secretName = SecretNameFor(currentUser.Id, account.Id, platform);
 
         BrokerCredential.EnsureReadOnly(verification.Scopes);
         await secretStore.SetAsync(secretName, secret, cancellationToken).ConfigureAwait(false);
 
         var credential = BrokerCredential.Register(
-            currentUser.Id, accountId, platform, alias, secretName, verification.Scopes, timeProvider.GetUtcNow());
+            currentUser.Id, account.Id, platform, alias, secretName, verification.Scopes, timeProvider.GetUtcNow());
 
-        logger.LogInformation("Credencial de {Plataforma} dada de alta para la cuenta {Cuenta}.", platform, accountId);
+        logger.LogInformation("Credencial de {Plataforma} dada de alta para la cuenta {Cuenta}.", platform, account.Id);
 
         return credential;
     }
@@ -93,7 +105,7 @@ public sealed class BrokerCredentialService(
     }
 
     private async Task<CredentialVerification> VerifyAsync(
-        Platform platform,
+        PlatformCode platform,
         ApiSecret secret,
         CancellationToken cancellationToken)
     {
@@ -115,6 +127,15 @@ public sealed class BrokerCredentialService(
         return verification;
     }
 
-    private static string SecretNameFor(Guid accountId, Platform platform) =>
-        $"broker-{platform.ToString().ToLowerInvariant()}-{accountId:N}";
+    /// <summary>
+    /// Nombre bajo el que se guarda el secreto.
+    /// </summary>
+    /// <remarks>
+    /// Lleva el usuario además de la cuenta. Con solo la cuenta, dos personas cuyas
+    /// credenciales apuntaran al mismo identificador compartirían entrada en el almacén
+    /// y una pisaría la clave de la otra sin que nada fallara: la siguiente
+    /// sincronización usaría una clave ajena.
+    /// </remarks>
+    private static string SecretNameFor(UserId userId, Guid accountId, PlatformCode platform) =>
+        $"broker-{platform.ToString().ToLowerInvariant()}-{userId.Value:N}-{accountId:N}";
 }

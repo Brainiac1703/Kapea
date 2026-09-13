@@ -1,56 +1,31 @@
 using Kapea.Api.Authentication;
+using Kapea.Api.Hosting;
 using Kapea.Api.Endpoints;
 using Kapea.Application.Abstractions;
 using Kapea.Application.Credentials;
+using Kapea.Application.Identity;
 using Kapea.Application.Import;
 using Kapea.Domain.Common;
 using Kapea.Infrastructure;
-using Kapea.Infrastructure.Import.Xtb;
+using Kapea.Infrastructure.Import.Tabular;
 using Kapea.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddKapeaInfrastructure(builder.Configuration);
+// Antes de cualquier registro: el proveedor de identidad se configura leyendo la
+// configuración, así que su secreto tiene que estar ya dentro.
+builder.Configuration.AddManagedSecrets();
+
+builder.Services.AddKapeaInfrastructure(builder.Configuration, builder.Environment.IsDevelopment());
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 
-var authority = builder.Configuration["Authentication:Authority"];
-var usesEntra = !string.IsNullOrWhiteSpace(authority);
+builder.Services.AddKapeaAuthentication(builder.Configuration, builder.Environment.IsDevelopment());
 
-if (!usesEntra && !builder.Environment.IsDevelopment())
-{
-    // Sin esta comprobación, un despliegue al que se le olvidara configurar Entra
-    // arrancaría con la autenticación de desarrollo y expondría los datos a cualquiera.
-    throw new InvalidOperationException(
-        "Falta Authentication:Authority. Fuera de desarrollo la API no arranca sin identidad configurada.");
-}
-
-if (usesEntra)
-{
-    builder.Services
-        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.Authority = authority;
-            options.Audience = builder.Configuration["Authentication:Audience"];
-            options.TokenValidationParameters.ValidateIssuer = true;
-            options.TokenValidationParameters.ValidateAudience = true;
-        });
-}
-else
-{
-    builder.Services.Configure<DevelopmentUserOptions>(
-        builder.Configuration.GetSection(DevelopmentUserOptions.SectionName));
-
-    builder.Services
-        .AddAuthentication(DevelopmentAuthenticationHandler.SchemeName)
-        .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, DevelopmentAuthenticationHandler>(
-            DevelopmentAuthenticationHandler.SchemeName, _ => { });
-}
+var sessionKeys = builder.Services.AddKapeaSessionKeys(builder.Configuration);
 
 builder.Services.AddAuthorization();
 builder.Services.AddProblemDetails();
@@ -65,6 +40,13 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration["ApplicationInsights:Connec
 
 var app = builder.Build();
 
+if (sessionKeys == SessionKeyStorage.Memory)
+{
+    app.Logger.LogWarning(
+        "Las claves de sesión viven en memoria: un reinicio cerrará la sesión de quien esté dentro. " +
+        "Configura DataProtection:BlobUri en Azure o DataProtection:KeysPath en local.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     // En desarrollo la base se crea sola al arrancar: levantar el entorno no debería
@@ -73,11 +55,20 @@ if (app.Environment.IsDevelopment())
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<KapeaDbContext>().Database.MigrateAsync();
 
-    if (!usesEntra)
+    if (string.IsNullOrWhiteSpace(builder.Configuration["Authentication:Google:ClientId"]))
     {
         app.Logger.LogWarning(
-            "Autenticación de desarrollo activa: toda petición se atribuye al usuario fijo de desarrollo.");
+            "Sin proveedor configurado: la pantalla de acceso ofrece entrar como el usuario fijo de desarrollo.");
     }
+}
+
+// Los perfiles de serie se dan de alta en cada arranque si faltan. Es idempotente y
+// barato, y evita que un despliegue nuevo quede sin saber leer ningún fichero.
+await using (var profiles = app.Services.CreateAsyncScope())
+{
+    await Kapea.Infrastructure.Import.Tabular.BuiltInProfileSeeder.EnsureAsync(
+        profiles.ServiceProvider.GetRequiredService<KapeaDbContext>(),
+        profiles.ServiceProvider.GetRequiredService<TimeProvider>());
 }
 
 // Las reglas del dominio y los rechazos de las plataformas se traducen a respuestas
@@ -88,11 +79,14 @@ app.UseExceptionHandler(handler => handler.Run(async context =>
 
     var (status, title) = exception switch
     {
+        // Antes que DomainException, de la que deriva: el caso concreto explica mejor
+        // qué ha pasado que el genérico.
+        IdentityAlreadyLinkedException => (StatusCodes.Status409Conflict, "Esa cuenta ya está enlazada a otro usuario."),
         DomainException => (StatusCodes.Status409Conflict, "La operación no es válida en el estado actual."),
         CredentialRejectedException => (StatusCodes.Status400BadRequest, "La plataforma ha rechazado la credencial."),
         UnsupportedPlatformException => (StatusCodes.Status400BadRequest, "Plataforma no soportada."),
         UnsupportedImportFileException => (StatusCodes.Status400BadRequest, "Tipo de fichero no admitido."),
-        UnknownXtbFormatException => (StatusCodes.Status422UnprocessableEntity, "El formato del fichero no se reconoce."),
+        UnknownFileFormatException => (StatusCodes.Status422UnprocessableEntity, "Ningún perfil reconoce el formato del fichero."),
         ImportTargetException => (StatusCodes.Status404NotFound, "No se encuentra el destino de la importación."),
         UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "No autenticado."),
         _ => (StatusCodes.Status500InternalServerError, "Error inesperado."),
@@ -120,6 +114,13 @@ app.MapStaticAssets();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Punto de comprobación del servicio: dice si el proceso está vivo, y nada más. No
+// consulta la base de datos a propósito: con la base en serverless y pausada, una
+// consulta aquí haría que el servicio diera por muerta una revisión sana que solo
+// estaba esperando a que la base despertara.
+app.MapGet("/health", () => Results.NoContent()).AllowAnonymous();
+
+app.MapIdentityEndpoints();
 app.MapKapeaEndpoints();
 
 // Cualquier ruta que no sea de la API la resuelve el enrutador de Blazor en el cliente.

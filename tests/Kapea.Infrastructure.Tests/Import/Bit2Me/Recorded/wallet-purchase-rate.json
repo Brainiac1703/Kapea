@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "id": "wp-0001",
+      "date": "2024-05-05T15:26:55.362Z",
+      "completedAt": "2024-05-05T15:26:55.362Z",
+      "concept": "",
+      "type": "transfer",
+      "subtype": "purchase",
+      "status": "completed",
+      "destination": {
+        "amount": "99.05950000",
+        "currency": "EURC",
+        "rate": {
+          "value": "0.999500000000",
+          "pair": {
+            "base": "EURC",
+            "quote": "EUR"
+          }
+        }
+      },
+      "denomination": {
+        "amount": "100.00",
+        "currency": "EUR"
+      }
+    }
+  ],
+  "pageInfo": {
+    "hasNextPage": false,
+    "endCursor": null
+  }
+}

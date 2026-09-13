@@ -1,0 +1,28 @@
+# Copia a backend.hcl y ajusta. backend.hcl está excluido del repositorio porque
+# puede contener la clave de acceso a la cuenta de almacenamiento.
+#
+#   terraform init -backend-config=backend.hcl
+
+storage_account_name = "micuentadealmacenamiento"
+container_name       = "deployments"
+
+# La misma cuenta alberga el estado de varios proyectos, así que la ruta lleva
+# el nombre de este. Comprueba que no exista antes del primer plan:
+#
+#   az storage blob list --account-name <cuenta> --container-name <contenedor> \
+#     --query "[].name" -o tsv
+key = "brainiac1703/kapea/prod/terraform.tfstate"
+
+# --- Autenticación: elige UNA de las dos opciones ------------------------------
+
+# Opción A. Clave de acceso. Práctica cuando no se tienen permisos para
+# asignarse roles sobre la cuenta. Es un secreto: no la subas.
+#
+#   az storage account keys list --account-name <cuenta> --query [0].value -o tsv
+#
+# access_key = "..."
+
+# Opción B. Identidad de Azure, la que usa el pipeline. No hay ningún secreto,
+# pero requiere el rol Storage Blob Data Contributor sobre el contenedor.
+#
+# use_azuread_auth = true

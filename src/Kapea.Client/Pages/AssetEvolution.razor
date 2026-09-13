@@ -1,0 +1,88 @@
+@page "/evolution/{AssetId:guid}"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Asset_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">
+    @Ui["Asset_Title"] @(_history?.AssetSymbol ?? string.Empty)
+</FluentLabel>
+
+<FluentToolbar>
+    <FluentLabel Typo="Typography.Body">@Ui["Asset_Window"]</FluentLabel>
+    @foreach (var window in Windows)
+    {
+        <FluentButton Appearance="@(window == _window ? Appearance.Accent : Appearance.Neutral)"
+                      OnClick="@(() => ChangeAsync(window))">
+            @window
+        </FluentButton>
+    }
+</FluentToolbar>
+
+@if (_history is null)
+{
+    <FluentProgressRing />
+}
+else
+{
+    @* El precio con sus medias encima: la media sola no dice nada, y el precio solo no
+       deja ver la tendencia. *@
+    <LineChart Lines="@Price()" Title="@Ui["Asset_Price"]" />
+
+    <FluentLabel Typo="Typography.H4">@Ui["Asset_Strength"]</FluentLabel>
+
+    @* La fuerza relativa va aparte porque su escala es de cero a cien: dibujarla junto
+       al precio la dejaría pegada al suelo o aplastaría el precio. *@
+    <LineChart Lines="@Strength()" Title="@Ui["Asset_Strength"]" Formatter="@(value => Format.Compact(value))" />
+}
+
+@code {
+    private static readonly int[] Windows = [7, 20, 50];
+
+    private AssetHistoryResponse? _history;
+    private int _window = 20;
+
+    [Parameter]
+    public Guid AssetId { get; set; }
+
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+
+    private async Task ChangeAsync(int window)
+    {
+        _window = window;
+
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _history = await Api.GetAssetHistoryAsync(AssetId, days: 365, window: _window);
+        }
+        catch (KapeaApiException exception)
+        {
+            _history = null;
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private IReadOnlyList<ChartLine> Price() =>
+    [
+        new ChartLine(
+            Ui["Asset_Price"],
+            [.. _history!.Days.Select(day => new ChartPoint(day.Date, day.PriceInEuros))],
+            ChartLine.ColorAt(0)),
+        new ChartLine(Ui["Asset_Average"], Points(_history.SimpleMovingAverage), ChartLine.ColorAt(1), Dashed: true),
+        new ChartLine(
+            Ui["Asset_Exponential"], Points(_history.ExponentialMovingAverage), ChartLine.ColorAt(2), Dashed: true),
+    ];
+
+    private IReadOnlyList<ChartLine> Strength() =>
+    [
+        new ChartLine(Ui["Asset_Strength"], Points(_history!.RelativeStrengthIndex), ChartLine.ColorAt(3)),
+    ];
+
+    private static IReadOnlyList<ChartPoint> Points(IReadOnlyList<IndicatorPointResponse> points) =>
+        [.. points.Select(point => new ChartPoint(point.Date, point.Value))];
+}

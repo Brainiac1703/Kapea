@@ -1,0 +1,50 @@
+{
+  "data": [
+    {
+      "id": "ws-0001",
+      "date": "2024-06-23T10:00:00.000Z",
+      "completedAt": "2024-06-23T10:00:00.000Z",
+      "concept": "",
+      "type": "transfer",
+      "subtype": "swap",
+      "status": "completed",
+      "origin": {
+        "amount": "12.47227153",
+        "currency": "ATOM",
+        "rate": {
+          "value": "2.715728450000",
+          "pair": {
+            "base": "ATOM",
+            "quote": "EUR"
+          }
+        }
+      },
+      "destination": {
+        "amount": "0.01004612",
+        "currency": "ETH",
+        "rate": {
+          "value": "3339.870000000000",
+          "pair": {
+            "base": "ETH",
+            "quote": "EUR"
+          }
+        }
+      },
+      "denomination": {
+        "amount": "12.47227153",
+        "currency": "ATOM",
+        "rate": {
+          "value": "1.00000000",
+          "pair": {
+            "base": "ATOM",
+            "quote": "ATOM"
+          }
+        }
+      }
+    }
+  ],
+  "pageInfo": {
+    "hasNextPage": false,
+    "endCursor": null
+  }
+}

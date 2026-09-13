@@ -40,7 +40,15 @@ public sealed class SynchronizationWorker(
 
             await scope.ServiceProvider
                 .GetRequiredService<SynchronizationService>()
-                .RunAsync(cancellationToken)
+                .RunAsync(owner: null, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            // El histórico de precios se completa en la misma vuelta: es el mismo ritmo
+            // —cada pocas horas— y así la primera carga, que es larga, ocurre sola en
+            // lugar de bloquear una pantalla.
+            await scope.ServiceProvider
+                .GetRequiredService<Kapea.Application.MarketData.PriceHistoryUpdater>()
+                .UpdateAsync(cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

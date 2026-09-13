@@ -6,7 +6,7 @@ namespace Kapea.Domain.Accounts;
 /// <summary>Cuenta del usuario en una plataforma. Todo movimiento pertenece a una y solo una.</summary>
 public sealed class PlatformAccount
 {
-    private PlatformAccount(Guid id, UserId userId, Platform platform, string alias, Currency baseCurrency)
+    private PlatformAccount(Guid id, UserId userId, PlatformCode platform, string alias, Currency baseCurrency)
     {
         Id = id;
         UserId = userId;
@@ -19,13 +19,13 @@ public sealed class PlatformAccount
 
     public UserId UserId { get; }
 
-    public Platform Platform { get; }
+    public PlatformCode Platform { get; }
 
     public string Alias { get; private set; }
 
     public Currency BaseCurrency { get; }
 
-    public static PlatformAccount Create(UserId userId, Platform platform, string alias, Currency baseCurrency)
+    public static PlatformAccount Create(UserId userId, PlatformCode platform, string alias, Currency baseCurrency)
     {
         if (string.IsNullOrWhiteSpace(alias))
         {

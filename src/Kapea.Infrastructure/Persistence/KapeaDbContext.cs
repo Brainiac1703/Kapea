@@ -24,7 +24,13 @@ namespace Kapea.Infrastructure.Persistence;
 public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICurrentUser currentUser)
     : DbContext(options)
 {
+    public DbSet<Domain.Identity.User> Users => Set<Domain.Identity.User>();
+
     public DbSet<Asset> Assets => Set<Asset>();
+
+    public DbSet<Platform> Platforms => Set<Platform>();
+
+    public DbSet<Domain.ImportProfiles.ImportProfile> ImportProfiles => Set<Domain.ImportProfiles.ImportProfile>();
 
     public DbSet<PlatformAccount> Accounts => Set<PlatformAccount>();
 
@@ -46,6 +52,18 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<DailyRate> DailyRates => Set<DailyRate>();
 
+    public DbSet<Domain.MarketData.DailyPrice> DailyPrices => Set<Domain.MarketData.DailyPrice>();
+
+    public DbSet<Domain.Strategies.Strategy> Strategies => Set<Domain.Strategies.Strategy>();
+
+    public DbSet<Domain.Strategies.EmittedSignal> EmittedSignals => Set<Domain.Strategies.EmittedSignal>();
+
+    public DbSet<Domain.Journal.DecisionNote> DecisionNotes => Set<Domain.Journal.DecisionNote>();
+
+    public DbSet<Domain.Ideas.IdeaSource> IdeaSources => Set<Domain.Ideas.IdeaSource>();
+
+    public DbSet<Domain.Ideas.ExternalIdea> ExternalIdeas => Set<Domain.Ideas.ExternalIdea>();
+
     internal UserId CurrentUserId => currentUser.Id;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -54,13 +72,36 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(KapeaDbContext).Assembly);
 
+        // Todas las claves las asigna el dominio en sus fábricas, nunca la base de datos.
+        // Declararlo importa: con la convención por omisión, EF interpreta que una
+        // entidad descubierta por navegación con la clave ya puesta es una que ya existe,
+        // y genera un UPDATE de una fila que no está en lugar de insertarla.
+        foreach (var key in modelBuilder.Model.GetEntityTypes()
+            .Select(entity => entity.FindPrimaryKey())
+            .Where(key => key is not null)
+            .SelectMany(key => key!.Properties)
+            .Where(property => property.ClrType == typeof(Guid)))
+        {
+            key.ValueGenerated = Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never;
+        }
+
         // Filtro global de propiedad. Es una red de seguridad, no la única defensa: aun
         // así toda consulta debería filtrar, pero una que se olvide no devuelve datos
-        // ajenos. Assets y DailyRates quedan fuera a propósito: son catálogos globales
-        // sin información de nadie.
+        // ajenos. Assets, DailyRates y DailyPrices quedan fuera a propósito: son catálogos
+        // globales sin información de nadie.
         modelBuilder.Entity<PlatformAccount>().HasQueryFilter(account => account.UserId == CurrentUserId);
         modelBuilder.Entity<Transaction>().HasQueryFilter(transaction => transaction.UserId == CurrentUserId);
         modelBuilder.Entity<Lot>().HasQueryFilter(lot => lot.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Strategies.Strategy>()
+            .HasQueryFilter(strategy => strategy.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Strategies.EmittedSignal>()
+            .HasQueryFilter(signal => signal.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Journal.DecisionNote>()
+            .HasQueryFilter(note => note.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Ideas.IdeaSource>()
+            .HasQueryFilter(source => source.UserId == CurrentUserId);
+        modelBuilder.Entity<Domain.Ideas.ExternalIdea>()
+            .HasQueryFilter(idea => idea.UserId == CurrentUserId);
         modelBuilder.Entity<RealizedResult>().HasQueryFilter(result => result.UserId == CurrentUserId);
         modelBuilder.Entity<CapitalIncome>().HasQueryFilter(income => income.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Credentials.BrokerCredential>().HasQueryFilter(credential => credential.UserId == CurrentUserId);

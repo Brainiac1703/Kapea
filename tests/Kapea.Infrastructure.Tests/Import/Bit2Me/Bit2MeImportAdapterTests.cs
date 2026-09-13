@@ -108,6 +108,32 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task The_earn_products_are_read_from_the_object_that_wraps_them()
+    {
+        // Bit2Me devuelve los productos dentro de «data», no como un array suelto.
+        // Esperando un array se leían cero productos y con ellos se perdían todas las
+        // recompensas: ni un error ni un aviso, simplemente no había nada que importar.
+        var result = await ReadFullHistory();
+
+        Assert.Contains(result.Records, record => record.NaturalId == "em-0001");
+    }
+
+    [Fact]
+    public async Task A_reward_is_worth_what_it_was_worth_and_not_how_many_units_it_paid()
+    {
+        // Bit2Me manda el valor en euros de cada movimiento de rendimiento. Sin usarlo,
+        // la cantidad de cripto acababa de importe: dos mil setecientos B2M de recompensa
+        // parecían dos mil setecientos euros de rendimiento, y con ellos de coste.
+        var result = await ReadFullHistory();
+
+        var reward = result.Records.Single(record => record.NaturalId == "em-0001");
+
+        Assert.Equal(0.0042m, reward.Quantity);
+        Assert.Equal(12.50m, reward.GrossAmount);
+        Assert.Equal("EUR", reward.Currency.Code);
+    }
+
+    [Fact]
     public async Task Earn_rewards_and_contributions_are_told_apart()
     {
         var result = await ReadFullHistory();
@@ -121,6 +147,174 @@ public class Bit2MeImportAdapterTests
 
         // Aportar a un producto de ahorro no es comprar: es mover el activo de sitio.
         Assert.Equal(TransactionType.Transfer, contribution.Type);
+    }
+
+    [Fact]
+    public async Task A_purchase_costs_what_was_paid_and_not_what_the_rate_recalculates()
+    {
+        // Comprar cien euros de cripto cuesta cien euros. Multiplicar la cantidad por el
+        // cambio da una cifra parecida y distinta, y el coste de adquisición dejaría de
+        // ser el de la operación.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-purchase-rate.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var purchase = Assert.Single(result.Records);
+
+        Assert.Equal(TransactionType.Buy, purchase.Type);
+        Assert.Equal(99.0595m, purchase.Quantity);
+
+        // Lo pagado son cien euros, repartidos entre lo que costó la moneda y lo que se
+        // quedó la plataforma dentro del precio.
+        Assert.Equal(100m, decimal.Round(purchase.GrossAmount + purchase.Fee, 2));
+    }
+
+    [Fact]
+    public async Task A_purchase_paid_with_a_card_brings_its_money_into_the_account()
+    {
+        // El dinero va de la tarjeta a la moneda sin pasar por el saldo en euros. Sin el
+        // ingreso que la acompaña, la compra descuenta un efectivo que nunca estuvo allí
+        // y el saldo de la cuenta arranca en negativo para siempre.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-purchase-card.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var funding = result.Records.Single(record => record.NaturalId == "wc-0001:pago");
+        var purchase = result.Records.Single(record => record.NaturalId == "wc-0001");
+
+        Assert.Equal(TransactionType.Deposit, funding.Type);
+        Assert.Equal(100m, funding.GrossAmount);
+        Assert.Null(funding.AssetSymbol);
+        Assert.Equal(0m, funding.Quantity);
+
+        // El ingreso no cambia lo que costó la compra ni cuántas unidades trajo.
+        Assert.Equal(TransactionType.Buy, purchase.Type);
+        Assert.Equal(100m, purchase.GrossAmount);
+        Assert.Equal(49.591735m, purchase.Quantity);
+    }
+
+    [Fact]
+    public async Task A_purchase_paid_from_the_wallet_brings_no_money_in()
+    {
+        // El dinero ya estaba en la cuenta. Ingresarlo otra vez lo contaría dos veces.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-purchase-card.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        Assert.DoesNotContain(result.Records, record => record.NaturalId == "wc-0002:pago");
+        Assert.Equal(TransactionType.Buy, result.Records.Single(record => record.NaturalId == "wc-0002").Type);
+    }
+
+    [Fact]
+    public async Task The_fee_hidden_in_the_price_is_worked_out_from_the_published_rate()
+    {
+        // Bit2Me no manda comisión en sus movimientos: la cobra dando peor cambio que el
+        // publicado. Como manda los dos datos, la diferencia es la comisión, y es la
+        // misma cifra que trae la columna del fichero exportado.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-purchase-spread.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var purchase = Assert.Single((await Adapter(handler).ReadAsync(Credential, From, To)).Records);
+
+        // Cincuenta euros al cambio publicado son 49,53; los cuarenta y siete céntimos
+        // que faltan se los quedó la plataforma.
+        Assert.Equal(0.47m, decimal.Round(purchase.Fee, 2));
+        Assert.Equal(49.53m, decimal.Round(purchase.GrossAmount, 2));
+
+        // Lo pagado no cambia: sigue costando los cincuenta euros que salieron.
+        Assert.Equal(50m, decimal.Round(purchase.GrossAmount + purchase.Fee, 2));
+        Assert.Equal(0.00084628m, purchase.Quantity);
+    }
+
+    [Fact]
+    public async Task A_swap_of_crypto_for_crypto_is_valued_in_euros()
+    {
+        // Bit2Me valora el movimiento entero en la moneda de origen, no en euros, pero
+        // cada lado trae su cambio contra el euro. Sin usarlo, la venta entraba con cero
+        // de ingreso y el ejercicio salía con una pérdida del importe entero.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-swap-rates.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var sale = result.Records.Single(record => record.Type == TransactionType.Sell);
+        var purchase = result.Records.Single(record => record.Type == TransactionType.Buy);
+
+        // 12,47227153 ATOM a 2,71572845 €
+        Assert.Equal("ATOM", sale.AssetSymbol);
+        Assert.Equal(33.87m, Math.Round(sale.GrossAmount, 2));
+        Assert.Equal("EUR", sale.Currency.Code);
+
+        // 0,01004612 ETH a 3.339,87 €
+        Assert.Equal("ETH", purchase.AssetSymbol);
+        Assert.Equal(33.55m, Math.Round(purchase.GrossAmount, 2));
+    }
+
+    [Fact]
+    public async Task A_value_that_is_not_in_euros_is_not_taken_for_euros()
+    {
+        // Bit2Me valora el movimiento en «denomination», y no siempre en euros: a veces
+        // viene en la propia moneda del activo. Tomarlo sin mirar la divisa convertía una
+        // cantidad de cripto en un importe, y la cifra que se veía era disparatada.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-denomination.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var record = Assert.Single(result.Records);
+
+        Assert.Equal(1500m, record.Quantity);
+        Assert.Equal(0m, record.GrossAmount);
+        Assert.Equal("EUR", record.Currency.Code);
+    }
+
+    [Fact]
+    public async Task Moving_funds_to_and_from_Earn_is_a_transfer_and_not_a_withdrawal()
+    {
+        // Bit2Me reparte el significado entre dos campos: una retirada hacia Earn llega
+        // como type «withdrawal» y subtype «earn», y no es sacar dinero de la cuenta sino
+        // moverlo a otro producto del mismo usuario. Leyendo solo uno de los dos, estos
+        // movimientos entraban sin clasificar.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-earn.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var result = await Adapter(handler).ReadAsync(Credential, From, To);
+
+        var byId = result.Records.ToDictionary(record => record.NaturalId!);
+
+
+        Assert.Equal(TransactionType.Transfer, byId["we-0001"].Type);
+        Assert.Equal(TransactionType.Transfer, byId["we-0002"].Type);
+
+        // Sin subtipo siguen siendo lo que dicen ser: dinero que entra o sale de verdad.
+        Assert.Equal(TransactionType.Withdrawal, byId["we-0003"].Type);
+        Assert.Equal(TransactionType.Deposit, byId["we-0004"].Type);
+
+        Assert.DoesNotContain(result.Records, record => record.Type == TransactionType.Unknown);
     }
 
     [Fact]

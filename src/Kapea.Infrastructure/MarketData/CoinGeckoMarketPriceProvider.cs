@@ -45,7 +45,46 @@ public sealed class CoinGeckoMarketPriceProvider(
             ["BCH"] = "bitcoin-cash",
             ["UNI"] = "uniswap",
             ["ETC"] = "ethereum-classic",
+
+        // Comprobados uno a uno contra la lista de monedas de CoinGecko: varios símbolos
+        // los comparten monedas distintas, y elegir por parecido pondría el precio de
+        // otra cosa sin que nada fallara.
+        ["TAO"] = "bittensor",
+        ["B2M"] = "bit2me",
+        ["PAXG"] = "pax-gold",
+        ["PEPE"] = "pepe",
+        ["XDC"] = "xdce-crowd-sale",
+
+        // POL es el sucesor de MATIC y comparte símbolo con otras monedas sin relación.
+        ["POL"] = "polygon-ecosystem-token",
+        ["EURC"] = "euro-coin",
+        ["USDG"] = "global-dollar",
+        ["SHIB"] = "shiba-inu",
+        ["TRX"] = "tron",
+        ["NEAR"] = "near",
+        ["OP"] = "optimism",
+        ["ARB"] = "arbitrum",
+        ["INJ"] = "injective-protocol",
+        ["RENDER"] = "render-token",
+        ["USDT"] = "tether",
+        ["USDC"] = "usd-coin",
+        ["DAI"] = "dai",
         };
+
+    /// <summary>Deja el cliente listo para hablar con CoinGecko.</summary>
+    /// <remarks>
+    /// CoinGecko responde 403 a quien no se identifica, y HttpClient no manda agente de
+    /// usuario si nadie se lo pone. Sin esta cabecera la cartera sale entera sin precio
+    /// y el motivo solo aparece en el registro del servidor.
+    /// </remarks>
+    public static void Configure(HttpClient client, Uri baseAddress)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+
+        client.BaseAddress = baseAddress;
+        client.DefaultRequestHeaders.Add("User-Agent", "Kapea/1.0 (cartera personal)");
+        client.DefaultRequestHeaders.Add("Accept", "application/json");
+    }
 
     public async Task<IReadOnlyDictionary<string, MarketPrice>> GetPricesAsync(
         IReadOnlyCollection<string> canonicalSymbols,

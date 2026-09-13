@@ -1,0 +1,23 @@
+@implements IDialogContentComponent<NewPlatformModel>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    <FluentTextField @bind-Value="Content.Name"
+                     Label="@Ui["Common_Name"]"
+                     Placeholder="@Ui["Platforms_CodeExample"]"
+                     Style="width: 100%" />
+
+    <FluentTextField @bind-Value="Content.Code"
+                     Label="@Ui["Platforms_Code"]"
+                     Placeholder="@Ui["Platforms_CodeExample"]"
+                     Required="true"
+                     Style="width: 100%" />
+
+    <FluentLabel Typo="Typography.Body">@Ui["Platforms_CodeHelp"]</FluentLabel>
+
+    <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">@Ui["Platforms_ApiNote"]</FluentMessageBar>
+</FluentStack>
+
+@code {
+    [Parameter]
+    public NewPlatformModel Content { get; set; } = new();
+}

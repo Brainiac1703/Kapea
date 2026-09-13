@@ -1,0 +1,291 @@
+@using System.Globalization
+
+@* Se dibuja en SVG y no con una librería: son líneas, y así el formato de los importes,
+   las fechas y el tema salen del mismo sitio que el resto de la aplicación. *@
+@if (Lines.Count == 0 || _bounds is null)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Charts_Empty"]</FluentMessageBar>
+}
+else
+{
+    <div class="chart">
+        <svg viewBox="@($"0 0 {Width} {Height}")" preserveAspectRatio="none" role="img"
+             aria-label="@Title" @onmouseleave="OnLeave">
+
+            @* Rejilla horizontal con su valor, para poder leer una altura sin contar. *@
+            @foreach (var line in _bounds.GridLines)
+            {
+                <line x1="@Left" y1="@N(Y(line))" x2="@(Width - Right)" y2="@N(Y(line))" class="chart-grid" />
+                @Label(4, Y(line) - 4, Format.Compact(line), "start")
+            }
+
+            @if (Stacked)
+            {
+                @* Apiladas: cada clase se dibuja sobre la anterior, y la altura total es
+                   el patrimonio. Superpuestas se taparían y no se vería el reparto. *@
+                @foreach (var area in Areas())
+                {
+                    <polygon points="@area.Points" fill="@area.Color" fill-opacity="0.75" />
+                }
+            }
+            else
+            {
+                @foreach (var line in Lines)
+                {
+                    @* Cada tramo sin huecos va aparte: unir por encima de un día sin
+                       precio dibujaría una recta que nadie cotizó. *@
+                    @foreach (var segment in Segments(line))
+                    {
+                        <polyline points="@segment" fill="none" stroke="@line.Color"
+                                  stroke-width="2" stroke-dasharray="@(line.Dashed ? "6 4" : null)" />
+                    }
+                }
+            }
+
+            @if (_hover is { } hover)
+            {
+                <line x1="@N(X(hover))" y1="0" x2="@N(X(hover))" y2="@(Height - Bottom)" class="chart-cursor" />
+            }
+
+            @* Una banda invisible por tramo, en las mismas coordenadas del dibujo. El
+               ratón llega en píxeles de pantalla y el dibujo se estira, así que
+               calcular la fecha a partir de la posición señalaría otro día en cuanto
+               cambiara el tamaño de la ventana. *@
+            @foreach (var band in _bounds.Bands(Left, Width - Right))
+            {
+                <rect x="@N(band.X)" y="0" width="@N(band.Width)" height="@(Height - Bottom)"
+                      fill="transparent" @onmouseover="@(() => _hover = band.Date)" />
+            }
+
+            @Label(Left, Height - 4, Moment(_bounds.From), "start")
+            @Label(Width - Right, Height - 4, Moment(_bounds.To), "end")
+        </svg>
+
+        @if (_hover is { } day)
+        {
+            <div class="chart-readout">
+                <span class="chart-readout-date">@Moment(day)</span>
+                @foreach (var line in Lines)
+                {
+                    <span class="chart-readout-line">
+                        <span class="chart-readout-dot" style="background: @line.Color"></span>
+                        @line.Name
+                        <strong>@Reading(line, day)</strong>
+                    </span>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private const int Width = 1000;
+    private const int Height = 320;
+    private const int Left = 56;
+    private const int Right = 8;
+    private const int Bottom = 20;
+
+    /// <summary>Aire por arriba: sin él, la etiqueta del valor más alto se corta.</summary>
+    private const int Top = 18;
+
+    private Bounds? _bounds;
+    private DateOnly? _hover;
+
+    [Parameter]
+    [EditorRequired]
+    public required IReadOnlyList<ChartLine> Lines { get; set; } = [];
+
+    /// <summary>Descripción de la gráfica para quien no la ve.</summary>
+    [Parameter]
+    [EditorRequired]
+    public required string Title { get; set; }
+
+    /// <summary>Cómo se lee un valor: importe en euros por omisión.</summary>
+    [Parameter]
+    public Func<decimal, string>? Formatter { get; set; }
+
+    /// <summary>Apila las series una sobre otra en lugar de superponerlas.</summary>
+    [Parameter]
+    public bool Stacked { get; set; }
+
+    protected override void OnParametersSet() => _bounds = Bounds.Of(Stacked ? Stack(Lines) : Lines);
+
+    /// <summary>
+    /// Las series acumuladas una sobre otra.
+    /// </summary>
+    /// <remarks>
+    /// Los extremos del dibujo se calculan sobre lo apilado: si se tomaran de las series
+    /// sueltas, la pila más alta se saldría por arriba.
+    /// </remarks>
+    private static IReadOnlyList<ChartLine> Stack(IReadOnlyList<ChartLine> lines)
+    {
+        var running = new Dictionary<DateOnly, decimal>();
+        var stacked = new List<ChartLine>();
+
+        foreach (var line in lines)
+        {
+            var points = new List<ChartPoint>();
+
+            foreach (var point in line.Points)
+            {
+                var below = running.GetValueOrDefault(point.Date, 0m);
+                var total = below + (point.Value ?? 0m);
+
+                running[point.Date] = total;
+                points.Add(new ChartPoint(point.Date, point.Value is null ? null : total));
+            }
+
+            stacked.Add(line with { Points = points });
+        }
+
+        return stacked;
+    }
+
+    /// <summary>Cada clase como un área entre su altura acumulada y la de la anterior.</summary>
+    private IEnumerable<(string Points, string Color)> Areas()
+    {
+        var stacked = Stack(Lines);
+
+        for (var index = stacked.Count - 1; index >= 0; index--)
+        {
+            var top = stacked[index].Points.Where(point => point.Value is not null).OrderBy(point => point.Date).ToList();
+
+            if (top.Count < 2)
+            {
+                continue;
+            }
+
+            var points = top
+                .Select(point => string.Create(CultureInfo.InvariantCulture, $"{N(X(point.Date))},{N(Y(point.Value!.Value))}"))
+                .Concat([
+                    string.Create(CultureInfo.InvariantCulture, $"{N(X(top[^1].Date))},{N(Y(0m))}"),
+                    string.Create(CultureInfo.InvariantCulture, $"{N(X(top[0].Date))},{N(Y(0m))}"),
+                ]);
+
+            yield return (string.Join(' ', points), stacked[index].Color);
+        }
+    }
+
+    private string Reading(ChartLine line, DateOnly date) =>
+        line.Points.FirstOrDefault(point => point.Date == date)?.Value is { } value
+            ? (Formatter ?? Format.Euros)(value)
+            : Ui["Charts_NoValue"];
+
+    /// <summary>Tramos continuos de una línea, en coordenadas del dibujo.</summary>
+    private IEnumerable<string> Segments(ChartLine line)
+    {
+        var segment = new List<string>();
+
+        foreach (var point in line.Points.OrderBy(point => point.Date))
+        {
+            if (point.Value is not { } value)
+            {
+                if (segment.Count > 1)
+                {
+                    yield return string.Join(' ', segment);
+                }
+
+                segment.Clear();
+
+                continue;
+            }
+
+            segment.Add(string.Create(CultureInfo.InvariantCulture, $"{X(point.Date)},{Y(value)}"));
+        }
+
+        if (segment.Count > 1)
+        {
+            yield return string.Join(' ', segment);
+        }
+    }
+
+    private double X(DateOnly date)
+    {
+        var span = Math.Max(_bounds!.To.DayNumber - _bounds.From.DayNumber, 1);
+
+        return Left + ((double)(date.DayNumber - _bounds.From.DayNumber) / span * (Width - Left - Right));
+    }
+
+    private double Y(decimal value)
+    {
+        var span = _bounds!.Highest - _bounds.Lowest;
+        var share = span == 0m ? 0.5m : (value - _bounds.Lowest) / span;
+
+        return (Height - Bottom) - ((double)share * (Height - Bottom - Top));
+    }
+
+    private void OnLeave() => _hover = null;
+
+    /// <summary>
+    /// Una etiqueta del eje.
+    /// </summary>
+    /// <remarks>
+    /// Se compone como marcado y no como elemento porque Razor reserva la etiqueta
+    /// «text» para su propia sintaxis dentro de un bloque de código.
+    /// </remarks>
+    private static MarkupString Label(double x, double y, string value, string anchor) =>
+        new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"""<text x="{x}" y="{y}" class="chart-label" text-anchor="{anchor}">{System.Net.WebUtility.HtmlEncode(value)}</text>"""));
+
+    /// <summary>
+    /// Un número para un atributo del dibujo.
+    /// </summary>
+    /// <remarks>
+    /// Con la cultura del usuario los decimales salen con coma y el SVG no los entiende:
+    /// el elemento se dibuja con cero de ancho y deja de responder al ratón sin que nada
+    /// falle.
+    /// </remarks>
+    private static string N(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    private static string Moment(DateOnly date) => date.ToString("d", CultureInfo.CurrentCulture);
+
+    /// <summary>Los extremos de la serie y las alturas de la rejilla.</summary>
+    private sealed record Bounds(DateOnly From, DateOnly To, decimal Lowest, decimal Highest)
+    {
+        internal IReadOnlyList<decimal> GridLines =>
+            [Lowest, Lowest + ((Highest - Lowest) / 2m), Highest];
+
+        internal static Bounds? Of(IReadOnlyList<ChartLine> lines)
+        {
+            var points = lines.SelectMany(line => line.Points).Where(point => point.Value is not null).ToList();
+
+            if (points.Count == 0)
+            {
+                return null;
+            }
+
+            var lowest = points.Min(point => point.Value!.Value);
+            var highest = points.Max(point => point.Value!.Value);
+
+            // Un suelo en cero hace comparable la altura entre gráficas y evita que una
+            // variación del uno por ciento parezca un desplome.
+            return new Bounds(
+                lines.SelectMany(line => line.Points).Min(point => point.Date),
+                lines.SelectMany(line => line.Points).Max(point => point.Date),
+                Math.Min(lowest, 0m),
+                highest);
+        }
+
+        /// <summary>
+        /// Las bandas sensibles al ratón, una por tramo del eje.
+        /// </summary>
+        /// <remarks>
+        /// Se agrupan en como mucho doscientas: una por día dejaría miles de elementos
+        /// en la pantalla para distinguir posiciones que ni siquiera llegan a un píxel.
+        /// </remarks>
+        internal IEnumerable<(double X, double Width, DateOnly Date)> Bands(double left, double right)
+        {
+            var days = To.DayNumber - From.DayNumber + 1;
+            var count = Math.Min(days, 200);
+            var width = (right - left) / count;
+
+            for (var index = 0; index < count; index++)
+            {
+                var day = From.AddDays((int)Math.Round((double)index / count * (days - 1)));
+
+                yield return (left + (index * width), width, day);
+            }
+        }
+    }
+}

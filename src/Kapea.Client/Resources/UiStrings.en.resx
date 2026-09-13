@@ -334,6 +334,9 @@
   <data name="Nav_Portfolio" xml:space="preserve">
     <value>Portfolio</value>
   </data>
+  <data name="Nav_Evolution" xml:space="preserve">
+    <value>Evolution</value>
+  </data>
   <data name="Nav_Results" xml:space="preserve">
     <value>Results</value>
   </data>
@@ -454,6 +457,498 @@
   <data name="Portfolio_Recalculate" xml:space="preserve">
     <value>Recalculate</value>
   </data>
+  <data name="Charts_Empty" xml:space="preserve">
+    <value>No data to plot for this period.</value>
+  </data>
+  <data name="Charts_NoValue" xml:space="preserve">
+    <value>No data</value>
+  </data>
+  <data name="Evolution_Title" xml:space="preserve">
+    <value>Evolution</value>
+  </data>
+  <data name="Nav_Strategies" xml:space="preserve">
+    <value>Systems</value>
+  </data>
+  <data name="Nav_Signals" xml:space="preserve">
+    <value>Signals</value>
+  </data>
+  <data name="Nav_Journal" xml:space="preserve">
+    <value>Journal</value>
+  </data>
+  <data name="Nav_Ideas" xml:space="preserve">
+    <value>Ideas</value>
+  </data>
+  <data name="Ideas_Title" xml:space="preserve">
+    <value>Ideas</value>
+  </data>
+  <data name="Ideas_Heading" xml:space="preserve">
+    <value>Ideas from external sources</value>
+  </data>
+  <data name="Ideas_Intro" xml:space="preserve">
+    <value>What others propose about an asset, with its date and levels. Tracked to the end so you know what it gave.</value>
+  </data>
+  <data name="Ideas_Paste" xml:space="preserve">
+    <value>Paste a publication</value>
+  </data>
+  <data name="Ideas_PasteHelp" xml:space="preserve">
+    <value>Paste the text and Kapea will propose the ideas. The text is not stored: only the ideas and the link.</value>
+  </data>
+  <data name="Ideas_Extract" xml:space="preserve">
+    <value>Extract ideas</value>
+  </data>
+  <data name="Ideas_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Ideas_NewSource" xml:space="preserve">
+    <value>New source</value>
+  </data>
+  <data name="Ideas_SourceName" xml:space="preserve">
+    <value>Source name</value>
+  </data>
+  <data name="Ideas_Channel" xml:space="preserve">
+    <value>Channel, if it can be queried</value>
+  </data>
+  <data name="Ideas_Url" xml:space="preserve">
+    <value>Link to the publication</value>
+  </data>
+  <data name="Ideas_Add" xml:space="preserve">
+    <value>Save idea</value>
+  </data>
+  <data name="Ideas_Empty" xml:space="preserve">
+    <value>No ideas recorded yet.</value>
+  </data>
+  <data name="Ideas_Outcome" xml:space="preserve">
+    <value>Outcome</value>
+  </data>
+  <data name="Ideas_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Ideas_Reached" xml:space="preserve">
+    <value>Reached target</value>
+  </data>
+  <data name="Ideas_Stopped" xml:space="preserve">
+    <value>Hit exit level</value>
+  </data>
+  <data name="Ideas_Expired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Ideas_Track" xml:space="preserve">
+    <value>Update outcomes</value>
+  </data>
+  <data name="Ideas_Balance" xml:space="preserve">
+    <value>Balance by source</value>
+  </data>
+  <data name="Ideas_Return" xml:space="preserve">
+    <value>Return net of fees</value>
+  </data>
+  <data name="Ideas_NoReturn" xml:space="preserve">
+    <value>No resolved ideas yet</value>
+  </data>
+  <data name="Ideas_NotUnderstood" xml:space="preserve">
+    <value>I could not extract this</value>
+  </data>
+  <data name="Ideas_Unavailable" xml:space="preserve">
+    <value>No extraction service configured. Ideas are recorded by hand.</value>
+  </data>
+  <data name="Ideas_NoSource" xml:space="preserve">
+    <value>Register a source before recording ideas.</value>
+  </data>
+  <data name="Ideas_Saved" xml:space="preserve">
+    <value>Idea saved.</value>
+  </data>
+  <data name="Ideas_Tracked" xml:space="preserve">
+    <value>Outcomes updated.</value>
+  </data>
+  <data name="Journal_Title" xml:space="preserve">
+    <value>Journal</value>
+  </data>
+  <data name="Journal_Heading" xml:space="preserve">
+    <value>Decision journal</value>
+  </data>
+  <data name="Journal_Intro" xml:space="preserve">
+    <value>Why you did what you did. Six months from now this is worth more than the signal.</value>
+  </data>
+  <data name="Journal_Empty" xml:space="preserve">
+    <value>No notes yet.</value>
+  </data>
+  <data name="Journal_Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Journal_About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Journal_Outcome" xml:space="preserve">
+    <value>What happened</value>
+  </data>
+  <data name="Journal_Written" xml:space="preserve">
+    <value>Written</value>
+  </data>
+  <data name="Journal_Write" xml:space="preserve">
+    <value>Write a note</value>
+  </data>
+  <data name="Journal_Saved" xml:space="preserve">
+    <value>Note saved.</value>
+  </data>
+  <data name="Journal_Placeholder" xml:space="preserve">
+    <value>Why you did it, or why you did not.</value>
+  </data>
+  <data name="Strategies_Title" xml:space="preserve">
+    <value>Systems</value>
+  </data>
+  <data name="Strategies_Heading" xml:space="preserve">
+    <value>Trading systems</value>
+  </data>
+  <data name="Strategies_Intro" xml:space="preserve">
+    <value>Your rules written down so Kapea evaluates them the same way every time. Kapea does not recommend buying or selling: it applies what you wrote.</value>
+  </data>
+  <data name="Strategies_New" xml:space="preserve">
+    <value>New system</value>
+  </data>
+  <data name="Strategies_Describe" xml:space="preserve">
+    <value>Describe in words</value>
+  </data>
+  <data name="Strategies_DescribeHelp" xml:space="preserve">
+    <value>Paste the description of the method and Kapea will propose the rules. Review them before saving: whatever it cannot translate it will tell you instead of making it up.</value>
+  </data>
+  <data name="Strategies_Translate" xml:space="preserve">
+    <value>Propose rules</value>
+  </data>
+  <data name="Strategies_NotUnderstood" xml:space="preserve">
+    <value>I could not translate this</value>
+  </data>
+  <data name="Strategies_Confidence" xml:space="preserve">
+    <value>Translator confidence: {0}</value>
+  </data>
+  <data name="Strategies_Unavailable" xml:space="preserve">
+    <value>No translation service configured. Rules are written by hand.</value>
+  </data>
+  <data name="Strategies_Revise" xml:space="preserve">
+    <value>Correct</value>
+  </data>
+  <data name="Strategies_Simulate" xml:space="preserve">
+    <value>Simulate</value>
+  </data>
+  <data name="Strategies_Entry" xml:space="preserve">
+    <value>Entry</value>
+  </data>
+  <data name="Strategies_Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Strategies_Target" xml:space="preserve">
+    <value>Target</value>
+  </data>
+  <data name="Strategies_Stop" xml:space="preserve">
+    <value>Exit level</value>
+  </data>
+  <data name="Strategies_Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Strategies_Versions" xml:space="preserve">
+    <value>Versions</value>
+  </data>
+  <data name="Strategies_RequiredDays" xml:space="preserve">
+    <value>Needs {0} days of history</value>
+  </data>
+  <data name="Strategies_Empty" xml:space="preserve">
+    <value>No systems yet. Create one to start.</value>
+  </data>
+  <data name="Strategies_Junction" xml:space="preserve">
+    <value>Holds when</value>
+  </data>
+  <data name="Strategies_AddCondition" xml:space="preserve">
+    <value>Add condition</value>
+  </data>
+  <data name="Strategies_RemoveCondition" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Strategies_Window" xml:space="preserve">
+    <value>Days</value>
+  </data>
+  <data name="Strategies_Number" xml:space="preserve">
+    <value>Number</value>
+  </data>
+  <data name="Strategies_Factor" xml:space="preserve">
+    <value>Factor</value>
+  </data>
+  <data name="Strategies_NoLevel" xml:space="preserve">
+    <value>Not declared</value>
+  </data>
+  <data name="Strategies_Saved" xml:space="preserve">
+    <value>System saved.</value>
+  </data>
+  <data name="Signals_Title" xml:space="preserve">
+    <value>Signals</value>
+  </data>
+  <data name="Signals_Heading" xml:space="preserve">
+    <value>Signals from your systems</value>
+  </data>
+  <data name="Signals_Intro" xml:space="preserve">
+    <value>What your rules say, with the condition that fired. Deciding is still yours.</value>
+  </data>
+  <data name="Signals_Run" xml:space="preserve">
+    <value>Compute signals</value>
+  </data>
+  <data name="Signals_Empty" xml:space="preserve">
+    <value>No signals in this period.</value>
+  </data>
+  <data name="Signals_Direction" xml:space="preserve">
+    <value>Direction</value>
+  </data>
+  <data name="Signals_Entry" xml:space="preserve">
+    <value>Entry</value>
+  </data>
+  <data name="Signals_Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Signals_Reason" xml:space="preserve">
+    <value>Why</value>
+  </data>
+  <data name="Signals_Age" xml:space="preserve">
+    <value>{0} days ago</value>
+  </data>
+  <data name="Signals_Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Signals_Ran" xml:space="preserve">
+    <value>{0} signals computed, {1} new.</value>
+  </data>
+  <data name="Backtest_Heading" xml:space="preserve">
+    <value>Simulation</value>
+  </data>
+  <data name="Backtest_Intro" xml:space="preserve">
+    <value>What would have happened applying the system to this asset, with your fees and taxes included.</value>
+  </data>
+  <data name="Backtest_Capital" xml:space="preserve">
+    <value>Capital per trade</value>
+  </data>
+  <data name="Backtest_Asset" xml:space="preserve">
+    <value>Asset</value>
+  </data>
+  <data name="Backtest_Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="Backtest_AfterTax" xml:space="preserve">
+    <value>After tax</value>
+  </data>
+  <data name="Backtest_Fees" xml:space="preserve">
+    <value>Fees</value>
+  </data>
+  <data name="Backtest_Tax" xml:space="preserve">
+    <value>Tax</value>
+  </data>
+  <data name="Backtest_BuyAndHold" xml:space="preserve">
+    <value>Buy and hold</value>
+  </data>
+  <data name="Backtest_Trades" xml:space="preserve">
+    <value>Trades</value>
+  </data>
+  <data name="Backtest_Winners" xml:space="preserve">
+    <value>Winners</value>
+  </data>
+  <data name="Backtest_Drawdown" xml:space="preserve">
+    <value>Largest fall</value>
+  </data>
+  <data name="Backtest_Beats" xml:space="preserve">
+    <value>The system beats doing nothing.</value>
+  </data>
+  <data name="Backtest_Loses" xml:space="preserve">
+    <value>Doing nothing would have been better.</value>
+  </data>
+  <data name="Backtest_FeeWarning" xml:space="preserve">
+    <value>At {0} per trade, every buy and sell takes that share before earning anything.</value>
+  </data>
+  <data name="Backtest_Detail" xml:space="preserve">
+    <value>Detail</value>
+  </data>
+  <data name="Backtest_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Backtest_Run" xml:space="preserve">
+    <value>Simulate</value>
+  </data>
+  <data name="Performance_Heading" xml:space="preserve">
+    <value>Performance</value>
+  </data>
+  <data name="Performance_Intro" xml:space="preserve">
+    <value>How you are doing, measured the way a fund is measured, against putting the same money into your largest position.</value>
+  </data>
+  <data name="Performance_TimeWeighted" xml:space="preserve">
+    <value>Return on decisions</value>
+  </data>
+  <data name="Performance_TimeWeighted_Help" xml:space="preserve">
+    <value>Neutralises when you put money in. This is the one that compares your management with another.</value>
+  </data>
+  <data name="Performance_MoneyWeighted" xml:space="preserve">
+    <value>Return on your money</value>
+  </data>
+  <data name="Performance_MoneyWeighted_Help" xml:space="preserve">
+    <value>Takes into account when each euro went in. This is what you actually took home.</value>
+  </data>
+  <data name="Performance_Volatility" xml:space="preserve">
+    <value>Volatility</value>
+  </data>
+  <data name="Performance_Volatility_Help" xml:space="preserve">
+    <value>How much your portfolio swings in a year. Higher means bigger scares.</value>
+  </data>
+  <data name="Performance_Drawdown" xml:space="preserve">
+    <value>Largest fall</value>
+  </data>
+  <data name="Performance_Drawdown_Help" xml:space="preserve">
+    <value>The most you have dropped from an earlier peak.</value>
+  </data>
+  <data name="Performance_Recovered" xml:space="preserve">
+    <value>Recovered in {0} days</value>
+  </data>
+  <data name="Performance_NotRecovered" xml:space="preserve">
+    <value>Not recovered yet</value>
+  </data>
+  <data name="Performance_Benchmark" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="Performance_BenchmarkReturn" xml:space="preserve">
+    <value>Reference return</value>
+  </data>
+  <data name="Performance_BenchmarkHelp" xml:space="preserve">
+    <value>What putting the same money, on the same dates, into {0} would have returned.</value>
+  </data>
+  <data name="Performance_Beating" xml:space="preserve">
+    <value>Your management is ahead of the reference.</value>
+  </data>
+  <data name="Performance_Losing" xml:space="preserve">
+    <value>The reference is ahead of your management.</value>
+  </data>
+  <data name="Performance_Incomplete" xml:space="preserve">
+    <value>Some days in the period have no price, so these figures are computed on incomplete data.</value>
+  </data>
+  <data name="Performance_NoBenchmark" xml:space="preserve">
+    <value>There is no priced position to compare against.</value>
+  </data>
+  <data name="Evolution_Heading" xml:space="preserve">
+    <value>Net worth over time</value>
+  </data>
+  <data name="Evolution_Intro" xml:space="preserve">
+    <value>What your portfolio was worth each day. Days without a price are left blank instead of filled in.</value>
+  </data>
+  <data name="Evolution_Wealth" xml:space="preserve">
+    <value>Net worth</value>
+  </data>
+  <data name="Evolution_Contributed" xml:space="preserve">
+    <value>Contributed</value>
+  </data>
+  <data name="Evolution_ByClass" xml:space="preserve">
+    <value>Split by asset class</value>
+  </data>
+  <data name="Evolution_Incomplete" xml:space="preserve">
+    <value>{0} days are missing the price of some asset. Those days fall short.</value>
+  </data>
+  <data name="Evolution_Period" xml:space="preserve">
+    <value>Period</value>
+  </data>
+  <data name="Evolution_Period_Month" xml:space="preserve">
+    <value>1 month</value>
+  </data>
+  <data name="Evolution_Period_Quarter" xml:space="preserve">
+    <value>3 months</value>
+  </data>
+  <data name="Evolution_Period_Year" xml:space="preserve">
+    <value>1 year</value>
+  </data>
+  <data name="Evolution_Period_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Asset_Title" xml:space="preserve">
+    <value>Asset evolution</value>
+  </data>
+  <data name="Asset_Price" xml:space="preserve">
+    <value>Price</value>
+  </data>
+  <data name="Asset_Average" xml:space="preserve">
+    <value>Moving average</value>
+  </data>
+  <data name="Asset_Exponential" xml:space="preserve">
+    <value>Exponential average</value>
+  </data>
+  <data name="Asset_Strength" xml:space="preserve">
+    <value>Relative strength</value>
+  </data>
+  <data name="Asset_Window" xml:space="preserve">
+    <value>Window</value>
+  </data>
+  <data name="Asset_Chart" xml:space="preserve">
+    <value>See evolution</value>
+  </data>
+  <data name="Portfolio_Wealth" xml:space="preserve">
+    <value>Net worth</value>
+  </data>
+  <data name="Risk_Concentration" xml:space="preserve">
+    <value>Your {0} largest positions are {1} of the portfolio.</value>
+  </data>
+  <data name="Risk_Weights" xml:space="preserve">
+    <value>Weight by position</value>
+  </data>
+  <data name="Risk_OverCap" xml:space="preserve">
+    <value>Above the position cap</value>
+  </data>
+  <data name="Portfolio_Accumulated" xml:space="preserve">
+    <value>Accumulated result</value>
+  </data>
+  <data name="Portfolio_Realized" xml:space="preserve">
+    <value>Realized result</value>
+  </data>
+  <data name="Portfolio_Weight" xml:space="preserve">
+    <value>Weight</value>
+  </data>
+  <data name="Portfolio_Fees" xml:space="preserve">
+    <value>Fees</value>
+  </data>
+  <data name="Portfolio_Cash" xml:space="preserve">
+    <value>Cash</value>
+  </data>
+  <data name="Portfolio_CashNote" xml:space="preserve">
+    <value>Cash in other currencies is converted at the rate of the day.</value>
+  </data>
+  <data name="Portfolio_CashEmpty" xml:space="preserve">
+    <value>No cash recorded in any account.</value>
+  </data>
+  <data name="Portfolio_Account" xml:space="preserve">
+    <value>Account</value>
+  </data>
+  <data name="Portfolio_Currency" xml:space="preserve">
+    <value>Currency</value>
+  </data>
+  <data name="Portfolio_MissingPrices" xml:space="preserve">
+    <value>Some assets have no price, so the value and the net worth fall short.</value>
+  </data>
+  <data name="Portfolio_MissingCash" xml:space="preserve">
+    <value>Cash is unresolved or a currency has no rate, so the net worth falls short.</value>
+  </data>
+  <data name="Portfolio_PriceAsOf" xml:space="preserve">
+    <value>Price from</value>
+  </data>
+  <data name="Portfolio_UpdatedAt" xml:space="preserve">
+    <value>Figures from</value>
+  </data>
+  <data name="Portfolio_Refresh" xml:space="preserve">
+    <value>Refresh prices</value>
+  </data>
+  <data name="Portfolio_Income" xml:space="preserve">
+    <value>Income collected</value>
+  </data>
+  <data name="Portfolio_Gross" xml:space="preserve">
+    <value>Gross</value>
+  </data>
+  <data name="Portfolio_Withholding" xml:space="preserve">
+    <value>Withholding</value>
+  </data>
+  <data name="Portfolio_Net" xml:space="preserve">
+    <value>Net</value>
+  </data>
+  <data name="Portfolio_ClassEquity" xml:space="preserve">
+    <value>Equities</value>
+  </data>
+  <data name="Portfolio_ClassCrypto" xml:space="preserve">
+    <value>Crypto</value>
+  </data>
   <data name="Results_Title" xml:space="preserve">
     <value>Results</value>
   </data>
@@ -489,5 +984,395 @@
   </data>
   <data name="Results_Incomplete" xml:space="preserve">
     <value>These figures are incomplete: there are unclassified movements.</value>
+  </data>
+  <data name="SignIn_Title" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="SignIn_Heading" xml:space="preserve">
+    <value>Sign in to Kapea</value>
+  </data>
+  <data name="SignIn_Intro" xml:space="preserve">
+    <value>Kapea stores no passwords. You sign in with an account you already have.</value>
+  </data>
+  <data name="SignIn_With" xml:space="preserve">
+    <value>Sign in with {0}</value>
+  </data>
+  <data name="SignIn_Warning" xml:space="preserve">
+    <value>Access depends on that account. Once inside, link a second one so losing it does not lock you out.</value>
+  </data>
+  <data name="SignIn_Failed" xml:space="preserve">
+    <value>The sign-in could not be completed.</value>
+  </data>
+  <data name="SignIn_Development" xml:space="preserve">
+    <value>Development sign-in is on. It only exists in the local environment.</value>
+  </data>
+  <data name="Session_SignOut" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="Session_Expired" xml:space="preserve">
+    <value>Your session has expired. Sign in again.</value>
+  </data>
+  <data name="Nav_Identities" xml:space="preserve">
+    <value>Your account</value>
+  </data>
+  <data name="Identities_Title" xml:space="preserve">
+    <value>Your account</value>
+  </data>
+  <data name="Identities_Heading" xml:space="preserve">
+    <value>How you sign in to Kapea</value>
+  </data>
+  <data name="Identities_Intro" xml:space="preserve">
+    <value>The providers linked to your account. Any of them lets you in.</value>
+  </data>
+  <data name="Identities_Warning" xml:space="preserve">
+    <value>With a single provider, losing that account means losing access to your history. Link another one.</value>
+  </data>
+  <data name="Identities_Provider" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="Identities_LinkedAt" xml:space="preserve">
+    <value>Linked</value>
+  </data>
+  <data name="Identities_LastSignIn" xml:space="preserve">
+    <value>Last sign-in</value>
+  </data>
+  <data name="Identities_Link" xml:space="preserve">
+    <value>Link {0}</value>
+  </data>
+  <data name="Identities_Unlink" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Identities_Unlink_Title" xml:space="preserve">
+    <value>Remove the provider</value>
+  </data>
+  <data name="Identities_Unlink_Message" xml:space="preserve">
+    <value>You will no longer be able to sign in with that provider. Your data is untouched.</value>
+  </data>
+  <data name="Identities_AppleSoon" xml:space="preserve">
+    <value>Apple will come later: it requires a paid developer account.</value>
+  </data>
+  <data name="Nav_Platforms" xml:space="preserve">
+    <value>Platforms</value>
+  </data>
+  <data name="Platforms_Title" xml:space="preserve">
+    <value>Platforms</value>
+  </data>
+  <data name="Platforms_Heading" xml:space="preserve">
+    <value>Platforms</value>
+  </data>
+  <data name="Platforms_Intro" xml:space="preserve">
+    <value>The brokers and exchanges you import from. Three come configured; you can add any that exports a file.</value>
+  </data>
+  <data name="Platforms_New" xml:space="preserve">
+    <value>New platform</value>
+  </data>
+  <data name="Platforms_Empty" xml:space="preserve">
+    <value>There are no platforms. That should not happen: the three built-in ones are added at start-up.</value>
+  </data>
+  <data name="Platforms_Code" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Platforms_CodeHelp" xml:space="preserve">
+    <value>Letters and digits only, no spaces or accents. It is stored with every imported movement, so it cannot be changed later.</value>
+  </data>
+  <data name="Platforms_ImportKind" xml:space="preserve">
+    <value>How movements arrive</value>
+  </data>
+  <data name="Platforms_ImportKind_File" xml:space="preserve">
+    <value>By file you upload</value>
+  </data>
+  <data name="Platforms_ImportKind_Api" xml:space="preserve">
+    <value>Through its API</value>
+  </data>
+  <data name="Platforms_ApiNote" xml:space="preserve">
+    <value>You can only add file platforms. An API one also needs its own adapter, which is code.</value>
+  </data>
+  <data name="Platforms_BuiltIn" xml:space="preserve">
+    <value>Built-in</value>
+  </data>
+  <data name="Platforms_Added" xml:space="preserve">
+    <value>Added</value>
+  </data>
+  <data name="Platforms_NoProfileYet" xml:space="preserve">
+    <value>No profile can read its files yet. You will be able to create one once the profiles screen exists.</value>
+  </data>
+  <data name="Platforms_DeleteConfirm_Title" xml:space="preserve">
+    <value>Retire platform</value>
+  </data>
+  <data name="Platforms_DeleteConfirm_Message" xml:space="preserve">
+    <value>If it has accounts, it cannot be retired until you delete them.</value>
+  </data>
+  <data name="Common_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Platforms_CodeExample" xml:space="preserve">
+    <value>DeGiro</value>
+  </data>
+  <data name="Nav_Profiles" xml:space="preserve">
+    <value>Profiles</value>
+  </data>
+  <data name="Profiles_Title" xml:space="preserve">
+    <value>Import profiles</value>
+  </data>
+  <data name="Profiles_Heading" xml:space="preserve">
+    <value>Import profiles</value>
+  </data>
+  <data name="Profiles_Intro" xml:space="preserve">
+    <value>The recipe for reading each file format: which column is the date, how numbers are written, and what each broker concept means.</value>
+  </data>
+  <data name="Profiles_Empty" xml:space="preserve">
+    <value>There are no profiles. The three XTB ones are added automatically at start-up.</value>
+  </data>
+  <data name="Profiles_New" xml:space="preserve">
+    <value>New profile</value>
+  </data>
+  <data name="Profiles_Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Profiles_Versions" xml:space="preserve">
+    <value>Versions</value>
+  </data>
+  <data name="Profiles_CurrentVersion" xml:space="preserve">
+    <value>Version in use</value>
+  </data>
+  <data name="Profiles_Edit" xml:space="preserve">
+    <value>Correct</value>
+  </data>
+  <data name="Profiles_EditTitle" xml:space="preserve">
+    <value>Correct the profile</value>
+  </data>
+  <data name="Profiles_EditNote" xml:space="preserve">
+    <value>Saving creates a new version. The previous one is kept, and movements already imported still point to theirs.</value>
+  </data>
+  <data name="Profiles_Save" xml:space="preserve">
+    <value>Save as a new version</value>
+  </data>
+  <data name="Profiles_Headers" xml:space="preserve">
+    <value>Headers that identify it</value>
+  </data>
+  <data name="Profiles_HeadersHelp" xml:space="preserve">
+    <value>Separated by semicolons. The file may bring more columns; these just need to be present.</value>
+  </data>
+  <data name="Profiles_Delimiter" xml:space="preserve">
+    <value>Column separator</value>
+  </data>
+  <data name="Profiles_DelimiterHelp" xml:space="preserve">
+    <value>Write \t for a tab.</value>
+  </data>
+  <data name="Profiles_Decimal" xml:space="preserve">
+    <value>How numbers are written</value>
+  </data>
+  <data name="Profiles_Decimal_European" xml:space="preserve">
+    <value>European: 1.234,56</value>
+  </data>
+  <data name="Profiles_Decimal_Invariant" xml:space="preserve">
+    <value>Decimal point: 1234.56</value>
+  </data>
+  <data name="Profiles_DateFormats" xml:space="preserve">
+    <value>Date formats</value>
+  </data>
+  <data name="Profiles_DateFormatsHelp" xml:space="preserve">
+    <value>Separated by semicolons, tried in order. For example dd/MM/yyyy;dd.MM.yyyy HH:mm:ss</value>
+  </data>
+  <data name="Profiles_TimeZone" xml:space="preserve">
+    <value>Statement time zone</value>
+  </data>
+  <data name="Profiles_FixedCurrency" xml:space="preserve">
+    <value>Currency, if the file does not bring it</value>
+  </data>
+  <data name="Profiles_RowShape" xml:space="preserve">
+    <value>What each row is</value>
+  </data>
+  <data name="Profiles_RowShape_SingleMovement" xml:space="preserve">
+    <value>A single entry</value>
+  </data>
+  <data name="Profiles_RowShape_OpenPosition" xml:space="preserve">
+    <value>An open position: the purchase only</value>
+  </data>
+  <data name="Profiles_RowShape_OpenAndClosePosition" xml:space="preserve">
+    <value>A closed position: purchase and sale</value>
+  </data>
+  <data name="Profiles_AmountSource" xml:space="preserve">
+    <value>Where the amount comes from</value>
+  </data>
+  <data name="Profiles_AmountSource_Column" xml:space="preserve">
+    <value>From its column</value>
+  </data>
+  <data name="Profiles_AmountSource_QuantityTimesPrice" xml:space="preserve">
+    <value>By multiplying quantity by price</value>
+  </data>
+  <data name="Profiles_AmountPositive" xml:space="preserve">
+    <value>Always store the amount as positive</value>
+  </data>
+  <data name="Profiles_AmountNetOfFee" xml:space="preserve">
+    <value>The amount already has the fee deducted</value>
+  </data>
+  <data name="Profiles_AmountPositiveHelp" xml:space="preserve">
+    <value>The direction of money is carried by the movement type, so keeping the sign as well would count it twice.</value>
+  </data>
+  <data name="Profiles_AssetClass" xml:space="preserve">
+    <value>Asset class, if the whole file is the same</value>
+  </data>
+  <data name="Profiles_Columns" xml:space="preserve">
+    <value>Which column feeds each field</value>
+  </data>
+  <data name="Profiles_ColumnsHelp" xml:space="preserve">
+    <value>Leave blank whatever the file does not bring.</value>
+  </data>
+  <data name="Profiles_Concepts" xml:space="preserve">
+    <value>What each concept means</value>
+  </data>
+  <data name="Profiles_ConceptsHelp" xml:space="preserve">
+    <value>One line per concept: the broker's text, an equals sign, and the type. Anything missing arrives unclassified and shows up in Review.</value>
+  </data>
+  <data name="Profiles_NonFinancial" xml:space="preserve">
+    <value>Concepts with no financial effect</value>
+  </data>
+  <data name="Profiles_NonFinancialHelp" xml:space="preserve">
+    <value>Separated by semicolons. They are counted and discarded, not rejected.</value>
+  </data>
+  <data name="Profiles_DeleteConfirm_Title" xml:space="preserve">
+    <value>Delete profile</value>
+  </data>
+  <data name="Profiles_DeleteConfirm_Message" xml:space="preserve">
+    <value>Movements imported with it do not change, but they will no longer be able to explain the rules they were read with.</value>
+  </data>
+  <data name="Profiles_BuiltInNote" xml:space="preserve">
+    <value>It is built in. You can correct it; you cannot delete it, because it would be recreated at the next start-up.</value>
+  </data>
+  <data name="Import_Sample" xml:space="preserve">
+    <value>First rows, as interpreted</value>
+  </data>
+  <data name="Import_SampleHelp" xml:space="preserve">
+    <value>Check that the date, type and amount are what you expect. A wrong mapping produces plausible figures, and this is where you see it.</value>
+  </data>
+  <data name="Import_ReadWith" xml:space="preserve">
+    <value>Read with profile</value>
+  </data>
+  <data name="Import_Outcome" xml:space="preserve">
+    <value>Will enter</value>
+  </data>
+  <data name="Import_Outcome_Importable" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Import_Outcome_Duplicate" xml:space="preserve">
+    <value>Already there</value>
+  </data>
+  <data name="Common_Row" xml:space="preserve">
+    <value>Row</value>
+  </data>
+  <data name="Common_Fee" xml:space="preserve">
+    <value>Fee</value>
+  </data>
+  <data name="Mapping_NoColumn" xml:space="preserve">
+    <value>— not in the file —</value>
+  </data>
+  <data name="Mapping_Unknown" xml:space="preserve">
+    <value>No profile recognises this file</value>
+  </data>
+  <data name="Mapping_UnknownHelp" xml:space="preserve">
+    <value>Kapea does not know how to read this format yet. Create a profile saying which column is which, and from then on it will import it on its own.</value>
+  </data>
+  <data name="Mapping_Create" xml:space="preserve">
+    <value>Create the profile</value>
+  </data>
+  <data name="Mapping_Propose" xml:space="preserve">
+    <value>Propose the mapping</value>
+  </data>
+  <data name="Mapping_WhatIsSent" xml:space="preserve">
+    <value>What is sent when asking for the proposal</value>
+  </data>
+  <data name="Mapping_WhatIsSentHelp" xml:space="preserve">
+    <value>Only the headers and these rows. The rest of the file never leaves your server. The proposal says which column is which; Kapea calculates the amounts.</value>
+  </data>
+  <data name="Mapping_Proposed" xml:space="preserve">
+    <value>Proposal applied. Review it before saving.</value>
+  </data>
+  <data name="Mapping_NeedsReview" xml:space="preserve">
+    <value>The proposal is not conclusive. Check these points:</value>
+  </data>
+  <data name="Mapping_NoService" xml:space="preserve">
+    <value>No proposal service is configured. Map it by hand.</value>
+  </data>
+  <data name="Form_Missing" xml:space="preserve">
+    <value>Missing details: {0}</value>
+  </data>
+  <data name="Review_Reinterpret" xml:space="preserve">
+    <value>Re-read with current rules</value>
+  </data>
+  <data name="Review_ReinterpretHelp" xml:space="preserve">
+    <value>Re-interprets unclassified movements using what Kapea knows today. It asks the platform for nothing and changes no figures.</value>
+  </data>
+  <data name="Review_Reinterpreted" xml:space="preserve">
+    <value>{0} movements classified. {1} are still unrecognised and {2} cannot be re-read.</value>
+  </data>
+  <data name="Review_ReinterpretedNone" xml:space="preserve">
+    <value>None changed: Kapea does not know what they are either.</value>
+  </data>
+  <data name="Credentials_SyncNow" xml:space="preserve">
+    <value>Synchronise now</value>
+  </data>
+  <data name="Credentials_SyncAll" xml:space="preserve">
+    <value>Re-read full history</value>
+  </data>
+  <data name="Credentials_SyncAllHelp" xml:space="preserve">
+    <value>Re-reading the history asks for every movement again from the start. The ones already stored are discarded as duplicates.</value>
+  </data>
+  <data name="Credentials_SyncHelp" xml:space="preserve">
+    <value>Automatic synchronisation runs every few hours. This starts it now, useful right after adding a credential.</value>
+  </data>
+  <data name="Credentials_Synced" xml:space="preserve">
+    <value>{0} new movements from {1} accounts.</value>
+  </data>
+  <data name="Credentials_SyncedNothing" xml:space="preserve">
+    <value>No new movements.</value>
+  </data>
+  <data name="Nav_Transactions" xml:space="preserve">
+    <value>Movements</value>
+  </data>
+  <data name="Transactions_Title" xml:space="preserve">
+    <value>Movements</value>
+  </data>
+  <data name="Transactions_Heading" xml:space="preserve">
+    <value>Movements</value>
+  </data>
+  <data name="Transactions_Intro" xml:space="preserve">
+    <value>Everything that came in, from wherever. Each one keeps what read it and the original row.</value>
+  </data>
+  <data name="Transactions_Empty" xml:space="preserve">
+    <value>None match what you are looking for.</value>
+  </data>
+  <data name="Transactions_Search" xml:space="preserve">
+    <value>Search the original content</value>
+  </data>
+  <data name="Transactions_AllAccounts" xml:space="preserve">
+    <value>All accounts</value>
+  </data>
+  <data name="Transactions_AllTypes" xml:space="preserve">
+    <value>All types</value>
+  </data>
+  <data name="Transactions_AllYears" xml:space="preserve">
+    <value>All years</value>
+  </data>
+  <data name="Transactions_Asset" xml:space="preserve">
+    <value>Asset</value>
+  </data>
+  <data name="Transactions_Count" xml:space="preserve">
+    <value>{0} movements</value>
+  </data>
+  <data name="Transactions_Page" xml:space="preserve">
+    <value>Page {0} of {1}</value>
+  </data>
+  <data name="Transactions_Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Transactions_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Transactions_ReadWith" xml:space="preserve">
+    <value>Read with</value>
+  </data>
+  <data name="Transactions_Unvalued" xml:space="preserve">
+    <value>Not valued</value>
   </data>
 </root>

@@ -32,6 +32,42 @@ public static class Format
     public static string Money(decimal amount, string currency) =>
         string.Create(CultureInfo.CurrentCulture, $"{amount:N2} {currency}");
 
+    /// <summary>
+    /// Importe corto para los ejes de una gráfica.
+    /// </summary>
+    /// <remarks>
+    /// Con todos sus dígitos, tres etiquetas se solapan y el eje deja de leerse. Aquí el
+    /// redondeo no falsea nada: el valor exacto está en la lectura bajo el cursor.
+    /// </remarks>
+    public static string Compact(decimal amount) => Math.Abs(amount) switch
+    {
+        >= 1_000_000m => (amount / 1_000_000m).ToString("0.#M", CultureInfo.CurrentCulture),
+        >= 1_000m => (amount / 1_000m).ToString("0.#k", CultureInfo.CurrentCulture),
+        _ => amount.ToString("0.##", CultureInfo.CurrentCulture),
+    };
+
+    /// <summary>Peso sobre el total. Ausente cuando no se puede calcular, nunca cero.</summary>
+    public static string Percent(decimal? weight, string whenMissing) =>
+        weight is { } value ? value.ToString("P1", CultureInfo.CurrentCulture) : whenMissing;
+
+    /// <summary>
+    /// Una rentabilidad, con su signo delante.
+    /// </summary>
+    /// <remarks>
+    /// El signo explícito evita tener que fijarse en el color para saber si se ha ganado
+    /// o perdido, que es justo lo que no funciona para quien no distingue bien los
+    /// colores.
+    /// </remarks>
+    public static string Rate(decimal? rate, string whenMissing) =>
+        rate is { } value ? value.ToString("+0.##%;-0.##%;0%", CultureInfo.CurrentCulture) : whenMissing;
+
+    /// <summary>Un día, en el formato corto del idioma activo.</summary>
+    public static string Day(DateOnly date) => date.ToString("d", CultureInfo.CurrentCulture);
+
+    /// <summary>Instante en la zona de quien mira, con minutos y sin segundos.</summary>
+    public static string Moment(DateTimeOffset instant) =>
+        instant.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+
     /// <summary>Clase CSS del signo. El color acompaña al número, nunca lo sustituye.</summary>
     public static string Sign(decimal? amount) => amount switch
     {

@@ -4,7 +4,7 @@ using Kapea.Sync;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddKapeaInfrastructure(builder.Configuration);
+builder.Services.AddKapeaInfrastructure(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.Configure<SynchronizationOptions>(
     builder.Configuration.GetSection(SynchronizationOptions.SectionName));
 

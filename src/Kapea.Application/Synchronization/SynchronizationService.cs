@@ -21,12 +21,14 @@ public enum SynchronizationOutcome
     Failed = 4,
 }
 
+/// <param name="Owner">De quién es la cuenta. Hace falta para rehacer su cartera después.</param>
 public sealed record AccountSynchronizationResult(
     Guid AccountId,
-    Platform Platform,
+    PlatformCode Platform,
     SynchronizationOutcome Outcome,
     int ImportedRecords,
-    string? Detail);
+    string? Detail,
+    Domain.ValueObjects.UserId Owner = default);
 
 public sealed record SynchronizationReport(IReadOnlyList<AccountSynchronizationResult> Results)
 {
@@ -50,6 +52,8 @@ public sealed class SynchronizationService(
     IImportAdapterRegistry adapters,
     ImportPipeline pipeline,
     BrokerCredentialService credentials,
+    Portfolio.InternalTransferService transfers,
+    Portfolio.PortfolioCalculationService calculation,
     IAccountSyncLock accountLock,
     ICurrentUserScope currentUserScope,
     TimeProvider timeProvider,
@@ -64,9 +68,26 @@ public sealed class SynchronizationService(
     /// </summary>
     public static readonly DateTimeOffset EarliestHistory = new(2010, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    public async Task<SynchronizationReport> RunAsync(CancellationToken cancellationToken = default)
+    /// <param name="owner">
+    /// Limita la sincronización a las cuentas de una persona. Lo usa quien la lanza a
+    /// mano desde la aplicación: pedirla no puede servir para mover los datos de otro.
+    /// Nulo en la ejecución programada, que recorre todas.
+    /// </param>
+    /// <param name="fromTheBeginning">
+    /// Relee el histórico entero en lugar de pedir solo lo nuevo. Hace falta cuando se
+    /// corrige cómo se interpreta un movimiento: lo ya importado se descarta por
+    /// duplicado, así que solo entra lo que antes no se sabía leer.
+    /// </param>
+    public async Task<SynchronizationReport> RunAsync(
+        Domain.ValueObjects.UserId? owner = null,
+        bool fromTheBeginning = false,
+        CancellationToken cancellationToken = default)
     {
-        var targets = await repository.ListTargetsAsync(cancellationToken).ConfigureAwait(false);
+        var all = await repository.ListTargetsAsync(cancellationToken).ConfigureAwait(false);
+
+        var targets = owner is { } only
+            ? [.. all.Where(candidate => candidate.Account.UserId == only)]
+            : all;
         var results = new List<AccountSynchronizationResult>();
 
         logger.LogInformation("Sincronización iniciada para {Cuentas} cuentas.", targets.Count);
@@ -75,10 +96,21 @@ public sealed class SynchronizationService(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            results.Add(await SynchroniseAsync(target, cancellationToken).ConfigureAwait(false));
+            results.Add(await SynchroniseAsync(target, fromTheBeginning, cancellationToken).ConfigureAwait(false));
         }
 
         await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        // Importar no basta: la cartera y los resultados son proyecciones de los
+        // movimientos, y sin recalcularlas la sincronización deja las cifras como
+        // estaban. Se hace por usuario, porque el cálculo mira solo lo suyo.
+        foreach (var affected in results
+            .Where(result => result.Outcome == SynchronizationOutcome.Imported && result.ImportedRecords > 0)
+            .Select(result => result.Owner)
+            .Distinct())
+        {
+            await RefreshAsync(affected, cancellationToken).ConfigureAwait(false);
+        }
 
         var report = new SynchronizationReport(results);
 
@@ -89,8 +121,33 @@ public sealed class SynchronizationService(
         return report;
     }
 
+    /// <summary>
+    /// Rehace la cartera y los resultados de un usuario tras importarle movimientos.
+    /// </summary>
+    /// <remarks>
+    /// Los traspasos se buscan antes del cálculo: mover una cripto de una cuenta a otra
+    /// no es una venta seguida de una compra, y contarlo así inventaría un resultado que
+    /// no existe. Un fallo aquí no invalida lo importado, que ya está guardado.
+    /// </remarks>
+    private async Task RefreshAsync(Domain.ValueObjects.UserId owner, CancellationToken cancellationToken)
+    {
+        currentUserScope.ActAs(owner);
+
+        try
+        {
+            await transfers.ProposeAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            await calculation.RecalculateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(
+                exception, "No se ha podido rehacer la cartera del usuario {Usuario} tras sincronizar.", owner.Value);
+        }
+    }
+
     private async Task<AccountSynchronizationResult> SynchroniseAsync(
         SynchronizationTarget target,
+        bool fromTheBeginning,
         CancellationToken cancellationToken)
     {
         var account = target.Account;
@@ -110,12 +167,12 @@ public sealed class SynchronizationService(
 
             return new AccountSynchronizationResult(
                 account.Id, account.Platform, SynchronizationOutcome.SkippedOverlapping, 0,
-                "Ya había una sincronización en curso.");
+                "Ya había una sincronización en curso.", account.UserId);
         }
 
         try
         {
-            return await ImportAsync(target, cancellationToken).ConfigureAwait(false);
+            return await ImportAsync(target, fromTheBeginning, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -128,16 +185,18 @@ public sealed class SynchronizationService(
                 target.Credential.MarkInvalid(exception.Message);
 
                 return new AccountSynchronizationResult(
-                    account.Id, account.Platform, SynchronizationOutcome.CredentialInvalid, 0, exception.Message);
+                    account.Id, account.Platform, SynchronizationOutcome.CredentialInvalid, 0,
+                    exception.Message, account.UserId);
             }
 
             return new AccountSynchronizationResult(
-                account.Id, account.Platform, SynchronizationOutcome.Failed, 0, exception.Message);
+                account.Id, account.Platform, SynchronizationOutcome.Failed, 0, exception.Message, account.UserId);
         }
     }
 
     private async Task<AccountSynchronizationResult> ImportAsync(
         SynchronizationTarget target,
+        bool fromTheBeginning,
         CancellationToken cancellationToken)
     {
         var account = target.Account;
@@ -146,9 +205,11 @@ public sealed class SynchronizationService(
 
         // Se pide solo lo posterior a la última importación correcta. Una fallida no
         // mueve ese punto, así que lo que no llegó a entrar se vuelve a pedir.
-        var from = await importRepository
-            .FindLastSuccessfulImportInstantAsync(account.Id, cancellationToken).ConfigureAwait(false)
-            ?? EarliestHistory;
+        var from = fromTheBeginning
+            ? EarliestHistory
+            : await importRepository
+                .FindLastSuccessfulImportInstantAsync(account.Id, cancellationToken).ConfigureAwait(false)
+                ?? EarliestHistory;
 
         var to = timeProvider.GetUtcNow();
         var adapter = adapters.GetApiAdapter(account.Platform);
@@ -170,7 +231,8 @@ public sealed class SynchronizationService(
             account.Id, confirmed.RecordsImported, confirmed.DuplicatesDiscarded);
 
         return new AccountSynchronizationResult(
-            account.Id, account.Platform, SynchronizationOutcome.Imported, confirmed.RecordsImported, null);
+            account.Id, account.Platform, SynchronizationOutcome.Imported, confirmed.RecordsImported,
+            null, account.UserId);
     }
 
     /// <summary>

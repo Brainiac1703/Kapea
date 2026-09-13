@@ -1,0 +1,218 @@
+@page "/strategies"
+@inject KapeaApiClient Api
+@inject IDialogService Dialogs
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Strategies_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Strategies_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Strategies_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentButton IconStart="@(new Icons.Regular.Size16.Add())"
+                  Disabled="@(_vocabulary is null)"
+                  OnClick="OpenNewAsync">
+        @Ui["Strategies_New"]
+    </FluentButton>
+</FluentToolbar>
+
+@if (_strategies is null)
+{
+    <FluentProgressRing />
+}
+else if (_strategies.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Strategies_Empty"]</FluentMessageBar>
+}
+else
+{
+    @foreach (var strategy in _strategies)
+    {
+        <div class="card">
+            <FluentLabel Typo="Typography.H4">@strategy.Name</FluentLabel>
+
+            @if (strategy.Description is { Length: > 0 } description)
+            {
+                <FluentLabel Typo="Typography.Body" Class="intro">@description</FluentLabel>
+            }
+
+            <FluentLabel Typo="Typography.Body">
+                <strong>@Ui["Strategies_Entry"]:</strong> @Current(strategy).Entry.Description
+            </FluentLabel>
+
+            @if (Current(strategy).Exit is { } exit)
+            {
+                <FluentLabel Typo="Typography.Body">
+                    <strong>@Ui["Strategies_Exit"]:</strong> @exit.Description
+                </FluentLabel>
+            }
+
+            <FluentLabel Typo="Typography.Body">
+                <strong>@Ui["Strategies_Stop"]:</strong> @Describe(Current(strategy).StopLoss) ·
+                <strong>@Ui["Strategies_Target"]:</strong> @Describe(Current(strategy).Target)
+            </FluentLabel>
+
+            <FluentLabel Typo="Typography.Body" Class="intro">
+                @Ui["Strategies_Version"] @strategy.CurrentVersion ·
+                @string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                    Ui["Strategies_RequiredDays"].Value, Current(strategy).RequiredDays)
+            </FluentLabel>
+
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                <FluentButton IconStart="@(new Icons.Regular.Size16.Edit())"
+                              Disabled="@(_vocabulary is null)"
+                              OnClick="@(() => OpenReviseAsync(strategy))">
+                    @Ui["Strategies_Revise"]
+                </FluentButton>
+                <FluentAnchor Href="@($"strategies/{strategy.Id}/simulate")" Appearance="Appearance.Neutral">
+                    @Ui["Strategies_Simulate"]
+                </FluentAnchor>
+            </FluentStack>
+        </div>
+    }
+}
+
+@code {
+    private IReadOnlyList<StrategyResponse>? _strategies;
+    private StrategyVocabularyResponse? _vocabulary;
+    private bool _translationAvailable;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _vocabulary = await Api.GetStrategyVocabularyAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+
+        // Se pregunta una vez si hay traductor, con un texto vacío: la respuesta dice si
+        // el servicio está configurado sin gastar una llamada al modelo.
+        try
+        {
+            _translationAvailable = (await Api.TranslateStrategyAsync(string.Empty)).Available;
+        }
+        catch (KapeaApiException)
+        {
+            _translationAvailable = false;
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _strategies = await Api.ListStrategiesAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            _strategies = null;
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private Task OpenNewAsync() =>
+        AskUntilAcceptedAsync(
+            Prepared(new StrategyModel()),
+            Ui["Strategies_New"],
+            Ui["Common_Add"],
+            model => Api.CreateStrategyAsync(
+                new CreateStrategyRequest(model.Name, Empty(model.Description), model.ToRules())));
+
+    private Task OpenReviseAsync(StrategyResponse strategy) =>
+        AskUntilAcceptedAsync(
+            Prepared(StrategyModel.From(strategy)),
+            Ui["Strategies_Revise"],
+            Ui["Common_Save"],
+            model => Api.ReviseStrategyAsync(
+                strategy.Id,
+                new ReviseStrategyRequest(model.Name, Empty(model.Description), model.ToRules())));
+
+    /// <summary>
+    /// Pregunta hasta que lo enviado se acepte.
+    /// </summary>
+    /// <remarks>
+    /// El formulario no se cierra con el error: cerrarlo obligaría a volver a escribir
+    /// todo para corregir una regla mal puesta.
+    /// </remarks>
+    private async Task AskUntilAcceptedAsync(
+        StrategyModel model,
+        string title,
+        string confirm,
+        Func<StrategyModel, Task<StrategyResponse>> send)
+    {
+        while (true)
+        {
+            var dialog = await Dialogs.ShowDialogAsync<StrategyRulesDialog, StrategyModel>(
+                model,
+                new DialogParameters<StrategyModel>
+                {
+                    Content = model,
+                    Title = title,
+                    PrimaryAction = confirm,
+                    SecondaryAction = Ui["Common_Cancel"],
+                    PreventDismissOnOverlayClick = true,
+                    Width = "780px",
+                });
+
+            var result = await dialog.Result;
+
+            if (result.Cancelled || result.Data is not StrategyModel filled)
+            {
+                return;
+            }
+
+            model = filled;
+
+            if (string.IsNullOrWhiteSpace(model.Name))
+            {
+                model.Error = Ui["Form_Missing"];
+
+                continue;
+            }
+
+            try
+            {
+                var saved = await send(model);
+
+                Toasts.ShowSuccess(saved.Name);
+                await ReloadAsync();
+
+                return;
+            }
+            catch (KapeaApiException exception)
+            {
+                model.Error = exception.Message;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deja el modelo con lo que el diálogo necesita.
+    /// </summary>
+    /// <remarks>
+    /// El traductor solo se ofrece si hay servicio: un botón que nunca funciona es peor
+    /// que no tenerlo.
+    /// </remarks>
+    private StrategyModel Prepared(StrategyModel model)
+    {
+        model.Vocabulary = _vocabulary;
+        model.Translate = _translationAvailable ? description => Api.TranslateStrategyAsync(description) : null;
+
+        return model;
+    }
+
+    private static StrategyVersionResponse Current(StrategyResponse strategy) =>
+        strategy.Versions.Single(version => version.Number == strategy.CurrentVersion);
+
+    private string Describe(LevelResponse? level) => level is null
+        ? Ui["Strategies_NoLevel"]
+        : $"{_vocabulary?.LevelKinds.FirstOrDefault(kind => kind.Value == level.Kind)?.Label ?? level.Kind}"
+            + $" × {level.Factor.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture)}";
+
+    private static string? Empty(string value) => string.IsNullOrWhiteSpace(value) ? null : value;
+}

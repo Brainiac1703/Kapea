@@ -1,0 +1,76 @@
+@page "/signin"
+@layout MainLayout
+@inject NavigationManager Navigation
+@inject KapeaApiClient Api
+
+<PageTitle>@Ui["SignIn_Title"]</PageTitle>
+
+<div class="signin">
+    <FluentLabel Typo="Typography.PageTitle">@Ui["SignIn_Heading"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body" Class="intro">@Ui["SignIn_Intro"]</FluentLabel>
+
+    @if (Failed)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false">@Ui["SignIn_Failed"]</FluentMessageBar>
+    }
+
+    @if (_providers is null)
+    {
+        <FluentProgressRing />
+    }
+    else
+    {
+        @* Un botón por proveedor disponible, y los da el servidor: es el único que sabe
+           cuáles están configurados en esta instalación. *@
+        foreach (var provider in _providers)
+        {
+            <FluentButton Appearance="Appearance.Accent" OnClick="@(() => SignInWith(provider.Name))">
+                @string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["SignIn_With"], provider.DisplayName)
+            </FluentButton>
+        }
+
+        @if (_providers.Any(provider => provider.Name == "Development"))
+        {
+            <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">@Ui["SignIn_Development"]</FluentMessageBar>
+        }
+    }
+
+    @* Se avisa antes de entrar, no después: quien va a depender de una cuenta debería
+       saberlo mientras decide, no cuando ya no puede volver atrás. *@
+    <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">@Ui["SignIn_Warning"]</FluentMessageBar>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? Error { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    private string? ReturnUrl { get; set; }
+
+    private IReadOnlyList<AuthProviderResponse>? _providers;
+
+    private bool Failed => !string.IsNullOrEmpty(Error);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _providers = await Api.GetAuthProvidersAsync();
+        }
+        catch (KapeaApiException)
+        {
+            // Sin la lista no hay por dónde entrar, pero tampoco hay nada que el visitante
+            // pueda hacer: el aviso de fallo ya está arriba y la rueda se queda girando.
+            _providers = null;
+        }
+    }
+
+    private void SignInWith(string provider)
+    {
+        // Navegación completa y no del enrutador: el intercambio con el proveedor
+        // ocurre en el servidor, y el cliente WebAssembly no interviene.
+        var destino = Uri.EscapeDataString(ReturnUrl ?? "/");
+
+        Navigation.NavigateTo($"auth/signin/{provider}?returnUrl={destino}", forceLoad: true);
+    }
+}

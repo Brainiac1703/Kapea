@@ -14,15 +14,9 @@ public enum ImportSourceKind
 
 public interface IImportAdapter
 {
-    Platform Platform { get; }
+    PlatformCode Platform { get; }
 
     ImportSourceKind SourceKind { get; }
-}
-
-/// <summary>Adaptador de fichero. Recibe el contenido subido y devuelve registros normalizados.</summary>
-public interface IFileImportAdapter : IImportAdapter
-{
-    Task<ImportReadResult> ReadAsync(Stream content, string fileName, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

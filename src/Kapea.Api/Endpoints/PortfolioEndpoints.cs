@@ -6,7 +6,6 @@ using Kapea.Domain.Accounts;
 using Kapea.Domain.Common;
 using Kapea.Domain.Transfers;
 using Kapea.Domain.ValueObjects;
-using Kapea.Infrastructure.Import.Xtb;
 using Kapea.Infrastructure.Persistence;
 using Kapea.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -29,14 +28,96 @@ public static class PortfolioEndpoints
         var api = app.MapGroup("/api").RequireAuthorization();
 
         api.MapAccounts();
+        api.MapImportProfileEndpoints();
         api.MapCredentials();
         api.MapImports();
         api.MapPortfolio();
         api.MapTransfers();
+        api.MapStrategies();
+        api.MapJournal();
+        api.MapIdeas();
     }
 
     private static void MapAccounts(this RouteGroupBuilder api)
     {
+        var platforms = api.MapGroup("/platforms");
+
+        platforms.MapGet("/", (IPortfolioQueries queries, CancellationToken token) =>
+            queries.ListPlatformsAsync(token));
+
+        // Alta de una plataforma que no viene de serie. Solo de fichero: una de API
+        // necesita además su adaptador, y darla de alta sin él dejaría una entrada que
+        // no se puede usar y que solo se descubre al intentar sincronizar.
+        platforms.MapPost("/", async (
+            CreatePlatformRequest request,
+            KapeaDbContext context,
+            CancellationToken token) =>
+        {
+            if (!Enum.TryParse<PlatformImportKind>(request.ImportKind, ignoreCase: true, out var importKind))
+            {
+                return Results.Problem(
+                    $"Forma de importación '{request.ImportKind}' desconocida. Admitidas: {string.Join(", ", Enum.GetNames<PlatformImportKind>())}.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            if (importKind != PlatformImportKind.File)
+            {
+                return Results.Problem(
+                    "Una plataforma de API necesita su adaptador, que es código. Desde aquí solo se dan de alta las de fichero.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var code = new PlatformCode(request.Code);
+
+            if (await context.Platforms.AnyAsync(entity => entity.Code == code, token))
+            {
+                return Results.Problem(
+                    $"Ya hay una plataforma con el código '{code}'.", statusCode: StatusCodes.Status409Conflict);
+            }
+
+            var platform = Platform.Create(code, request.Name, importKind);
+
+            context.Platforms.Add(platform);
+            await context.SaveChangesAsync(token);
+
+            return Results.Created(
+                $"/api/platforms/{platform.Code}",
+                new PlatformResponse(platform.Code.Value, platform.Name, platform.ImportKind.ToString(), platform.BuiltIn));
+        });
+
+        platforms.MapDelete("/{code}", async (
+            string code,
+            KapeaDbContext context,
+            CancellationToken token) =>
+        {
+            if (!PlatformCode.TryParse(code, out var parsed))
+            {
+                return Results.NotFound();
+            }
+
+            var platformCode = parsed.Value;
+            var platform = await context.Platforms
+                .SingleOrDefaultAsync(entity => entity.Code == platformCode, token);
+
+            if (platform is null)
+            {
+                return Results.NotFound();
+            }
+
+            // Cuenta sobre todos los usuarios, saltándose el filtro: retirar una
+            // plataforma dejaría sin origen las cuentas de otro, que no se ven desde aquí.
+            var accountsUsingIt = await context.Accounts
+                .IgnoreQueryFilters()
+                .CountAsync(account => account.Platform == platformCode, token);
+
+            platform.EnsureCanBeDeleted(accountsUsingIt);
+
+            context.Platforms.Remove(platform);
+            await context.SaveChangesAsync(token);
+
+            return Results.NoContent();
+        });
+
         var accounts = api.MapGroup("/accounts");
 
         accounts.MapGet("/", (IPortfolioQueries queries, CancellationToken token) =>
@@ -48,12 +129,20 @@ public static class PortfolioEndpoints
             ICurrentUser user,
             CancellationToken token) =>
         {
-            if (!Enum.TryParse<Platform>(request.Platform, ignoreCase: true, out var platform))
+            // La plataforma se valida contra el catálogo y no contra una lista escrita
+            // en el código: es lo que hace que dar de alta un bróker de fichero baste
+            // para poder abrirle una cuenta.
+            if (!PlatformCode.TryParse(request.Platform, out var requested)
+                || await context.Platforms.SingleOrDefaultAsync(entity => entity.Code == requested.Value, token) is not { } known)
             {
+                var catalogue = await context.Platforms.Select(entity => entity.Name).ToListAsync(token);
+
                 return Results.Problem(
-                    $"Plataforma '{request.Platform}' no soportada. Soportadas: {string.Join(", ", Enum.GetNames<Platform>())}.",
+                    $"Plataforma '{request.Platform}' no está en el catálogo. Disponibles: {string.Join(", ", catalogue)}.",
                     statusCode: StatusCodes.Status400BadRequest);
             }
+
+            var platform = known.Code;
 
             var account = PlatformAccount.Create(
                 user.Id, platform, request.Alias, Currency.FromCode(request.BaseCurrency));
@@ -101,14 +190,27 @@ public static class PortfolioEndpoints
             KapeaDbContext context,
             CancellationToken token) =>
         {
-            if (!Enum.TryParse<Platform>(request.Platform, ignoreCase: true, out var platform))
+            if (!PlatformCode.TryParse(request.Platform, out var parsed))
             {
                 return Results.Problem(
                     $"Plataforma '{request.Platform}' no soportada.", statusCode: StatusCodes.Status400BadRequest);
             }
 
+            var platform = parsed.Value;
+
+            // La cuenta se lee con el filtro por usuario puesto. Una cuenta ajena no
+            // aparece, así que llega aquí como inexistente en lugar de como una cuenta
+            // de otro sobre la que se podría escribir.
+            var account = await context.Accounts
+                .SingleOrDefaultAsync(entity => entity.Id == request.AccountId, token);
+
+            if (account is null)
+            {
+                return Results.NotFound();
+            }
+
             var credential = await service.RegisterAsync(
-                request.AccountId, platform, request.Alias, new ApiSecret(request.ApiKey, request.ApiSecret), token);
+                account, platform, request.Alias, new ApiSecret(request.ApiKey, request.ApiSecret), token);
 
             context.BrokerCredentials.Add(credential);
             await context.SaveChangesAsync(token);
@@ -174,7 +276,7 @@ public static class PortfolioEndpoints
             Guid accountId,
             IFormFile file,
             KapeaDbContext context,
-            IImportAdapterRegistry adapters,
+            IFileImporter importer,
             ImportPipeline pipeline,
             IPortfolioQueries queries,
             CancellationToken token) =>
@@ -193,14 +295,38 @@ public static class PortfolioEndpoints
                 return Results.NotFound();
             }
 
-            var adapter = adapters.GetFileAdapter(account.Platform);
+            // Una plataforma de API también admite fichero cuando hay un perfil que sepa
+            // leerlo. Su API es la vía cómoda, pero puede no devolverlo todo, y entonces
+            // el extracto que el usuario se descarga es la única forma de completarlo.
+            var platform = await context.Platforms
+                .SingleOrDefaultAsync(entity => entity.Code == account.Platform, token);
 
-            await using var content = file.OpenReadStream();
-            var read = await adapter.ReadAsync(content, file.FileName, token);
-            var run = await pipeline.StageAsync(accountId, read, file.FileName, token);
+            if (platform is not null
+                && platform.ImportKind != PlatformImportKind.File
+                && !await context.ImportProfiles.AnyAsync(profile => profile.Platform == account.Platform, token))
+            {
+                return Results.Problem(
+                    $"Los movimientos de {platform.Name} llegan por su API y no hay ningún perfil que sepa leer sus ficheros.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            // El fichero se copia a memoria porque hay que leerlo dos veces: una para
+            // ver sus cabeceras y elegir el perfil, otra con el delimitador que ese
+            // perfil declara. El flujo de la petición no se puede rebobinar.
+            using var content = new MemoryStream();
+            await using (var upload = file.OpenReadStream())
+            {
+                await upload.CopyToAsync(content, token);
+            }
+
+            content.Position = 0;
+
+            var imported = await importer.ReadAsync(account.Platform, content, file.FileName, token);
+            var run = await pipeline.StageAsync(
+                accountId, imported.Read, file.FileName, token, imported.ProfileId, imported.ProfileVersion);
 
             return Results.Ok(new ImportPreviewResponse(
-                (await queries.FindImportRunAsync(run.Id, token))!, read.Warnings));
+                (await queries.FindImportRunAsync(run.Id, token))!, imported.Read.Warnings));
         }).DisableAntiforgery();
 
         imports.MapPost("/{runId:guid}/confirm", async (
@@ -250,11 +376,92 @@ public static class PortfolioEndpoints
         });
     }
 
+    /// <summary>Cuántos días atrás se enseña la evolución si nadie dice otra cosa.</summary>
+    private const int DefaultHistoryDays = 365;
+
+    /// <summary>Ventana de los indicadores por omisión. Veinte sesiones es el mes bursátil.</summary>
+    private const int DefaultIndicatorWindow = 20;
+
+    /// <summary>
+    /// El periodo que se consulta.
+    /// </summary>
+    /// <remarks>
+    /// Sin fechas se enseña el último año, que es lo que casi siempre se quiere mirar y
+    /// lo que evita que una cartera de años cargue toda su historia sin pedirlo.
+    /// </remarks>
+    private static (DateOnly From, DateOnly To) Range(DateOnly? from, DateOnly? to, TimeProvider time)
+    {
+        var today = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
+        var hasta = to ?? today;
+
+        return (from ?? hasta.AddDays(-DefaultHistoryDays), hasta);
+    }
+
     private static void MapPortfolio(this RouteGroupBuilder api)
     {
+        api.MapGet("/portfolio/history", (
+            DateOnly? from,
+            DateOnly? to,
+            IPortfolioQueries queries,
+            TimeProvider time,
+            CancellationToken token) =>
+        {
+            var (desde, hasta) = Range(from, to, time);
+
+            return queries.GetHistoryAsync(desde, hasta, token);
+        });
+
+        api.MapGet("/portfolio/performance", (
+            DateOnly? from,
+            DateOnly? to,
+            Guid? benchmark,
+            IPortfolioQueries queries,
+            TimeProvider time,
+            CancellationToken token) =>
+        {
+            var (desde, hasta) = Range(from, to, time);
+
+            return queries.GetPerformanceAsync(desde, hasta, benchmark, token);
+        });
+
+        api.MapGet("/portfolio/history/{assetId:guid}", async (
+            Guid assetId,
+            DateOnly? from,
+            DateOnly? to,
+            int? window,
+            IPortfolioQueries queries,
+            TimeProvider time,
+            CancellationToken token) =>
+        {
+            var (desde, hasta) = Range(from, to, time);
+
+            return await queries.GetAssetHistoryAsync(
+                assetId, desde, hasta, window ?? DefaultIndicatorWindow, token) is { } history
+                ? Results.Ok(history)
+                : Results.NotFound();
+        });
+
         api.MapGet("/transactions", (
             Guid? accountId, bool? requiresReview, IPortfolioQueries queries, CancellationToken token) =>
             queries.ListTransactionsAsync(accountId, requiresReview ?? false, token));
+
+        // Búsqueda paginada. Un histórico de cripto son miles de apuntes, y traerlos
+        // todos para enseñar veinte deja la pantalla en blanco mientras llegan.
+        api.MapGet("/transactions/search", (
+            Guid? accountId,
+            string? asset,
+            string? type,
+            int? year,
+            bool? requiresReview,
+            string? search,
+            int? page,
+            int? pageSize,
+            IPortfolioQueries queries,
+            CancellationToken token) =>
+            queries.SearchTransactionsAsync(
+                new TransactionQuery(
+                    accountId, asset, type, year, requiresReview ?? false, search, page ?? 1, pageSize ?? 50),
+                token));
 
         api.MapGet("/portfolio", (IPortfolioQueries queries, CancellationToken token) =>
             queries.GetPortfolioAsync(token));
@@ -267,6 +474,59 @@ public static class PortfolioEndpoints
             await queries.FindRealizedResultAsync(disposalTransactionId, token) is { } result
                 ? Results.Ok(result)
                 : Results.NotFound());
+
+        // Sincronización a petición. La programada corre cada pocas horas, y esperar a
+        // que toque después de dar de alta una credencial no tiene por qué.
+        api.MapPost("/sync", async (
+            bool? full,
+            Kapea.Application.Synchronization.SynchronizationService synchronization,
+            InternalTransferService transfers,
+            PortfolioCalculationService calculation,
+            ICurrentUser user,
+            CancellationToken token) =>
+        {
+            // Solo las cuentas de quien la pide: lanzarla no puede servir para mover los
+            // datos de otro.
+            // Con «full» se relee el histórico entero. Hace falta cuando se corrige cómo
+            // se interpreta un movimiento: lo ya importado se descarta por duplicado, así
+            // que solo entra lo que antes no se sabía leer.
+            var report = await synchronization.RunAsync(user.Id, full ?? false, token);
+
+            if (report.Results.Any(result => result.ImportedRecords > 0))
+            {
+                await transfers.ProposeAsync(cancellationToken: token);
+                await calculation.RecalculateAsync(cancellationToken: token);
+            }
+
+            return Results.Ok(new SynchronizationResponse(
+                report.Results.Count,
+                report.ImportedAccounts,
+                report.FailedAccounts,
+                report.Results.Sum(result => result.ImportedRecords),
+                [.. report.Results
+                    .Where(result => result.Detail is { Length: > 0 })
+                    .Select(result => $"{result.Platform}: {result.Detail}")]));
+        });
+
+        // Relee lo que quedó sin clasificar con las reglas de hoy. No pide nada a la
+        // plataforma: cada movimiento guarda el texto con el que entró.
+        api.MapPost("/transactions/reinterpret", async (
+            TransactionReinterpretationService reinterpretation,
+            PortfolioCalculationService calculation,
+            CancellationToken token) =>
+        {
+            var result = await reinterpretation.ReinterpretAsync(token);
+
+            // Un movimiento sin clasificar está fuera del cálculo. En cuanto pasa a
+            // significar algo, la cartera cambia y hay que rehacerla.
+            if (result.Reclassified > 0)
+            {
+                await calculation.RecalculateAsync(cancellationToken: token);
+            }
+
+            return Results.Ok(new ReinterpretationResponse(
+                result.Reclassified, result.StillUnknown, result.NotSupported));
+        });
 
         api.MapPost("/portfolio/recalculate", async (
             PortfolioCalculationService calculation, IPortfolioQueries queries, CancellationToken token) =>

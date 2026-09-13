@@ -35,6 +35,101 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task Asking_for_a_synchronisation_never_touches_the_accounts_of_another_person()
+    {
+        // Se lanza a mano desde la aplicación, así que tiene que quedarse en lo propio:
+        // pedirla no puede servir para mover los datos de otro.
+        var (mine, _) = await factory.CreateSignedInClientAsync();
+        var (theirs, _) = await factory.CreateSignedInClientAsync();
+
+        await theirs.PostAsJsonAsync(
+            "/api/accounts", new CreateAccountRequest("Kraken", "Kraken ajena", "EUR"));
+
+        var response = await mine.PostAsync("/api/sync", content: null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var report = await response.Content.ReadFromJsonAsync<SynchronizationResponse>();
+
+        // Sin credenciales propias no hay nada que sincronizar, y desde luego no la
+        // cuenta del otro.
+        Assert.Equal(0, report!.Accounts);
+    }
+
+    [Fact]
+    public async Task A_credential_cannot_be_registered_on_the_account_of_another_person()
+    {
+        // La cuenta ajena no existe para quien pregunta, así que la petición se responde
+        // como inexistente en lugar de dejar escribir sobre ella.
+        var (mine, _) = await factory.CreateSignedInClientAsync();
+        var theirs = await (await mine.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Kraken de otro", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        var (attacker, _) = await factory.CreateSignedInClientAsync();
+
+        var response = await attacker.PostAsJsonAsync(
+            "/api/credentials",
+            new RegisterBrokerCredentialRequest(theirs!.Id, "Kraken", "Mía", "clave", "secreto"));
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_file_platform_given_a_row_becomes_available_without_touching_code()
+    {
+        // Es lo que persigue el cambio entero: un bróker que exporta un fichero se da
+        // de alta como un dato, y desde ese momento se le puede abrir una cuenta.
+        var client = factory.CreateClientFor(Guid.NewGuid());
+        var code = $"P{Guid.NewGuid().ToString("N")[..8]}";
+
+        var created = await client.PostAsJsonAsync(
+            "/api/platforms", new CreatePlatformRequest(code, "Bróker de prueba", "File"));
+
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        var account = await client.PostAsJsonAsync(
+            "/api/accounts", new CreateAccountRequest(code, "Cuenta del bróker nuevo", "EUR"));
+
+        Assert.Equal(HttpStatusCode.Created, account.StatusCode);
+        Assert.Equal(code, (await account.Content.ReadFromJsonAsync<AccountResponse>())!.Platform);
+    }
+
+    [Fact]
+    public async Task An_api_platform_cannot_be_given_a_row_because_it_needs_an_adapter()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var response = await client.PostAsJsonAsync(
+            "/api/platforms", new CreatePlatformRequest("Binance", "Binance", "Api"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("adaptador", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_platforms_that_come_built_in_cannot_be_retired()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var response = await client.DeleteAsync("/api/platforms/Xtb");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_catalogue_says_how_each_platform_is_imported()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var platforms = await client.GetFromJsonAsync<List<PlatformResponse>>("/api/platforms") ?? [];
+
+        Assert.Equal("File", platforms.Single(platform => platform.Code == "Xtb").ImportKind);
+        Assert.Equal("Api", platforms.Single(platform => platform.Code == "Kraken").ImportKind);
+        Assert.Equal("Api", platforms.Single(platform => platform.Code == "Bit2Me").ImportKind);
+    }
+
+    [Fact]
     public async Task An_unsupported_platform_is_rejected_naming_the_supported_ones()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());
@@ -124,6 +219,229 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
 
         Assert.False(portfolio!.IsComplete);
         Assert.True(portfolio.UnclassifiedTransactionCount > 0);
+    }
+
+    [Fact]
+    public async Task The_money_left_in_an_account_comes_back_with_its_alias_and_its_currency()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Kraken principal", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(user, account!.Id);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        var cash = Assert.Single(portfolio!.Cash);
+
+        Assert.Equal("Kraken principal", cash.AccountAlias);
+        Assert.Equal("EUR", cash.Currency);
+        Assert.Equal(100m, cash.Amount);
+        Assert.Equal(100m, portfolio.CashTotalInEuros);
+    }
+
+    [Fact]
+    public async Task A_position_comes_back_inside_the_group_of_its_class_with_its_fees()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con posición", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        var group = Assert.Single(portfolio!.Groups);
+        var position = Assert.Single(group.Positions);
+
+        Assert.Equal("Crypto", group.AssetClass);
+        Assert.Equal("BTC", position.AssetSymbol);
+        Assert.Equal(500m, position.CostInEuros);
+        Assert.Equal(1.5m, position.FeesInEuros);
+    }
+
+    [Fact]
+    public async Task Wealth_is_the_positions_plus_the_money_in_the_accounts()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Mixta", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(user, account!.Id);
+        await SeedPositionAsync(user, account.Id, "ETH");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        // Sin proveedor de precios en las pruebas la posición no se valora, así que el
+        // patrimonio es el efectivo y la respuesta lo dice en lugar de aparentar estar
+        // completa.
+        Assert.Equal(portfolio!.CashTotalInEuros + portfolio.TotalMarketValueInEuros, portfolio.WealthInEuros);
+        Assert.True(portfolio.MissingPrices);
+        Assert.False(portfolio.IsComplete);
+    }
+
+    [Fact]
+    public async Task The_evolution_covers_every_day_of_the_period_asked_for()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var history = await client.GetFromJsonAsync<PortfolioHistoryResponse>(
+            "/api/portfolio/history?from=2026-03-01&to=2026-03-07");
+
+        // Siete días, incluidos los dos extremos: un rango que se come un día deja la
+        // gráfica desplazada respecto a las fechas que el usuario pidió.
+        Assert.Equal(7, history!.Days.Count);
+        Assert.Equal(new DateOnly(2026, 3, 1), history.Days[0].Date);
+        Assert.Equal(new DateOnly(2026, 3, 7), history.Days[^1].Date);
+    }
+
+    [Fact]
+    public async Task A_position_without_prices_leaves_its_days_marked_as_incomplete()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con evolución", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id, "LTC");
+
+        // El periodo por omisión llega hasta hoy, que es cuando se sembró la compra.
+        var history = await client.GetFromJsonAsync<PortfolioHistoryResponse>("/api/portfolio/history");
+
+        // Sin serie de precios no se inventa ninguna: el día sale sin valor y dice que
+        // está incompleto.
+        var today = history!.Days[^1];
+
+        Assert.False(today.IsComplete);
+        Assert.Equal(0m, today.ValueInEuros);
+        Assert.True(history.IncompleteDays > 0);
+    }
+
+    [Fact]
+    public async Task The_evolution_of_an_asset_that_does_not_exist_is_reported_as_missing()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var response = await client.GetAsync($"/api/portfolio/history/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_evolution_of_an_asset_comes_back_with_its_indicator_window()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con activo", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id, "DOT");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+        var assetId = portfolio!.Positions.Single().AssetId;
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{assetId}?from=2026-03-01&to=2026-03-07&window=5");
+
+        Assert.Equal("DOT", history!.AssetSymbol);
+        Assert.Equal(5, history.IndicatorWindowDays);
+
+        // Sin precios no hay indicadores que calcular, y eso se dice con listas vacías
+        // en lugar de con ceros.
+        Assert.Empty(history.SimpleMovingAverage);
+        Assert.Empty(history.RelativeStrengthIndex);
+    }
+
+    [Fact]
+    public async Task A_position_reaching_its_target_is_flagged_in_the_portfolio()
+    {
+        // El aviso sale de la última señal de entrada, que es la que fijó los niveles, y
+        // es un aviso: Kapea no ejecuta nada.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con niveles", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id, "ZEC");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+        var position = portfolio!.Positions.Single();
+
+        // Sin señales no hay niveles, y la posición se enseña sin ellos.
+        Assert.Null(position.TargetInEuros);
+        Assert.False(position.ReachedTarget);
+
+        await SeedSignalAsync(user, position.AssetId, target: 1m, stop: 0.5m);
+
+        var after = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        Assert.Equal(1m, after!.Positions.Single().TargetInEuros);
+    }
+
+    [Fact]
+    public async Task A_portfolio_without_prices_has_no_concentration_warning()
+    {
+        // Sin precios no hay pesos, y avisar de una concentración calculada sobre nada
+        // sería inventarla.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Sin precios", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedPositionAsync(user, account!.Id, "XMR");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        Assert.Null(portfolio!.Concentration);
+        Assert.Empty(portfolio.Weights);
+    }
+
+    [Fact]
+    public async Task The_performance_of_an_empty_portfolio_is_zero_and_not_an_error()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var performance = await client.GetFromJsonAsync<PerformanceResponse>(
+            "/api/portfolio/performance?from=2026-03-01&to=2026-03-07");
+
+        Assert.Equal(0m, performance!.TimeWeightedReturn);
+        Assert.Null(performance.BenchmarkSymbol);
+    }
+
+    [Fact]
+    public async Task The_performance_says_what_was_contributed_and_what_it_is_worth()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con rendimiento", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(user, account!.Id);
+
+        var performance = await client.GetFromJsonAsync<PerformanceResponse>("/api/portfolio/performance");
+
+        // El ingreso sembrado son cien euros, y sin precios no hay valor que enseñar.
+        Assert.Equal(100m, performance!.ContributedInEuros);
+        Assert.Equal(0m, performance.ValueInEuros);
     }
 
     [Fact]
@@ -261,7 +579,8 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Contains("Columnas esperadas", body, StringComparison.Ordinal);
+        Assert.Contains("Columnas encontradas", body, StringComparison.Ordinal);
+        Assert.Contains("Perfiles configurados", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -300,8 +619,11 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
 
         var response = await client.PostAsync($"/api/imports/file?accountId={account!.Id}", content);
 
+        // Bit2Me sí admite fichero, porque trae un perfil de serie que sabe leer su
+        // resumen de movimientos. Kraken no tiene ninguno, así que su fichero se rechaza
+        // diciendo por qué.
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("Xtb", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("ningún perfil", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -352,6 +674,201 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         Assert.Contains(run.Rejected, rejected => rejected.Reason.Length > 0);
     }
 
+    [Fact]
+    public async Task The_preview_shows_the_first_rows_already_interpreted()
+    {
+        // Es la contrapartida de aplicar un perfil sin preguntar: un mapeo equivocado
+        // produce cifras plausibles, y solo se ve mirando filas concretas.
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB muestra", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        var preview = await UploadAsync(client, account!.Id, Sample("9001"));
+
+        var row = Assert.Single(preview!.Run.Sample);
+
+        Assert.Equal(2, row.RowNumber);
+        Assert.Equal("Dividend", row.Type);
+        Assert.Equal("SAN.ES", row.AssetSymbol);
+        Assert.Equal(45.20m, row.GrossAmount);
+        Assert.Equal("EUR", row.Currency);
+        Assert.Equal("Importable", row.Outcome);
+    }
+
+    [Fact]
+    public async Task The_import_says_which_profile_and_version_read_it()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB trazabilidad", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        var preview = await UploadAsync(client, account!.Id, Sample("9002"));
+
+        Assert.Equal("XTB · Operaciones de efectivo", preview!.Run.ProfileName);
+        Assert.NotNull(preview.Run.ProfileVersion);
+    }
+
+    [Fact]
+    public async Task A_row_already_imported_is_shown_as_such_before_confirming()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB repetido", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        var csv = Sample("9003");
+
+        var first = await UploadAsync(client, account!.Id, csv);
+        await client.PostAsync($"/api/imports/{first!.Run.Id}/confirm", null);
+
+        var second = await UploadAsync(client, account.Id, csv);
+
+        Assert.Equal("Duplicate", Assert.Single(second!.Run.Sample).Outcome);
+    }
+
+    private static string Sample(string id) =>
+        "ID;Type;Time;Symbol;Comment;Amount;Currency\n"
+        + $"{id};Dividend;15.05.2024 00:00:00;SAN.ES;DIV;45,20;EUR";
+
+    [Fact]
+    public async Task Correcting_a_profile_creates_a_version_and_leaves_the_previous_one_reachable()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var profiles = await client.GetFromJsonAsync<List<ImportProfileResponse>>("/api/profiles") ?? [];
+        var profile = profiles.Single(entry => entry.Name == "XTB · Operaciones de efectivo");
+        var before = profile.Versions.Single(version => version.Number == profile.CurrentVersion);
+
+        var corrected = before with
+        {
+            RecognizedHeaders = [.. before.RecognizedHeaders, "Comment"],
+        };
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/profiles/{profile.Id}/versions",
+            new ReviseImportProfileRequest(null, Rules(corrected)));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var revised = (await response.Content.ReadFromJsonAsync<ImportProfileResponse>())!;
+
+        Assert.Equal(profile.CurrentVersion + 1, revised.CurrentVersion);
+        Assert.Contains(revised.Versions, version => version.Number == before.Number);
+        Assert.Contains("Comment", revised.Versions.Single(v => v.Number == revised.CurrentVersion).RecognizedHeaders);
+
+        // La versión anterior sigue tal cual: los movimientos que se importaron con ella
+        // apuntan ahí, y reescribirla cambiaría en silencio cómo se explican sus cifras.
+        var kept = revised.Versions.Single(version => version.Number == before.Number);
+
+        Assert.Equal(before.RecognizedHeaders, kept.RecognizedHeaders);
+        Assert.DoesNotContain("Comment", kept.RecognizedHeaders);
+    }
+
+    [Fact]
+    public async Task A_profile_that_comes_built_in_cannot_be_deleted()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var profiles = await client.GetFromJsonAsync<List<ImportProfileResponse>>("/api/profiles") ?? [];
+        var profile = profiles.First(entry => entry.BuiltIn);
+
+        var response = await client.DeleteAsync($"/api/profiles/{profile.Id}");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_profile_without_a_date_column_is_refused_saying_what_is_missing()
+    {
+        var client = factory.CreateClientFor(Guid.NewGuid());
+
+        var response = await client.PostAsJsonAsync(
+            "/api/profiles",
+            new CreateImportProfileRequest(
+                "Xtb",
+                "Sin fecha",
+                new ImportProfileRulesRequest(
+                    ";", "European", "Europe/Madrid", "EUR", "SingleMovement", "Column", null, false,
+                    ["Importe"], ["dd/MM/yyyy"], [],
+                    new Dictionary<string, string> { ["GrossAmount"] = "Importe" },
+                    new Dictionary<string, string>())));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains("la fecha", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    private static ImportProfileRulesRequest Rules(ImportProfileVersionResponse version) =>
+        new(
+            version.Delimiter,
+            version.DecimalConvention,
+            version.TimeZoneId,
+            version.FixedCurrency,
+            version.RowShape,
+            version.AmountSource,
+            version.FixedAssetClass,
+            version.AmountIsAlwaysPositive,
+            version.RecognizedHeaders,
+            version.DateFormats,
+            version.NonFinancialConcepts,
+            version.Columns,
+            version.Concepts);
+
+    [Fact]
+    public async Task Movements_come_by_pages_with_their_filters()
+    {
+        // Un histórico de cripto son miles de apuntes. Traerlos todos para enseñar veinte
+        // deja la pantalla en blanco mientras llegan.
+        var (client, userId) = await factory.CreateSignedInClientAsync();
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB páginas", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        for (var i = 0; i < 3; i++)
+        {
+            await SeedTransactionAsync(userId, account!.Id);
+        }
+
+        var page = await client.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account!.Id}&pageSize=2&page=1");
+
+        Assert.Equal(3, page!.Total);
+        Assert.Equal(2, page.Items.Count);
+        Assert.Equal(1, page.Page);
+
+        var second = await client.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account.Id}&pageSize=2&page=2");
+
+        Assert.Single(second!.Items);
+
+        // Los tipos y los años salen de todo el histórico y no de la página: un filtro
+        // que solo ofreciera lo visible no llevaría a lo que no se ve.
+        Assert.NotEmpty(page.Types);
+        Assert.NotEmpty(page.Years);
+    }
+
+    [Fact]
+    public async Task Searching_movements_never_reaches_the_ones_of_another_person()
+    {
+        var (mine, _) = await factory.CreateSignedInClientAsync();
+        var (theirs, theirId) = await factory.CreateSignedInClientAsync();
+
+        var account = await (await theirs.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB ajena", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(theirId, account!.Id);
+
+        var page = await mine.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account.Id}");
+
+        Assert.Equal(0, page!.Total);
+    }
+
     private static async Task<ImportPreviewResponse?> UploadAsync(HttpClient client, Guid accountId, string csv)
     {
         using var content = new MultipartFormDataContent
@@ -360,9 +877,79 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         };
 
         var response = await client.PostAsync($"/api/imports/file?accountId={accountId}", content);
-        response.EnsureSuccessStatusCode();
+
+        // El cuerpo lleva el detalle del problema. Perderlo dejaría el fallo en un
+        // número, y averiguar la causa exigiría adivinar.
+        Assert.True(
+            response.IsSuccessStatusCode,
+            $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
 
         return await response.Content.ReadFromJsonAsync<ImportPreviewResponse>();
+    }
+
+
+    /// <summary>Deja una señal de entrada con sus niveles para ese activo.</summary>
+    private async Task SeedSignalAsync(Guid user, Guid assetId, decimal target, decimal stop)
+    {
+        await using var context = factory.CreateContext(user);
+
+        context.EmittedSignals.Add(Domain.Strategies.EmittedSignal.From(
+            new Domain.ValueObjects.UserId(user),
+            Guid.NewGuid(),
+            1,
+            new Domain.Strategies.Signal(
+                assetId,
+                DateOnly.FromDateTime(DateTime.UtcNow),
+                Domain.Strategies.SignalDirection.Entry,
+                Domain.ValueObjects.Money.Euros(0.8m),
+                "sembrada para la prueba",
+                Domain.ValueObjects.Money.Euros(target),
+                Domain.ValueObjects.Money.Euros(stop))));
+
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>Deja un activo con un lote abierto y la compra que lo originó.</summary>
+    private async Task SeedPositionAsync(Guid user, Guid accountId, string symbol = "BTC")
+    {
+        await using var context = factory.CreateContext(user);
+
+        // El catálogo de activos es de la instalación y lo comparten todas las pruebas,
+        // así que se reutiliza el que ya esté en lugar de chocar con su símbolo.
+        var asset = await context.Assets.FirstOrDefaultAsync(entry => entry.CanonicalSymbol == symbol)
+            ?? Domain.Assets.Asset.Create(symbol, Domain.Assets.AssetClass.Crypto);
+        var occurredAt = Domain.Transactions.Occurrence.FromOffset(DateTimeOffset.UtcNow, "UTC");
+
+        var purchase = Domain.Transactions.Transaction.Imported(
+            new UserId(user),
+            accountId,
+            Domain.Transactions.TransactionType.Buy,
+            asset.Id,
+            new Quantity(0.01m),
+            null,
+            Money.Euros(500m),
+            Money.Euros(1.5m),
+            occurredAt,
+            Domain.Transactions.TransactionSource.FromImport(
+                Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString()));
+
+        if (context.Entry(asset).State == Microsoft.EntityFrameworkCore.EntityState.Detached)
+        {
+            context.Assets.Add(asset);
+        }
+
+        context.Transactions.Add(purchase);
+        context.Lots.Add(Domain.Lots.Lot.Create(
+            new UserId(user),
+            asset.Id,
+            accountId,
+            purchase.Id,
+            new Quantity(0.01m),
+            Money.Euros(500m),
+            occurredAt,
+            1));
+
+        await context.SaveChangesAsync();
     }
 
     private async Task SeedTransactionAsync(

@@ -25,6 +25,38 @@ public sealed class UserSecretsSecretStore : ISecretStore
         _path = secretsFilePath;
     }
 
+    /// <summary>
+    /// Comprueba que se puede escribir donde van las credenciales.
+    /// </summary>
+    /// <remarks>
+    /// Se hace al arrancar y no al guardar la primera credencial. Dentro de un
+    /// contenedor, un volumen montado con otro propietario deja el almacén de solo
+    /// lectura, y sin esta comprobación el fallo aparece mucho después: al dar de alta
+    /// una credencial, en forma de ruta denegada que no dice qué hacer.
+    /// </remarks>
+    public void EnsureWritable()
+    {
+        var directory = Path.GetDirectoryName(_path)!;
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+
+            var probe = Path.Combine(directory, $".escritura-{Guid.NewGuid():N}");
+
+            File.WriteAllText(probe, string.Empty);
+            File.Delete(probe);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new InvalidOperationException(
+                $"No se puede escribir en el almacén de credenciales ({directory}). " +
+                "En docker compose suele significar que el volumen se creó con otro propietario: " +
+                "bórralo con «docker volume rm kapea_broker-secrets» y vuelve a levantar el entorno.",
+                exception);
+        }
+    }
+
     /// <summary>Ruta que usa `dotnet user-secrets` para un identificador dado.</summary>
     public static string DefaultPathFor(string userSecretsId) =>
         Path.Combine(

@@ -58,8 +58,8 @@ public class UserIsolationTests(SqlServerFixture fixture)
 
     private async Task<(PlatformAccount Mine, PlatformAccount Theirs)> TwoAccountsAsync()
     {
-        var mine = PlatformAccount.Create(new UserId(Guid.NewGuid()), Platform.Kraken, "Cuenta de prueba", Currency.Euro);
-        var theirs = PlatformAccount.Create(new UserId(Guid.NewGuid()), Platform.Kraken, "Cuenta de prueba", Currency.Euro);
+        var mine = PlatformAccount.Create(new UserId(Guid.NewGuid()), PlatformCode.Kraken, "Cuenta de prueba", Currency.Euro);
+        var theirs = PlatformAccount.Create(new UserId(Guid.NewGuid()), PlatformCode.Kraken, "Cuenta de prueba", Currency.Euro);
 
         await using (var context = fixture.CreateContext(mine.UserId))
         {

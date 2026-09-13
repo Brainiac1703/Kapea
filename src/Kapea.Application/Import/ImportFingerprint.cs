@@ -24,7 +24,7 @@ namespace Kapea.Application.Import;
 /// </remarks>
 public static class ImportFingerprint
 {
-    public static string For(Guid accountId, Platform platform, ImportRecord record)
+    public static string For(Guid accountId, PlatformCode platform, ImportRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
 

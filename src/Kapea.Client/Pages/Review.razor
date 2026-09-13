@@ -60,6 +60,17 @@ else
     }
     else
     {
+        @* Un movimiento sin clasificar entró tal cual llegó porque nadie supo qué era.
+           Si el adaptador ha aprendido esa forma desde entonces, esto lo aprovecha. *@
+        <FluentToolbar>
+            <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowSync())"
+                          Disabled="@_reinterpreting"
+                          OnClick="ReinterpretAsync">
+                @Ui["Review_Reinterpret"]
+            </FluentButton>
+        </FluentToolbar>
+        <FluentLabel Typo="Typography.Body">@Ui["Review_ReinterpretHelp"]</FluentLabel>
+
         <FluentDataGrid Items="@_unclassified.AsQueryable()"
                         TGridItem="TransactionResponse"
                         GridTemplateColumns="1fr 1fr 1fr 3fr">
@@ -76,6 +87,7 @@ else
 }
 
 @code {
+    private bool _reinterpreting;
     private IReadOnlyList<InternalTransferResponse>? _transfers;
     private IReadOnlyList<TransactionResponse>? _unclassified;
 
@@ -90,7 +102,41 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task ReinterpretAsync()
+    {
+        _reinterpreting = true;
+
+        try
+        {
+            var result = await Api.ReinterpretAsync();
+
+            if (result.Reclassified == 0)
+            {
+                Toasts.ShowInfo(Ui["Review_ReinterpretedNone"]);
+            }
+            else
+            {
+                Toasts.ShowSuccess(string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Ui["Review_Reinterpreted"].Value,
+                    result.Reclassified,
+                    result.StillUnknown,
+                    result.NotSupported));
+            }
+
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+        finally
+        {
+            _reinterpreting = false;
         }
     }
 
@@ -102,7 +148,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
 
         await ReloadAsync();
@@ -116,7 +162,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
 
         await ReloadAsync();

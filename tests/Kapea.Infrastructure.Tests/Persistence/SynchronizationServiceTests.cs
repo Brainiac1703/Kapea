@@ -26,7 +26,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
     public async Task The_first_run_asks_for_the_whole_history_and_imports_it()
     {
         var world = await NewWorldAsync();
-        var adapter = new RecordingAdapter(Platform.Kraken, [Buy("TX-1")]);
+        var adapter = new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]);
 
         var report = await RunAsync(world, adapter);
 
@@ -42,9 +42,9 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
     {
         var world = await NewWorldAsync();
 
-        await RunAsync(world, new RecordingAdapter(Platform.Kraken, [Buy("TX-1")]));
+        await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]));
 
-        var second = new RecordingAdapter(Platform.Kraken, [Buy("TX-2")]);
+        var second = new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-2")]);
         await RunAsync(world, second);
 
         Assert.Equal(Now, Assert.Single(second.RequestedRanges).From);
@@ -54,9 +54,9 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
     public async Task A_failed_run_does_not_move_the_point_the_next_one_starts_from()
     {
         var world = await NewWorldAsync();
-        await RunAsync(world, new FailingAdapter(Platform.Kraken, new InvalidOperationException("la red falló")));
+        await RunAsync(world, new FailingAdapter(PlatformCode.Kraken, new InvalidOperationException("la red falló")));
 
-        var next = new RecordingAdapter(Platform.Kraken, []);
+        var next = new RecordingAdapter(PlatformCode.Kraken, []);
         await RunAsync(world, next);
 
         Assert.Equal(SynchronizationService.EarliestHistory, Assert.Single(next.RequestedRanges).From);
@@ -73,7 +73,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         await using var held = await holder.TryAcquireAsync(world.AccountId, TimeSpan.FromHours(1));
         Assert.NotNull(held);
 
-        var adapter = new RecordingAdapter(Platform.Kraken, [Buy("TX-1")]);
+        var adapter = new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]);
         var report = await RunAsync(world, adapter);
 
         Assert.Equal(SynchronizationOutcome.SkippedOverlapping, Assert.Single(world.Mine(report)).Outcome);
@@ -95,7 +95,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
             await stale.TryAcquireAsync(world.AccountId, TimeSpan.FromHours(1));
         }
 
-        var report = await RunAsync(world, new RecordingAdapter(Platform.Kraken, [Buy("TX-1")]));
+        var report = await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]));
 
         Assert.Equal(SynchronizationOutcome.Imported, Assert.Single(world.Mine(report)).Outcome);
     }
@@ -107,14 +107,14 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
 
         var report = await RunAsync(
             world,
-            new FailingAdapter(Platform.Kraken, new InvalidOperationException("Kraken no responde")),
-            new RecordingAdapter(Platform.Bit2Me, [Buy("TX-B")]));
+            new FailingAdapter(PlatformCode.Kraken, new InvalidOperationException("Kraken no responde")),
+            new RecordingAdapter(PlatformCode.Bit2Me, [Buy("TX-B")]));
 
         var mine = world.Mine(report);
 
         Assert.Equal(2, mine.Count);
-        Assert.Equal(SynchronizationOutcome.Failed, mine.Single(r => r.Platform == Platform.Kraken).Outcome);
-        Assert.Equal(SynchronizationOutcome.Imported, mine.Single(r => r.Platform == Platform.Bit2Me).Outcome);
+        Assert.Equal(SynchronizationOutcome.Failed, mine.Single(r => r.Platform == PlatformCode.Kraken).Outcome);
+        Assert.Equal(SynchronizationOutcome.Imported, mine.Single(r => r.Platform == PlatformCode.Bit2Me).Outcome);
     }
 
     [Fact]
@@ -124,27 +124,27 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
 
         var report = await RunAsync(
             world,
-            new FailingAdapter(Platform.Kraken, new Kapea.Infrastructure.Import.Kraken.KrakenApiException(["EAPI:Invalid key"])),
-            new RecordingAdapter(Platform.Bit2Me, [Buy("TX-B")]));
+            new FailingAdapter(PlatformCode.Kraken, new Kapea.Infrastructure.Import.Kraken.KrakenApiException(["EAPI:Invalid key"])),
+            new RecordingAdapter(PlatformCode.Bit2Me, [Buy("TX-B")]));
 
         var mine = world.Mine(report);
 
         Assert.Equal(
             SynchronizationOutcome.CredentialInvalid,
-            mine.Single(r => r.Platform == Platform.Kraken).Outcome);
-        Assert.Equal(SynchronizationOutcome.Imported, mine.Single(r => r.Platform == Platform.Bit2Me).Outcome);
+            mine.Single(r => r.Platform == PlatformCode.Kraken).Outcome);
+        Assert.Equal(SynchronizationOutcome.Imported, mine.Single(r => r.Platform == PlatformCode.Bit2Me).Outcome);
 
         await using var context = fixture.CreateContext(world.Owner);
         var credential = await context.BrokerCredentials
-            .SingleAsync(entity => entity.Platform == Platform.Kraken);
+            .SingleAsync(entity => entity.Platform == PlatformCode.Kraken);
 
         Assert.Equal(CredentialStatus.Invalid, credential.Status);
         Assert.False(credential.IsUsable);
 
-        var next = new RecordingAdapter(Platform.Kraken, []);
-        var second = await RunAsync(world, next, new RecordingAdapter(Platform.Bit2Me, []));
+        var next = new RecordingAdapter(PlatformCode.Kraken, []);
+        var second = await RunAsync(world, next, new RecordingAdapter(PlatformCode.Bit2Me, []));
 
-        Assert.DoesNotContain(world.Mine(second), result => result.Platform == Platform.Kraken);
+        Assert.DoesNotContain(world.Mine(second), result => result.Platform == PlatformCode.Kraken);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         // dueño y el filtro global dejaría de aislar nada.
         var world = await NewWorldAsync();
 
-        await RunAsync(world, new RecordingAdapter(Platform.Kraken, [Buy("TX-1")]));
+        await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]));
 
         await using var context = fixture.CreateContext(world.Owner);
         var transaction = await context.Transactions.SingleAsync();
@@ -177,7 +177,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         var world = await NewWorldAsync();
         var messages = new List<string>();
 
-        await RunAsync(world, [new RecordingAdapter(Platform.Kraken, [Buy("TX-1")])], messages);
+        await RunAsync(world, [new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")])], messages);
 
         Assert.Contains(messages, message => message.Contains("Sincronización iniciada", StringComparison.Ordinal));
         Assert.Contains(messages, message => message.Contains("Sincronización terminada", StringComparison.Ordinal));
@@ -213,9 +213,19 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         var service = new SynchronizationService(
             new SynchronizationRepository(context),
             new ImportRepository(context),
-            new ImportAdapterRegistry([], adapters),
+            new ImportAdapterRegistry(adapters),
             pipeline,
             credentialService,
+            new Kapea.Application.Portfolio.InternalTransferService(
+                new InternalTransferRepository(context),
+                user,
+                time,
+                NullLogger<Kapea.Application.Portfolio.InternalTransferService>.Instance),
+            new Kapea.Application.Portfolio.PortfolioCalculationService(
+                new PortfolioCalculationRepository(context),
+                new PortfolioProjectionStore(context, NullLogger<PortfolioProjectionStore>.Instance),
+                user,
+                NullLogger<Kapea.Application.Portfolio.PortfolioCalculationService>.Instance),
             new AccountSyncLock(context, time, NullLogger<AccountSyncLock>.Instance),
             user,
             time,
@@ -234,7 +244,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
 
         await using var context = fixture.CreateContext(owner);
 
-        var account = PlatformAccount.Create(owner, Platform.Kraken, "Kraken", Currency.Euro);
+        var account = PlatformAccount.Create(owner, PlatformCode.Kraken, "Kraken", Currency.Euro);
         context.Accounts.Add(account);
         context.BrokerCredentials.Add(Credential(owner, account, secrets));
 
@@ -242,7 +252,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
 
         if (withSecondPlatform)
         {
-            second = PlatformAccount.Create(owner, Platform.Bit2Me, "Bit2Me", Currency.Euro);
+            second = PlatformAccount.Create(owner, PlatformCode.Bit2Me, "Bit2Me", Currency.Euro);
             context.Accounts.Add(second);
             context.BrokerCredentials.Add(Credential(owner, second, secrets));
         }
@@ -280,11 +290,11 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         ];
     }
 
-    private sealed class RecordingAdapter(Platform platform, IReadOnlyList<ImportRecord> records) : IApiImportAdapter
+    private sealed class RecordingAdapter(PlatformCode platform, IReadOnlyList<ImportRecord> records) : IApiImportAdapter
     {
         internal List<(DateTimeOffset From, DateTimeOffset To)> RequestedRanges { get; } = [];
 
-        public Platform Platform => platform;
+        public PlatformCode Platform => platform;
 
         public ImportSourceKind SourceKind => ImportSourceKind.RemoteApi;
 
@@ -297,9 +307,9 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         }
     }
 
-    private sealed class FailingAdapter(Platform platform, Exception failure) : IApiImportAdapter
+    private sealed class FailingAdapter(PlatformCode platform, Exception failure) : IApiImportAdapter
     {
-        public Platform Platform => platform;
+        public PlatformCode Platform => platform;
 
         public ImportSourceKind SourceKind => ImportSourceKind.RemoteApi;
 

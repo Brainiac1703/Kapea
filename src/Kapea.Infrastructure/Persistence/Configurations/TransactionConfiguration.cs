@@ -17,6 +17,10 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.Property(transaction => transaction.Origin).HasConversion<string>().HasMaxLength(24).IsRequired();
         builder.Property(transaction => transaction.AdjustmentReason).HasMaxLength(500);
 
+        // Por omisión sí liquida en efectivo: es lo que hace la inmensa mayoría de los
+        // movimientos, y así lo ya guardado no cambia de significado.
+        builder.Property(transaction => transaction.SettledInCash).HasDefaultValue(true).IsRequired();
+
         builder.ComplexProperty(transaction => transaction.OccurredAt, occurred =>
         {
             occurred.Property(value => value.Instant).HasColumnName("OccurredAt").IsRequired();
@@ -52,6 +56,11 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
             source.Property(value => value.NaturalId).HasColumnName("SourceNaturalId").HasMaxLength(200);
             source.Property(value => value.RowNumber).HasColumnName("SourceRowNumber");
             source.Property(value => value.Fingerprint).HasColumnName("Fingerprint").HasMaxLength(64).IsRequired();
+
+            // Con qué reglas se leyó la fila. Es lo que permite responder de dónde salió
+            // una cifra meses después, cuando el perfil ya se ha corregido varias veces.
+            source.Property(value => value.ProfileId).HasColumnName("SourceProfileId");
+            source.Property(value => value.ProfileVersion).HasColumnName("SourceProfileVersion");
 
             // Índice único por cuenta y huella: es lo que hace que reimportar el mismo
             // periodo no duplique, y que el intento quede rechazado por la base de datos

@@ -13,7 +13,10 @@ internal sealed class PlatformAccountConfiguration : IEntityTypeConfiguration<Pl
 
         builder.Property(account => account.UserId).IsRequired();
         builder.Property(account => account.Alias).HasMaxLength(120).IsRequired();
-        builder.Property(account => account.Platform).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Property(account => account.Platform)
+            .HasConversion<Converters.ValueObjectConverters.PlatformCodeConverter>()
+            .HasMaxLength(PlatformCode.MaxLength)
+            .IsRequired();
         builder.Property(account => account.BaseCurrency).IsRequired();
 
         builder.HasIndex(account => account.UserId);

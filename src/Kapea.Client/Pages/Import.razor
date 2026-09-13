@@ -1,6 +1,7 @@
 @page "/import"
 @inject KapeaApiClient Api
 @inject IToastService Toasts
+@inject IDialogService Dialogs
 
 <PageTitle>@Ui["Import_Title"]</PageTitle>
 
@@ -40,6 +41,18 @@ else
     </FluentCard>
 }
 
+@* Ningún perfil lo reconoce. No es un error del usuario: es un formato que Kapea
+   todavía no ha aprendido, y aprenderlo es lo que se ofrece aquí. *@
+@if (_unknown is not null && _inspection is not null)
+{
+    <FluentLabel Typo="Typography.H3" Class="section">@Ui["Mapping_Unknown"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@Ui["Mapping_UnknownHelp"]</FluentLabel>
+
+    <FluentToolbar Class="section">
+        <FluentButton Appearance="Appearance.Accent" OnClick="CreateProfileAsync">@Ui["Mapping_Create"]</FluentButton>
+    </FluentToolbar>
+}
+
 @if (_preview is not null)
 {
     <FluentLabel Typo="Typography.H3" Class="section">@Ui["Import_Preview"]</FluentLabel>
@@ -56,6 +69,9 @@ else
         <FluentMessageBar Intent="MessageIntent.Info">@Ui["Import_NothingToImport"]</FluentMessageBar>
     }
 
+    @* Antes de los rechazos: lo que va a entrar importa más que lo que no. *@
+    <InterpretedRows Rows="@_preview.Run.Sample" />
+
     <RejectedRecords Records="@_preview.Run.Rejected" />
 
     <FluentToolbar Class="section">
@@ -71,12 +87,13 @@ else
 }
 
 @code {
-    /// <summary>Solo XTB se importa por fichero; el resto llega por su API.</summary>
-    private const string FilePlatform = "Xtb";
-
     private IReadOnlyList<AccountResponse>? _accounts;
+    private IReadOnlyList<ImportFieldResponse> _fields = [];
     private Guid? _accountId;
     private ImportPreviewResponse? _preview;
+    private FileInspectionResponse? _inspection;
+    private byte[] _file = [];
+    private string? _unknown;
     private bool _uploading;
     private bool _working;
 
@@ -84,13 +101,27 @@ else
     {
         try
         {
+            // Se ofrecen las plataformas de fichero y también las de API que ya tengan
+            // algún perfil: su API es la vía cómoda, pero puede no devolverlo todo, y
+            // entonces el extracto descargado es la única forma de completar lo que falta.
+            var platforms = await Api.GetPlatformsAsync();
+            var profiles = await Api.GetProfilesAsync();
+
+            var importables = platforms
+                .Where(platform => platform.ImportKind == "File")
+                .Select(platform => platform.Code)
+                .Concat(profiles.Select(profile => profile.Platform))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            _fields = await Api.GetImportFieldsAsync();
+
             var accounts = await Api.GetAccountsAsync();
-            _accounts = [.. accounts.Where(account => account.Platform == FilePlatform)];
+            _accounts = [.. accounts.Where(account => importables.Contains(account.Platform))];
             _accountId = _accounts.Count == 1 ? _accounts[0].Id : null;
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
     }
 
@@ -103,25 +134,131 @@ else
 
         _uploading = true;
         _preview = null;
+        _unknown = null;
 
         try
         {
-            // 32 MB es el máximo que acepta la API. Un extracto de años no se acerca,
-            // así que un fichero mayor es un error del usuario y conviene que lo diga
-            // el servidor con su motivo.
-            await using var content = args.File.OpenReadStream(32 * 1024 * 1024);
+            // Se mira antes de subir. Si ningún perfil lo reconoce, intentar importarlo
+            // daría un error, y lo que hace falta en ese momento no es un error sino
+            // poder dar de alta el perfil que falta.
+            _file = await ReadAsync(args.File);
+            _inspection = await Api.InspectFileAsync(accountId, new MemoryStream(_file), args.File.Name);
 
-            _preview = await Api.UploadImportFileAsync(accountId, content, args.File.Name);
+            if (_inspection.MatchedProfileId is null)
+            {
+                _unknown = args.File.Name;
+
+                return;
+            }
+
+            _preview = await Api.UploadImportFileAsync(accountId, new MemoryStream(_file), args.File.Name);
         }
         catch (KapeaApiException exception)
         {
-            // El adaptador rechaza el fichero entero cuando no reconoce el formato, y
-            // su mensaje enumera las columnas esperadas: es justo lo que hace falta.
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
         finally
         {
             _uploading = false;
+        }
+    }
+
+    /// <summary>
+    /// El fichero se lee entero a memoria porque se usa dos veces: para mirarlo y para
+    /// subirlo. El flujo del navegador no se puede rebobinar.
+    /// </summary>
+    private static async Task<byte[]> ReadAsync(IBrowserFile file)
+    {
+        // 32 MB es el máximo que acepta la API. Un extracto de años no se acerca, así
+        // que un fichero mayor es un error del usuario y lo dice el servidor.
+        await using var stream = file.OpenReadStream(32 * 1024 * 1024);
+        using var buffer = new MemoryStream();
+
+        await stream.CopyToAsync(buffer);
+
+        return buffer.ToArray();
+    }
+
+    /// <summary>Da de alta el perfil que falta y, con él puesto, importa el fichero.</summary>
+    private async Task CreateProfileAsync()
+    {
+        if (_inspection is null || _accountId is not { } accountId)
+        {
+            return;
+        }
+
+        var account = _accounts?.FirstOrDefault(entry => entry.Id == accountId);
+
+        if (account is null)
+        {
+            return;
+        }
+
+        var reglas = new ProfileRulesModel
+        {
+            AvailableFields = _fields,
+            Platform = account.Platform,
+            Name = _unknown ?? account.Platform,
+            FileColumns = _inspection.Headers,
+            SampleRows = _inspection.SampleRows,
+            RecognizedHeaders = string.Join("; ", _inspection.Headers),
+            CanPropose = _inspection.ProposalsAvailable,
+            OnPropose = ProposeAsync,
+        };
+
+        var dialog = await Dialogs.ShowDialogAsync<ProfileRulesDialog, ProfileRulesModel>(
+            reglas,
+            new DialogParameters<ProfileRulesModel>
+            {
+                Content = reglas,
+                Title = Ui["Mapping_Create"],
+                PrimaryAction = Ui["Common_Add"],
+                SecondaryAction = Ui["Common_Cancel"],
+                PreventDismissOnOverlayClick = true,
+                Width = "720px",
+            });
+
+        var result = await dialog.Result;
+
+        if (result.Cancelled || result.Data is not ProfileRulesModel filled || !filled.IsComplete)
+        {
+            return;
+        }
+
+        try
+        {
+            await Api.CreateProfileAsync(
+                new CreateImportProfileRequest(filled.Platform, filled.Name, filled.ToRequest()));
+
+            _unknown = null;
+
+            // Con el perfil puesto, el fichero ya se puede leer. Volver a pedirlo sería
+            // hacerle repetir un paso que ya hizo.
+            _preview = await Api.UploadImportFileAsync(accountId, new MemoryStream(_file), "extracto.csv");
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task<IReadOnlyList<string>> ProposeAsync(ProfileRulesModel rules)
+    {
+        try
+        {
+            var proposal = await Api.ProposeMappingAsync(
+                rules.Platform,
+                new MappingSampleRequest(rules.FileColumns, rules.SampleRows));
+
+            rules.ApplyProposal(proposal);
+
+            return proposal.IsConclusive ? [] : proposal.Doubts;
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+
+            return [];
         }
     }
 
@@ -142,7 +279,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
         finally
         {
@@ -167,7 +304,7 @@ else
         }
         catch (KapeaApiException exception)
         {
-            Toasts.ShowError(exception.Message);
+            Toasts.ShowApiError(exception);
         }
         finally
         {

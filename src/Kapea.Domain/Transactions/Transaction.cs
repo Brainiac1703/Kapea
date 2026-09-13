@@ -44,8 +44,10 @@ public sealed class Transaction
         TransactionOrigin origin,
         TransactionSource source,
         string? adjustmentReason,
-        ExchangeRate? appliedExchangeRate)
+        ExchangeRate? appliedExchangeRate,
+        bool settledInCash = true)
     {
+        SettledInCash = settledInCash;
         Id = id;
         UserId = userId;
         AccountId = accountId;
@@ -69,7 +71,7 @@ public sealed class Transaction
 
     public Guid AccountId { get; }
 
-    public TransactionType Type { get; }
+    public TransactionType Type { get; private set; }
 
     /// <summary>Activo operado. Nulo en movimientos puramente dinerarios (una comisión de cuenta, un ingreso).</summary>
     public Guid? AssetId { get; }
@@ -105,6 +107,16 @@ public sealed class Transaction
     /// </summary>
     public ExchangeRate? AppliedExchangeRate { get; }
 
+    /// <summary>
+    /// El movimiento se liquidó con dinero de la cuenta.
+    /// </summary>
+    /// <remarks>
+    /// Falso en una permuta de un activo por otro: se valora en euros para saber lo que
+    /// costó, pero ningún euro entró ni salió. Contarla como una venta y una compra
+    /// dejaba en el saldo la diferencia entre los dos cambios, que no es dinero de nadie.
+    /// </remarks>
+    public bool SettledInCash { get; private set; } = true;
+
     /// <summary>Un movimiento sin clasificar no participa en el cálculo hasta que una persona lo resuelve.</summary>
     public bool RequiresReview => Type == TransactionType.Unknown;
 
@@ -124,7 +136,8 @@ public sealed class Transaction
         Occurrence occurredAt,
         TransactionSource source,
         Money? withholdingTax = null,
-        ExchangeRate? appliedExchangeRate = null)
+        ExchangeRate? appliedExchangeRate = null,
+        bool settledInCash = true)
     {
         EnsureConsistent(type, assetId, quantity, unitPrice, grossAmount, fee, withholdingTax);
         EnsureRateMatchesCurrency(grossAmount, appliedExchangeRate);
@@ -136,7 +149,37 @@ public sealed class Transaction
 
         return new Transaction(Guid.NewGuid(), userId, accountId, type, assetId, quantity, unitPrice, grossAmount,
             fee, withholdingTax, occurredAt, TransactionOrigin.Imported, source, adjustmentReason: null,
-            appliedExchangeRate);
+            appliedExchangeRate, settledInCash);
+    }
+
+    /// <summary>
+    /// Vuelve a clasificar un movimiento que quedó sin clasificar.
+    /// </summary>
+    /// <remarks>
+    /// Solo desde <see cref="TransactionType.Unknown"/>, y a propósito. Un movimiento ya
+    /// clasificado puede haber entrado en un ejercicio presentado, y cambiarle el tipo
+    /// alteraría cifras que alguien ya dio por buenas. Uno sin clasificar está fuera del
+    /// cálculo, así que interpretarlo mejor no reescribe nada.
+    ///
+    /// Las cifras no se tocan: son las que trajo el origen, y lo que se corrige aquí es
+    /// solo qué significan.
+    /// </remarks>
+    public void Reinterpret(TransactionType type)
+    {
+        if (Type != TransactionType.Unknown)
+        {
+            throw new DomainException(
+                "Solo se reinterpreta un movimiento sin clasificar: cambiar uno ya clasificado alteraría cifras dadas por buenas.");
+        }
+
+        if (type == TransactionType.Unknown)
+        {
+            return;
+        }
+
+        EnsureConsistent(type, AssetId, Quantity, UnitPrice, GrossAmount, Fee, WithholdingTax);
+
+        Type = type;
     }
 
     public static Transaction FromManualAdjustment(

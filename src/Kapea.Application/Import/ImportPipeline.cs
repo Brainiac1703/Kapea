@@ -38,12 +38,15 @@ public sealed class ImportPipeline(
         Guid accountId,
         ImportReadResult read,
         string? fileName = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Guid? profileId = null,
+        int? profileVersion = null)
     {
         ArgumentNullException.ThrowIfNull(read);
 
         var account = await RequireAccountAsync(accountId, cancellationToken).ConfigureAwait(false);
-        var run = ImportRun.Start(currentUser.Id, accountId, account.Platform, timeProvider.GetUtcNow(), fileName);
+        var run = ImportRun.Start(
+            currentUser.Id, accountId, account.Platform, timeProvider.GetUtcNow(), fileName, profileId, profileVersion);
 
         // Se indexa por posición y no por registro: ImportRecord tiene igualdad por
         // valor, así que dos registros idénticos del mismo lote colapsarían en uno solo
@@ -283,9 +286,17 @@ public sealed class ImportPipeline(
             new Money(record.GrossAmount, record.Currency),
             new Money(record.Fee, record.Currency),
             occurredAt,
-            TransactionSource.FromImport(run.Id, record.NaturalId, record.RowNumber, staged.Fingerprint, staged.RawContent),
+            TransactionSource.FromImport(
+                run.Id,
+                record.NaturalId,
+                record.RowNumber,
+                staged.Fingerprint,
+                staged.RawContent,
+                run.ProfileId,
+                run.ProfileVersion),
             record.Withholding is { } withholding ? new Money(withholding, record.Currency) : null,
-            rate);
+            rate,
+            record.SettledInCash);
     }
 
     /// <summary>

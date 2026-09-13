@@ -1,0 +1,28 @@
+@* Las primeras filas del fichero tal y como se han entendido. Es la única forma de
+   ver un mapeo equivocado antes de que las cifras entren en el cálculo. *@
+
+@if (Rows.Count > 0)
+{
+    <FluentLabel Typo="Typography.H5" Class="section">@Ui["Import_Sample"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@Ui["Import_SampleHelp"]</FluentLabel>
+
+    <FluentDataGrid Items="@Rows.AsQueryable()"
+                    TGridItem="InterpretedRowResponse"
+                    GridTemplateColumns="auto 1.2fr 1fr 1fr 1fr 1fr 1fr auto">
+        <TemplateColumn Title="@Ui["Common_Row"]">@context.RowNumber</TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Date"]">@context.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
+        <PropertyColumn Property="@(row => row.Type)" Title="@Ui["Common_Type"]" />
+        <PropertyColumn Property="@(row => row.AssetSymbol)" Title="@Ui["Common_Asset"]" />
+        <TemplateColumn Title="@Ui["Common_Quantity"]" Align="Align.End">@context.Quantity.ToString("0.########")</TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Amount"]" Align="Align.End">@context.GrossAmount.ToString("N2") @context.Currency</TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Fee"]" Align="Align.End">@context.Fee.ToString("N2")</TemplateColumn>
+        <TemplateColumn Title="@Ui["Import_Outcome"]">
+            @(context.Outcome == "Duplicate" ? Ui["Import_Outcome_Duplicate"] : Ui["Import_Outcome_Importable"])
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<InterpretedRowResponse> Rows { get; set; } = [];
+}

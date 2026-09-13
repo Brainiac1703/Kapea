@@ -1,0 +1,115 @@
+@implements IDialogContentComponent<StrategyModel>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="16">
+    @* El motivo del rechazo, encima de los campos y sin caducar. *@
+    @if (Content.Error is { Length: > 0 } error)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false">@error</FluentMessageBar>
+    }
+
+    <FluentTextField @bind-Value="Content.Name" Label="@Ui["Common_Name"]" Required="true" Style="width: 100%" />
+
+    <FluentTextArea @bind-Value="Content.Description" Label="@Ui["Common_Origin"]" Rows="2" Style="width: 100%" />
+
+    @* Traducir no guarda nada: rellena el formulario y quien decide sigue siendo quien
+       mira. Lo que el traductor no sepa traducir se enseña, no se completa. *@
+    @if (Content.Translate is not null)
+    {
+        <FluentLabel Typo="Typography.H5">@Ui["Strategies_Describe"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Strategies_DescribeHelp"]</FluentLabel>
+
+        <FluentTextArea @bind-Value="Content.Description2" Rows="5" Style="width: 100%" />
+
+        <FluentButton IconStart="@(new Icons.Regular.Size16.Lightbulb())"
+                      Disabled="@_translating"
+                      OnClick="TranslateAsync">
+            @Ui["Strategies_Translate"]
+        </FluentButton>
+
+        @if (Content.Confidence is { } confidence)
+        {
+            <FluentLabel Typo="Typography.Body" Class="intro">@Confidence(confidence)</FluentLabel>
+        }
+
+        @if (Content.NotUnderstood.Count > 0)
+        {
+            <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+                @Ui["Strategies_NotUnderstood"]: @string.Join(" · ", Content.NotUnderstood)
+            </FluentMessageBar>
+        }
+    }
+
+    <FluentLabel Typo="Typography.H5">@Ui["Strategies_Entry"]</FluentLabel>
+
+    <FluentSelect TOption="NamedValueResponse"
+                  Label="@Ui["Strategies_Junction"]"
+                  Items="@Junctions"
+                  OptionValue="@(option => option.Value)"
+                  OptionText="@(option => option.Label)"
+                  Value="@Content.Junction"
+                  ValueChanged="@(value => Content.Junction = value)" />
+
+    @foreach (var condition in Content.Entry)
+    {
+        <ComparisonEditor Condition="condition" Vocabulary="Content.Vocabulary!" />
+
+        @if (Content.Entry.Count > 1)
+        {
+            <FluentButton OnClick="@(() => Content.Entry.Remove(condition))">
+                @Ui["Strategies_RemoveCondition"]
+            </FluentButton>
+        }
+    }
+
+    <FluentButton IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => Content.Entry.Add(new()))">
+        @Ui["Strategies_AddCondition"]
+    </FluentButton>
+
+    <FluentCheckbox @bind-Value="Content.HasExit" Label="@Ui["Strategies_Exit"]" />
+
+    @if (Content.HasExit)
+    {
+        <ComparisonEditor Condition="Content.Exit" Vocabulary="Content.Vocabulary!" />
+    }
+
+    <FluentLabel Typo="Typography.H5">@Ui["Strategies_Stop"]</FluentLabel>
+    <LevelEditor Level="Content.StopLoss" Vocabulary="Content.Vocabulary!" />
+
+    <FluentLabel Typo="Typography.H5">@Ui["Strategies_Target"]</FluentLabel>
+    <LevelEditor Level="Content.Target" Vocabulary="Content.Vocabulary!" />
+</FluentStack>
+
+@code {
+    private bool _translating;
+
+    [Parameter]
+    public StrategyModel Content { get; set; } = new();
+
+    /// <summary>Cuánta seguridad declara el traductor, dicho en una línea.</summary>
+    private string Confidence(double confidence) => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        Ui["Strategies_Confidence"].Value,
+        Format.Rate((decimal)confidence, "?"));
+
+    private async Task TranslateAsync()
+    {
+        if (Content.Translate is null || string.IsNullOrWhiteSpace(Content.Description2))
+        {
+            return;
+        }
+
+        _translating = true;
+
+        try
+        {
+            Content.Apply(await Content.Translate(Content.Description2));
+        }
+        finally
+        {
+            _translating = false;
+        }
+    }
+
+    private IEnumerable<NamedValueResponse> Junctions =>
+        (Content.Vocabulary?.Junctions ?? []).Where(junction => junction.Value != "Comparison");
+}
