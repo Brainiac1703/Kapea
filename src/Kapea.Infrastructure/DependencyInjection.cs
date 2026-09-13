@@ -27,9 +27,15 @@ namespace Kapea.Infrastructure;
 /// </summary>
 public static class DependencyInjection
 {
+    /// <param name="isDevelopment">
+    /// Decide qué almacén de secretos se compone. Va como parámetro y no se deduce de la
+    /// configuración: el entorno lo sabe el anfitrión, y una variable mal puesta en un
+    /// despliegue no debe poder elegir el almacén que guarda en claro.
+    /// </param>
     public static IServiceCollection AddKapeaInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        bool isDevelopment)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -77,7 +83,7 @@ public static class DependencyInjection
         services.AddScoped<BrokerCredentialService>();
         services.AddScoped<SynchronizationService>();
 
-        services.AddSecretStore(configuration);
+        services.AddSecretStore(configuration, isDevelopment);
         services.AddExternalClients(configuration);
 
         // Los adaptadores se registran como colección y el registro los indexa por
@@ -102,15 +108,26 @@ public static class DependencyInjection
         return services;
     }
 
-    private static void AddSecretStore(this IServiceCollection services, IConfiguration configuration)
+    private static void AddSecretStore(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool isDevelopment)
     {
         var vaultUri = configuration["KeyVault:Uri"];
 
         if (string.IsNullOrWhiteSpace(vaultUri))
         {
-            // Sin Key Vault configurado se asume desarrollo local. Es deliberado que
-            // haga falta configurarlo para producción y no al revés: un despliegue sin
-            // configurar debe fallar por falta de vault, no guardar secretos en claro.
+            // Fuera de desarrollo no hay almacén de reserva: el de desarrollo guarda en
+            // claro, y un despliegue al que se le olvidara configurar el almacén
+            // gestionado acabaría con las credenciales de los brókeres en un fichero
+            // dentro del contenedor. Es mejor que no arranque y lo diga.
+            if (!isDevelopment)
+            {
+                throw new InvalidOperationException(
+                    "Falta KeyVault:Uri. Fuera de desarrollo no se compone el almacén de desarrollo, " +
+                    "que guarda los secretos en claro.");
+            }
+
             var secretsId = configuration["UserSecrets:Id"] ?? "kapea-local";
             var store = new UserSecretsSecretStore(UserSecretsSecretStore.DefaultPathFor(secretsId));
 
@@ -220,25 +237,49 @@ public static class DependencyInjection
         }
 
         services.AddHttpClient<IMappingProposer, Import.Mapping.AzureOpenAiMappingProposer>(client =>
-            Configure(client, options));
+            Configure(client, options))
+            .AddIdentityIfWithoutKey(options);
 
         // El mismo servicio, otro trabajo: traducir a reglas lo que se describe con
         // palabras. Comparte configuración porque comparte despliegue.
         services.AddHttpClient<
             Application.Strategies.IStrategyTranslator,
-            Strategies.AzureOpenAiStrategyTranslator>(client => Configure(client, options));
+            Strategies.AzureOpenAiStrategyTranslator>(client => Configure(client, options))
+            .AddIdentityIfWithoutKey(options);
 
         services.AddHttpClient<
             Application.Ideas.IIdeaExtractor,
-            Ideas.AzureOpenAiIdeaExtractor>(client => Configure(client, options));
+            Ideas.AzureOpenAiIdeaExtractor>(client => Configure(client, options))
+            .AddIdentityIfWithoutKey(options);
     }
 
     private static void Configure(HttpClient client, Import.Mapping.AzureOpenAiOptions options)
     {
         client.BaseAddress = new Uri(options.Endpoint!.TrimEnd('/') + "/");
-        client.DefaultRequestHeaders.Add("api-key", options.ApiKey);
         client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+
+        if (options.UsesApiKey)
+        {
+            client.DefaultRequestHeaders.Add("api-key", options.ApiKey);
+        }
     }
+
+    /// <summary>
+    /// Sin clave configurada, la llamada se autentica con la identidad del proceso.
+    /// </summary>
+    /// <remarks>
+    /// Es lo que permite que la aplicación desplegada no lleve ninguna clave del
+    /// servicio de modelos en su configuración, mientras una máquina de desarrollo sigue
+    /// usando la clave, que es lo único que tiene.
+    /// </remarks>
+    private static IHttpClientBuilder AddIdentityIfWithoutKey(
+        this IHttpClientBuilder builder,
+        Import.Mapping.AzureOpenAiOptions options) =>
+        options.UsesApiKey
+            ? builder
+            : builder.AddHttpMessageHandler(provider => new Http.AzureOpenAiTokenHandler(
+                provider.GetService<Azure.Core.TokenCredential>()
+                ?? Http.AzureOpenAiTokenHandler.DefaultCredential));
 
     private static void TryAddTimeProvider(this IServiceCollection services)
     {
