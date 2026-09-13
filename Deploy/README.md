@@ -46,21 +46,31 @@ SUSCRIPCION=$(az account show --query id -o tsv)
 APP_ID=$(az ad app create --display-name kapea-infra --query appId -o tsv)
 az ad sp create --id "$APP_ID"
 
-# Tres sujetos y no uno. Cuando un trabajo se ata a un environment, GitHub cambia
-# el sujeto del token: presenta "environment:production" en lugar de
-# "ref:refs/heads/main". Planificar no usa entorno y aplicar sí, así que hacen
-# falta las dos formas. Faltar una da AADSTS700213 sólo en el trabajo afectado,
-# que es lo que lo hace confuso de diagnosticar.
-for SUJETO in \
-  "repo:${REPO}:ref:refs/heads/main" \
-  "repo:${REPO}:pull_request" \
-  "repo:${REPO}:environment:production"; do
-  az ad app federated-credential create --id "$APP_ID" --parameters "{
-    \"name\": \"github-$(echo "$SUJETO" | tr -c 'a-zA-Z0-9' '-')\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"$SUJETO\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }"
+# Tres sujetos, y cada uno en dos formas.
+#
+# Tres porque cuando un trabajo se ata a un environment, GitHub cambia el sujeto
+# del token: presenta "environment:production" en lugar de "ref:refs/heads/main".
+# Planificar no usa entorno y aplicar sí, así que hacen falta las dos. Faltar una
+# da AADSTS700213 sólo en el trabajo afectado, que es lo que lo confunde.
+#
+# Dos formas porque GitHub puede presentar el repositorio por nombre o con los
+# identificadores inmutables del propietario y del repositorio, que sobreviven a
+# un cambio de nombre. Este repositorio presenta la segunda, y sin ella el plan
+# falla con el mismo AADSTS700213.
+OWNER_ID=$(gh api "repos/${REPO}" -q .owner.id)
+REPO_ID=$(gh api "repos/${REPO}" -q .id)
+INMUTABLE="repo:${REPO%%/*}@${OWNER_ID}/${REPO##*/}@${REPO_ID}"
+
+for BASE in "repo:${REPO}" "${INMUTABLE}"; do
+  for SUFIJO in "ref:refs/heads/main" "pull_request" "environment:production"; do
+    SUJETO="${BASE}:${SUFIJO}"
+    az ad app federated-credential create --id "$APP_ID" --parameters "{
+      \"name\": \"github-$(echo -n "${SUJETO}" | tr -c 'a-zA-Z0-9' '-' | cut -c1-120)\",
+      \"issuer\": \"https://token.actions.githubusercontent.com\",
+      \"subject\": \"${SUJETO}\",
+      \"audiences\": [\"api://AzureADTokenExchange\"]
+    }"
+  done
 done
 ```
 

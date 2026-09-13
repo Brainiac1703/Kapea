@@ -238,12 +238,15 @@ jobs:
   # -------------------------------------------------------------------------
   # 5. Actualizar la base de datos
   # -------------------------------------------------------------------------
+  # Sin environment a proposito, igual que la publicacion: la aprobacion que
+  # importa es la del plan, y atar estos trabajos al entorno obligaba a aprobar
+  # tres veces el mismo despliegue. Siguen sin poder correr si el apply no
+  # termino bien, porque dependen de el.
   update-database:
     name: Update database
     needs: apply-infrastructure
     if: inputs.infrastructure_only != true
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
       - uses: actions/checkout@v7
@@ -292,8 +295,14 @@ jobs:
       # Se compila aparte y la migracion se aplica con --no-build, para que un
       # fallo de compilacion se distinga de un fallo al aplicar la migracion en
       # vez de quedar los dos mezclados en el mismo paso.
-      - name: Build the startup project
-        run: dotnet build src/Kapea.Api --configuration Release
+      #
+      # El proyecto de arranque es la infraestructura y no la API. La API no
+      # referencia las dependencias de diseño de EF, y arrancarla fuera de
+      # desarrollo exigiria el almacen de secretos y el proveedor de identidad
+      # solo para leer migraciones. La infraestructura trae su fabrica de
+      # contexto para las herramientas, y la conexion se pasa con --connection.
+      - name: Build the migrations project
+        run: dotnet build src/Kapea.Infrastructure --configuration Release
 
       # Authentication=Active Directory Default hace que el cliente pida un token
       # con la sesión de az que acabamos de abrir. Ninguna contraseña.
@@ -302,14 +311,15 @@ jobs:
       # sirviendo con el esquema que ya conocía.
       - name: Apply migrations
         env:
-          ConnectionStrings__Kapea: >-
+          CONNECTION: >-
             Server=tcp:${{ needs.apply-infrastructure.outputs.sql_server }},1433;
             Database=${{ needs.apply-infrastructure.outputs.sql_database }};
             Authentication=Active Directory Default;Encrypt=True;Connection Timeout=60;
         run: |
           dotnet ef database update \
             --project src/Kapea.Infrastructure \
-            --startup-project src/Kapea.Api \
+            --startup-project src/Kapea.Infrastructure \
+            --connection "$CONNECTION" \
             --no-build --configuration Release
 
       # Version fijada: 'latest' haria que el flujo cambiara de herramienta sin
@@ -380,7 +390,6 @@ jobs:
     name: Deploy apps
     needs: [apply-infrastructure, update-database]
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
       - uses: actions/checkout@v7
