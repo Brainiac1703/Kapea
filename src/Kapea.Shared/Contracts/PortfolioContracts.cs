@@ -222,6 +222,19 @@ public sealed record AssetResultResponse(
     decimal AcquisitionCostInEuros,
     decimal ResultInEuros);
 
+/// <summary>
+/// Cuánto queda por revisar, para avisar sin tener que entrar en la pantalla.
+/// </summary>
+/// <remarks>
+/// Sólo recuentos: el menú lo pide en cada navegación, y traer los movimientos con su
+/// contenido original para contarlos en el navegador sería mover miles de filas para
+/// pintar un número.
+/// </remarks>
+public sealed record PendingReviewResponse(int Transfers, int Transactions)
+{
+    public int Total => Transfers + Transactions;
+}
+
 /// <summary>Traspaso propuesto, pendiente de que el usuario confirme o rechace.</summary>
 public sealed record InternalTransferResponse(
     Guid Id,

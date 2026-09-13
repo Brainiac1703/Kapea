@@ -37,4 +37,8 @@ builder.Services.AddHttpClient<KapeaApiClient>(client =>
         client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
     .AddHttpMessageHandler<SessionExpiryHandler>();
 
+// Scoped, que en WebAssembly es uno por pestaña: el menú y la pantalla de revisión
+// tienen que ver el mismo número.
+builder.Services.AddScoped<PendingReviewState>();
+
 await builder.Build().RunAsync();

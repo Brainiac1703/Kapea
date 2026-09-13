@@ -285,6 +285,13 @@ public sealed class KapeaApiClient(HttpClient http)
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task<PendingReviewResponse> GetPendingReviewAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/review/pending", cancellationToken);
+
+        return await ReadAsync<PendingReviewResponse>(response, cancellationToken);
+    }
+
     public async Task<PortfolioResponse> GetPortfolioAsync(CancellationToken cancellationToken = default)
     {
         var response = await http.GetAsync("api/portfolio", cancellationToken);

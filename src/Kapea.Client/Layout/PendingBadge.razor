@@ -1,0 +1,10 @@
+@* El número solo no dice qué cuenta: para un lector de pantalla va con su frase. *@
+<FluentBadge Appearance="Appearance.Accent" Circular="true" Class="pending-badge"
+             title="@string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["Nav_Review_PendingCount"].Value, Count)">
+    @Count
+</FluentBadge>
+
+@code {
+    [Parameter, EditorRequired]
+    public int Count { get; set; }
+}

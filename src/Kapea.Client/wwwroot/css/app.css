@@ -19,8 +19,16 @@
 .navmenu {
     /* Ancho fijo: el menú no compite por el espacio con la tabla de la derecha,
        que es lo que de verdad necesita crecer. */
-    min-width: 220px;
+    min-width: 240px;
     border-right: 1px solid var(--neutral-stroke-divider-rest);
+    overflow-y: auto;
+}
+
+/* Separado del texto y sin estirar la fila: el contador acompaña a la etiqueta, no la
+   desplaza. */
+.pending-badge {
+    margin-inline-start: 0.5rem;
+    vertical-align: middle;
 }
 
 .main {

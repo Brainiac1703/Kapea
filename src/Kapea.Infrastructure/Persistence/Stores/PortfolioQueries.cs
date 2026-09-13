@@ -566,6 +566,21 @@ public sealed class PortfolioQueries(
             : ToResponse(result, await SymbolsAsync(cancellationToken).ConfigureAwait(false));
     }
 
+    public async Task<PendingReviewResponse> CountPendingReviewAsync(CancellationToken cancellationToken = default)
+    {
+        // Dos recuentos en la base y no una lista: los filtros globales ya dejan sólo
+        // lo del usuario, y el número es lo único que se necesita.
+        var transfers = await context.InternalTransfers
+            .CountAsync(transfer => transfer.Status == InternalTransferStatus.Proposed, cancellationToken)
+            .ConfigureAwait(false);
+
+        var transactions = await context.Transactions
+            .CountAsync(transaction => transaction.Type == TransactionType.Unknown, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new PendingReviewResponse(transfers, transactions);
+    }
+
     public async Task<IReadOnlyList<InternalTransferResponse>> ListTransfersAsync(
         bool onlyPending,
         CancellationToken cancellationToken = default)

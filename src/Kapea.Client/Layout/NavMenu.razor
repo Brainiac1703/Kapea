@@ -1,55 +1,146 @@
+@implements IDisposable
+@inject NavigationManager Navigation
+@inject PendingReviewState PendingReview
+
+@* Dos niveles, ordenados por uso: lo que se consulta a diario arriba y lo que se
+   configura una vez abajo. Fiscal va como enlace directo porque un grupo con un solo
+   destino sería un clic de más. *@
 <div class="navmenu">
-    <FluentNavMenu Width="220" Title="@Ui["Nav_Menu_Toggle"]" Collapsible="true">
+    <FluentNavMenu Width="240" Title="@Ui["Nav_Menu_Toggle"]" Collapsible="true">
         <FluentNavLink Href="" Match="NavLinkMatch.All" Icon="@(new Icons.Regular.Size20.Home())">
             @Ui["Nav_Home"]
         </FluentNavLink>
-        <FluentNavLink Href="platforms" Icon="@(new Icons.Regular.Size20.BuildingBank())">
-            @Ui["Nav_Platforms"]
-        </FluentNavLink>
-        <FluentNavLink Href="accounts" Icon="@(new Icons.Regular.Size20.Wallet())">
-            @Ui["Nav_Accounts"]
-        </FluentNavLink>
-        <FluentNavLink Href="credentials" Icon="@(new Icons.Regular.Size20.Key())">
-            @Ui["Nav_Credentials"]
-        </FluentNavLink>
-        <FluentNavLink Href="profiles" Icon="@(new Icons.Regular.Size20.DocumentBulletList())">
-            @Ui["Nav_Profiles"]
-        </FluentNavLink>
-        <FluentNavLink Href="import" Icon="@(new Icons.Regular.Size20.ArrowUpload())">
-            @Ui["Nav_Import"]
-        </FluentNavLink>
-        <FluentNavLink Href="imports" Icon="@(new Icons.Regular.Size20.History())">
-            @Ui["Nav_Imports"]
-        </FluentNavLink>
-        <FluentNavLink Href="transactions" Icon="@(new Icons.Regular.Size20.ArrowSwap())">
-            @Ui["Nav_Transactions"]
-        </FluentNavLink>
-        <FluentNavLink Href="review" Icon="@(new Icons.Regular.Size20.TaskListSquareLtr())">
-            @Ui["Nav_Review"]
-        </FluentNavLink>
-        <FluentNavLink Href="portfolio" Icon="@(new Icons.Regular.Size20.ChartMultiple())">
-            @Ui["Nav_Portfolio"]
-        </FluentNavLink>
-        <FluentNavLink Href="evolution" Icon="@(new Icons.Regular.Size20.DataTrending())">
-            @Ui["Nav_Evolution"]
-        </FluentNavLink>
-        <FluentNavLink Href="strategies" Icon="@(new Icons.Regular.Size20.Beaker())">
-            @Ui["Nav_Strategies"]
-        </FluentNavLink>
-        <FluentNavLink Href="signals" Icon="@(new Icons.Regular.Size20.Alert())">
-            @Ui["Nav_Signals"]
-        </FluentNavLink>
-        <FluentNavLink Href="ideas" Icon="@(new Icons.Regular.Size20.Lightbulb())">
-            @Ui["Nav_Ideas"]
-        </FluentNavLink>
-        <FluentNavLink Href="journal" Icon="@(new Icons.Regular.Size20.Notepad())">
-            @Ui["Nav_Journal"]
-        </FluentNavLink>
+
+        <FluentNavGroup Title="@Ui["Nav_Group_Portfolio"]"
+                        Icon="@(new Icons.Regular.Size20.ChartMultiple())"
+                        @bind-Expanded="_portfolioExpanded">
+            <FluentNavLink Href="portfolio" Icon="@(new Icons.Regular.Size20.Wallet())">
+                @Ui["Nav_Portfolio"]
+            </FluentNavLink>
+            <FluentNavLink Href="evolution" Icon="@(new Icons.Regular.Size20.DataTrending())">
+                @Ui["Nav_Evolution"]
+            </FluentNavLink>
+            <FluentNavLink Href="transactions" Icon="@(new Icons.Regular.Size20.ArrowSwap())">
+                @Ui["Nav_Transactions"]
+            </FluentNavLink>
+        </FluentNavGroup>
+
+        <FluentNavGroup Title="@Ui["Nav_Group_Strategy"]"
+                        Icon="@(new Icons.Regular.Size20.Beaker())"
+                        @bind-Expanded="_strategyExpanded">
+            <FluentNavLink Href="strategies" Icon="@(new Icons.Regular.Size20.Beaker())">
+                @Ui["Nav_Strategies"]
+            </FluentNavLink>
+            <FluentNavLink Href="signals" Icon="@(new Icons.Regular.Size20.Alert())">
+                @Ui["Nav_Signals"]
+            </FluentNavLink>
+            <FluentNavLink Href="ideas" Icon="@(new Icons.Regular.Size20.Lightbulb())">
+                @Ui["Nav_Ideas"]
+            </FluentNavLink>
+            <FluentNavLink Href="journal" Icon="@(new Icons.Regular.Size20.Notepad())">
+                @Ui["Nav_Journal"]
+            </FluentNavLink>
+        </FluentNavGroup>
+
+        @* Sin Title: con plantilla, Fluent pinta los dos y el nombre sale repetido. *@
+        <FluentNavGroup Icon="@(new Icons.Regular.Size20.ArrowUpload())"
+                        @bind-Expanded="_importExpanded">
+            <TitleTemplate>
+                @Ui["Nav_Group_Import"]
+                @* Con el grupo cerrado, el aviso se ve en su título: si no, lo pendiente
+                   quedaría escondido justo cuando más fácil es olvidarlo. *@
+                @if (!_importExpanded && PendingReview.Count > 0)
+                {
+                    <PendingBadge Count="PendingReview.Count" />
+                }
+            </TitleTemplate>
+            <ChildContent>
+                <FluentNavLink Href="import" Icon="@(new Icons.Regular.Size20.ArrowUpload())">
+                    @Ui["Nav_Import"]
+                </FluentNavLink>
+                <FluentNavLink Href="imports" Icon="@(new Icons.Regular.Size20.History())">
+                    @Ui["Nav_Imports"]
+                </FluentNavLink>
+                <FluentNavLink Href="review" Icon="@(new Icons.Regular.Size20.TaskListSquareLtr())">
+                    @Ui["Nav_Review"]
+                    @if (PendingReview.Count > 0)
+                    {
+                        <PendingBadge Count="PendingReview.Count" />
+                    }
+                </FluentNavLink>
+            </ChildContent>
+        </FluentNavGroup>
+
         <FluentNavLink Href="results" Icon="@(new Icons.Regular.Size20.DocumentTable())">
             @Ui["Nav_Results"]
         </FluentNavLink>
+
+        <FluentNavGroup Title="@Ui["Nav_Group_Settings"]"
+                        Icon="@(new Icons.Regular.Size20.Settings())"
+                        @bind-Expanded="_settingsExpanded">
+            <FluentNavLink Href="platforms" Icon="@(new Icons.Regular.Size20.BuildingBank())">
+                @Ui["Nav_Platforms"]
+            </FluentNavLink>
+            <FluentNavLink Href="accounts" Icon="@(new Icons.Regular.Size20.Wallet())">
+                @Ui["Nav_Accounts"]
+            </FluentNavLink>
+            <FluentNavLink Href="credentials" Icon="@(new Icons.Regular.Size20.Key())">
+                @Ui["Nav_Credentials"]
+            </FluentNavLink>
+            <FluentNavLink Href="profiles" Icon="@(new Icons.Regular.Size20.DocumentBulletList())">
+                @Ui["Nav_Profiles"]
+            </FluentNavLink>
+        </FluentNavGroup>
+
         <FluentNavLink Href="identities" Icon="@(new Icons.Regular.Size20.Person())">
             @Ui["Nav_Identities"]
         </FluentNavLink>
     </FluentNavMenu>
 </div>
+
+@code {
+    private bool _portfolioExpanded;
+    private bool _strategyExpanded;
+    private bool _importExpanded;
+    private bool _settingsExpanded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PendingReview.Changed += OnPendingChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+
+        ExpandGroupOf(Navigation.Uri);
+
+        await PendingReview.RefreshAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // Sólo se abre el grupo del destino; los que el usuario abrió a mano se quedan
+        // como estaban. Cerrárselos al navegar sería deshacer lo que acaba de decidir.
+        ExpandGroupOf(e.Location);
+        StateHasChanged();
+
+        // Cada navegación es una ocasión de que algo haya cambiado: una importación
+        // confirmada, un traspaso resuelto. Un recuento en la base es barato.
+        _ = PendingReview.RefreshAsync();
+    }
+
+    private void ExpandGroupOf(string uri)
+    {
+        var section = NavigationSections.Of(Navigation.ToBaseRelativePath(uri));
+
+        _portfolioExpanded |= section == NavigationSection.Portfolio;
+        _strategyExpanded |= section == NavigationSection.Strategy;
+        _importExpanded |= section == NavigationSection.Import;
+        _settingsExpanded |= section == NavigationSection.Settings;
+    }
+
+    private void OnPendingChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        PendingReview.Changed -= OnPendingChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

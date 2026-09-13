@@ -48,6 +48,9 @@ public interface IPortfolioQueries
 
     Task<PortfolioResponse> GetPortfolioAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Traspasos por confirmar y movimientos sin clasificar, sólo contados.</summary>
+    Task<PendingReviewResponse> CountPendingReviewAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Evolución de la cartera entre dos fechas, con el reparto por clase.</summary>
     Task<PortfolioHistoryResponse> GetHistoryAsync(
         DateOnly from,

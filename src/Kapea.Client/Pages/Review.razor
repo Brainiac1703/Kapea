@@ -1,6 +1,7 @@
 @page "/review"
 @inject KapeaApiClient Api
 @inject IToastService Toasts
+@inject PendingReviewState PendingReview
 
 <PageTitle>@Ui["Review_Title"]</PageTitle>
 
@@ -99,6 +100,10 @@ else
         {
             _transfers = await Api.GetTransfersAsync(onlyPending: true);
             _unclassified = await Api.GetTransactionsAsync(onlyRequiringReview: true);
+
+            // Cada acción de esta pantalla recarga por aquí, así que es el sitio donde
+            // el contador del menú se entera de lo resuelto sin esperar a navegar.
+            await PendingReview.RefreshAsync();
         }
         catch (KapeaApiException exception)
         {

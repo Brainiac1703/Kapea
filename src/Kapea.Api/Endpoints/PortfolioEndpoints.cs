@@ -466,6 +466,9 @@ public static class PortfolioEndpoints
         api.MapGet("/portfolio", (IPortfolioQueries queries, CancellationToken token) =>
             queries.GetPortfolioAsync(token));
 
+        api.MapGet("/review/pending", (IPortfolioQueries queries, CancellationToken token) =>
+            queries.CountPendingReviewAsync(token));
+
         api.MapGet("/results/{taxYear:int}", (int taxYear, IPortfolioQueries queries, CancellationToken token) =>
             queries.GetTaxYearResultsAsync(taxYear, token));
 

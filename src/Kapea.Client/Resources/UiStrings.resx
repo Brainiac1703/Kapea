@@ -218,10 +218,10 @@
     <value>Inválida</value>
   </data>
   <data name="Nav_Import" xml:space="preserve">
-    <value>Importar</value>
+    <value>Importar fichero</value>
   </data>
   <data name="Nav_Imports" xml:space="preserve">
-    <value>Importaciones</value>
+    <value>Historial</value>
   </data>
   <data name="Import_Title" xml:space="preserve">
     <value>Importar movimientos</value>
@@ -329,16 +329,16 @@
     <value>Descartada</value>
   </data>
   <data name="Nav_Review" xml:space="preserve">
-    <value>Revisión</value>
+    <value>Por revisar</value>
   </data>
   <data name="Nav_Portfolio" xml:space="preserve">
-    <value>Cartera</value>
+    <value>Posiciones</value>
   </data>
   <data name="Nav_Evolution" xml:space="preserve">
     <value>Evolución</value>
   </data>
   <data name="Nav_Results" xml:space="preserve">
-    <value>Resultados</value>
+    <value>Fiscal</value>
   </data>
   <data name="Review_Title" xml:space="preserve">
     <value>Revisión</value>
@@ -473,7 +473,7 @@
     <value>Señales</value>
   </data>
   <data name="Nav_Journal" xml:space="preserve">
-    <value>Diario</value>
+    <value>Diario de decisiones</value>
   </data>
   <data name="Nav_Ideas" xml:space="preserve">
     <value>Ideas</value>
@@ -1109,7 +1109,7 @@
     <value>DeGiro</value>
   </data>
   <data name="Nav_Profiles" xml:space="preserve">
-    <value>Perfiles</value>
+    <value>Perfiles de importación</value>
   </data>
   <data name="Profiles_Title" xml:space="preserve">
     <value>Perfiles de importación</value>
@@ -1374,5 +1374,20 @@
   </data>
   <data name="Transactions_Unvalued" xml:space="preserve">
     <value>Sin valorar</value>
+  </data>
+  <data name="Nav_Group_Portfolio" xml:space="preserve">
+    <value>Cartera</value>
+  </data>
+  <data name="Nav_Group_Strategy" xml:space="preserve">
+    <value>Estrategia</value>
+  </data>
+  <data name="Nav_Group_Import" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="Nav_Group_Settings" xml:space="preserve">
+    <value>Configuración</value>
+  </data>
+  <data name="Nav_Review_PendingCount" xml:space="preserve">
+    <value>{0} pendientes de revisar</value>
   </data>
 </root>
