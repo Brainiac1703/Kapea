@@ -72,15 +72,15 @@ else
         new ChartLine(
             Ui["Asset_Price"],
             [.. _history!.Days.Select(day => new ChartPoint(day.Date, day.PriceInEuros))],
-            ChartLine.ColorAt(0)),
-        new ChartLine(Ui["Asset_Average"], Points(_history.SimpleMovingAverage), ChartLine.ColorAt(1), Dashed: true),
+            ChartLine.SeriesAt(0)),
+        new ChartLine(Ui["Asset_Average"], Points(_history.SimpleMovingAverage), ChartLine.SeriesAt(1), Dashed: true),
         new ChartLine(
-            Ui["Asset_Exponential"], Points(_history.ExponentialMovingAverage), ChartLine.ColorAt(2), Dashed: true),
+            Ui["Asset_Exponential"], Points(_history.ExponentialMovingAverage), ChartLine.SeriesAt(2), Dashed: true),
     ];
 
     private IReadOnlyList<ChartLine> Strength() =>
     [
-        new ChartLine(Ui["Asset_Strength"], Points(_history!.RelativeStrengthIndex), ChartLine.ColorAt(3)),
+        new ChartLine(Ui["Asset_Strength"], Points(_history!.RelativeStrengthIndex), ChartLine.SeriesAt(3)),
     ];
 
     private static IReadOnlyList<ChartPoint> Points(IReadOnlyList<IndicatorPointResponse> points) =>
