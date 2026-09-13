@@ -222,6 +222,43 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task The_pending_count_includes_what_could_not_be_classified()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var created = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con pendientes", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(user, created!.Id, Domain.Transactions.TransactionType.Unknown);
+        await SeedTransactionAsync(user, created.Id);
+
+        var pending = await client.GetFromJsonAsync<PendingReviewResponse>("/api/review/pending");
+
+        Assert.Equal(1, pending!.Transactions);
+        Assert.Equal(1, pending.Total);
+    }
+
+    [Fact]
+    public async Task The_pending_count_does_not_include_someone_elses()
+    {
+        // El menú lo enseña a cada usuario: contar lo de otro sería avisar de algo que
+        // no puede ver ni resolver.
+        var owner = Guid.NewGuid();
+        var created = await (await factory.CreateClientFor(owner).PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Ajena", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(owner, created!.Id, Domain.Transactions.TransactionType.Unknown);
+
+        var pending = await factory.CreateClientFor(Guid.NewGuid())
+            .GetFromJsonAsync<PendingReviewResponse>("/api/review/pending");
+
+        Assert.Equal(0, pending!.Total);
+    }
+
+    [Fact]
     public async Task The_money_left_in_an_account_comes_back_with_its_alias_and_its_currency()
     {
         var user = Guid.NewGuid();
