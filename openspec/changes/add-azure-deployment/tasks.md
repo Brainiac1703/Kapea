@@ -2,7 +2,7 @@
 
 - [x] 1.1 Dejar escrito en `Deploy/README.md` el guion de arranque: crear el registro de aplicación con credencial federada para la rama principal y para el entorno de producción, y concederle acceso de datos sobre el contenedor del estado que ya existe. Se verifica ejecutando los comandos del documento tal cual y obteniendo los identificadores que el flujo necesita.
 - [x] 1.2 Elegir la ruta del blob de estado con el nombre del proyecto dentro y comprobar que no existe. Se verifica listando los blobs del contenedor compartido y viendo que solo está el de legacy-lens.
-- [ ] 1.3 Crear el entorno `production` en GitHub con revisor requerido, y dar de alta como variables la suscripción, el inquilino, el cliente, la cuenta y el contenedor del estado, que son los mismos de legacy-lens, y la ruta del blob, que no. Se verifica con un despliegue de prueba que se queda esperando la aprobación.
+- [x] 1.3 Crear el entorno `production` en GitHub con revisor requerido, y dar de alta como variables la suscripción, el inquilino, el cliente, la cuenta y el contenedor del estado, que son los mismos de legacy-lens, y la ruta del blob, que no. Se verifica con un despliegue de prueba que se queda esperando la aprobación.
 
 ## 2. Terraform: el servicio de modelos primero
 
