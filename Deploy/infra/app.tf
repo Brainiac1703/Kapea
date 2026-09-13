@@ -122,6 +122,14 @@ resource "azurerm_container_app" "api" {
           "ASPNETCORE_ENVIRONMENT" = "Production"
           "ASPNETCORE_HTTP_PORTS"  = "8080"
 
+          # El servicio termina el TLS delante del contenedor, así que la API ve
+          # llegar las peticiones por http. Sin esto construye la vuelta de
+          # Google como http://…/signin-google, que Google rechaza fuera de
+          # localhost. Con la variable, ASP.NET Core atiende a X-Forwarded-Proto y
+          # X-Forwarded-For; es seguro porque el contenedor no tiene más entrada
+          # que la del propio servicio.
+          "ASPNETCORE_FORWARDEDHEADERS_ENABLED" = "true"
+
           # Las claves que cifran la cookie viven en el blob y se protegen con la
           # clave del almacén. Sin esto, cada revisión nueva echaría de la sesión
           # a quien estuviera dentro.
