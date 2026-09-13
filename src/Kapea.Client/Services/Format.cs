@@ -61,6 +61,16 @@ public static class Format
     public static string Rate(decimal? rate, string whenMissing) =>
         rate is { } value ? value.ToString("+0.##%;-0.##%;0%", CultureInfo.CurrentCulture) : whenMissing;
 
+    /// <summary>
+    /// Un resultado en euros con su signo, también cuando es positivo.
+    /// </summary>
+    /// <remarks>
+    /// Por la misma razón que <see cref="Rate"/>: sin el más delante, una ganancia y el
+    /// valor de una posición se escriben igual y sólo el color los distingue.
+    /// </remarks>
+    public static string SignedEuros(decimal amount) =>
+        amount > 0 ? "+" + Euros(amount) : Euros(amount);
+
     /// <summary>Un día, en el formato corto del idioma activo.</summary>
     public static string Day(DateOnly date) => date.ToString("d", CultureInfo.CurrentCulture);
 

@@ -25,7 +25,7 @@ else
                    el patrimonio. Superpuestas se taparían y no se vería el reparto. *@
                 @foreach (var area in Areas())
                 {
-                    <polygon points="@area.Points" fill="@area.Color" fill-opacity="0.75" />
+                    <polygon points="@area.Points" class="@area.Series" fill-opacity="0.75" />
                 }
             }
             else
@@ -36,7 +36,7 @@ else
                        precio dibujaría una recta que nadie cotizó. *@
                     @foreach (var segment in Segments(line))
                     {
-                        <polyline points="@segment" fill="none" stroke="@line.Color"
+                        <polyline points="@segment" fill="none" class="@line.Series"
                                   stroke-width="2" stroke-dasharray="@(line.Dashed ? "6 4" : null)" />
                     }
                 }
@@ -68,7 +68,7 @@ else
                 @foreach (var line in Lines)
                 {
                     <span class="chart-readout-line">
-                        <span class="chart-readout-dot" style="background: @line.Color"></span>
+                        <span class="chart-readout-dot @line.Series"></span>
                         @line.Name
                         <strong>@Reading(line, day)</strong>
                     </span>
@@ -142,7 +142,7 @@ else
     }
 
     /// <summary>Cada clase como un área entre su altura acumulada y la de la anterior.</summary>
-    private IEnumerable<(string Points, string Color)> Areas()
+    private IEnumerable<(string Points, string Series)> Areas()
     {
         var stacked = Stack(Lines);
 
@@ -162,7 +162,7 @@ else
                     string.Create(CultureInfo.InvariantCulture, $"{N(X(top[0].Date))},{N(Y(0m))}"),
                 ]);
 
-            yield return (string.Join(' ', points), stacked[index].Color);
+            yield return (string.Join(' ', points), stacked[index].Series);
         }
     }
 

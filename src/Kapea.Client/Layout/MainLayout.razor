@@ -3,15 +3,28 @@
 @implements IDisposable
 @inject SessionState Session
 @inject NavigationManager Navigation
+@inject BodyFont BodyFont
+@inject NeutralBaseColor NeutralBaseColor
+@inject LayerCornerRadius LayerCornerRadius
+
+@* El modo sigue al sistema, igual que la hoja de estilos: si Fluent pintara claro con
+   la página en oscuro, los componentes y el fondo no casarían. *@
+<FluentDesignTheme Mode="DesignThemeModes.System" CustomColor="@AccentColor" StorageName="kapea-theme" />
 
 <FluentLayout>
-    <FluentHeader>
+    <FluentHeader Class="app-header">
         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Width="100%">
-            <span class="brand">@Ui["App_Name"]</span>
+            <a class="brand" href="">
+                <BrandMark />
+                <span class="brand-name">@Ui["App_Wordmark"]</span>
+            </a>
             <FluentSpacer />
             @if (Session.User is { } usuario)
             {
-                <span class="session-user">@usuario.DisplayName</span>
+                <span class="session-user">
+                    <span class="avatar" aria-hidden="true">@Initials(usuario.DisplayName)</span>
+                    @usuario.DisplayName
+                </span>
                 <FluentButton Appearance="Appearance.Stealth" OnClick="SignOut">@Ui["Session_SignOut"]</FluentButton>
             }
         </FluentStack>
@@ -36,6 +49,38 @@
 @* Proveedores de Fluent UI: sin ellos los diálogos y los mensajes no tienen dónde
    pintarse y las acciones fallan en silencio. Van una sola vez, en el layout. *@
 @code {
+    /// <summary>Petróleo de la marca. Fluent deriva de él los tonos de cada estado y modo.</summary>
+    private const string AccentColor = "#0e5e6a";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        // Neutros con un punto cálido, a juego con el fondo de la página: los grises
+        // fríos de Fluent sobre un papel cálido se ven sucios.
+        await NeutralBaseColor.WithDefault("#78766f");
+        await BodyFont.WithDefault("\"IBM Plex Sans\", \"Segoe UI\", system-ui, sans-serif");
+        await LayerCornerRadius.WithDefault(8);
+    }
+
+    /// <summary>
+    /// Iniciales para el círculo de la cabecera.
+    /// </summary>
+    /// <remarks>
+    /// Las dos primeras palabras, o la primera letra si el nombre es una sola. Un nombre
+    /// vacío deja el círculo sin letras antes que inventarse unas.
+    /// </remarks>
+    public static string Initials(string? displayName)
+    {
+        var words = (displayName ?? string.Empty)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return string.Concat(words.Take(2).Select(word => char.ToUpper(word[0], System.Globalization.CultureInfo.CurrentCulture)));
+    }
+
     protected override async Task OnInitializedAsync()
     {
         Session.Changed += StateHasChanged;

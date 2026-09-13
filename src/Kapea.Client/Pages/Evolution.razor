@@ -176,8 +176,8 @@ else
             new ChartLine(
                 Ui["Evolution_Wealth"],
                 [.. _history.Days.Select(day => new ChartPoint(day.Date, day.IsComplete ? day.ValueInEuros : null))],
-                ChartLine.ColorAt(0)),
-            new ChartLine(Ui["Evolution_Contributed"], contributed, ChartLine.ColorAt(1), Dashed: true),
+                ChartLine.SeriesAt(0)),
+            new ChartLine(Ui["Evolution_Contributed"], contributed, ChartLine.SeriesAt(1), Dashed: true),
         ];
     }
 
@@ -199,7 +199,7 @@ else
                         day.Date,
                         day.ValueByClass.TryGetValue(name, out var value) ? value : null)),
                 ],
-                ChartLine.ColorAt(index))),
+                ChartLine.SeriesAt(index))),
         ];
     }
 

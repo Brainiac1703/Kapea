@@ -1,8 +1,124 @@
-/* Estilos propios de Kapea. Fluent UI aporta el resto: tipografía, colores y
-   componentes vienen de su sistema de diseño y no se redefinen aquí. */
+/* Estilos propios de Kapea. Fluent UI aporta los componentes; el color de acento, la
+   fuente y los radios se le pasan como tokens desde MainLayout. Aquí va lo que Fluent
+   no tiene: la marca, ganancia y pérdida, las series de las gráficas y los paneles. */
+
+/* Fuentes servidas desde la propia aplicación y no desde Google: una cartera no
+   debería avisar a un tercero cada vez que se abre. Son variables, un fichero por
+   familia cubre todos los pesos. Licencias OFL junto a los ficheros. */
+@font-face {
+    font-family: "IBM Plex Sans";
+    src: url("../fonts/ibm-plex-sans-latin.woff2") format("woff2");
+    font-weight: 100 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Newsreader";
+    src: url("../fonts/newsreader-latin.woff2") format("woff2");
+    font-weight: 200 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Paleta de Kapea. Los colores de las series están comprobados para daltonismo en
+   claro y en oscuro, y en ese orden: añadir uno en medio obliga a repetir la
+   comprobación. El modo oscuro no es una inversión: son otros tonos de las mismas
+   familias, elegidos para el fondo oscuro. */
+:root {
+    --kapea-font-display: "Newsreader", Georgia, "Times New Roman", serif;
+    --kapea-font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+
+    --kapea-page: #f6f5f2;
+    --kapea-surface: #ffffff;
+    --kapea-line: #e6e3dc;
+    --kapea-line-soft: #efede8;
+    --kapea-ink: #1c1f1f;
+    --kapea-ink-soft: #5d625f;
+    --kapea-ink-muted: #878b87;
+    --kapea-accent: #0e5e6a;
+    --kapea-accent-soft: #e4eeee;
+    --kapea-accent-ink: #0b4f59;
+
+    --kapea-positive: #277a55;
+    --kapea-positive-soft: #e6f1eb;
+    --kapea-negative: #ad472e;
+    --kapea-negative-soft: #f6e9e4;
+    --kapea-warning: #8a5a0f;
+    --kapea-warning-soft: #f5ecdc;
+
+    --kapea-series-1: #007a9e;
+    --kapea-series-2: #bb731b;
+    --kapea-series-3: #695ba9;
+    --kapea-series-4: #5a8a3d;
+    --kapea-series-5: #a4517b;
+    --kapea-series-other: #9a9e9a;
+    --kapea-chart-grid: #ebe8e1;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --kapea-page: #111313;
+        --kapea-surface: #1b1e1e;
+        --kapea-line: #2b3030;
+        --kapea-line-soft: #232727;
+        --kapea-ink: #e9e7e2;
+        --kapea-ink-soft: #aeb2ae;
+        --kapea-ink-muted: #838884;
+        --kapea-accent: #69bac3;
+        --kapea-accent-soft: #1f3134;
+        --kapea-accent-ink: #8fd0d7;
+
+        --kapea-positive: #68b88f;
+        --kapea-positive-soft: #1c2c24;
+        --kapea-negative: #e58870;
+        --kapea-negative-soft: #33221d;
+        --kapea-warning: #d9a656;
+        --kapea-warning-soft: #2f2718;
+
+        --kapea-series-1: #00a0a6;
+        --kapea-series-2: #c87f2c;
+        --kapea-series-3: #8678c9;
+        --kapea-series-4: #68994c;
+        --kapea-series-5: #bb6690;
+        --kapea-series-other: #6f746f;
+        --kapea-chart-grid: #262a2a;
+    }
+}
+
+/* Con !important porque Fluent vuelve a pintar el fondo del cuerpo con su capa
+   neutra al aplicar el tema, después de que se cargue esta hoja. */
+body {
+    background: var(--kapea-page) !important;
+    color: var(--kapea-ink);
+    font-family: var(--kapea-font-body);
+}
+
+/* Todas las cifras con el mismo ancho por dígito: así una columna de importes alinea
+   por la coma y un número que cambia no hace bailar lo que tiene al lado. */
+body,
+fluent-data-grid-cell {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Títulos de página en la fuente de la marca. Fluent pinta el título de página como
+   un h2 marcado con typo="page-title"; se elige por la marca y no por la etiqueta,
+   que Fluent puede cambiar. El resto de la jerarquía se queda en la de interfaz. */
+.content [typo="page-title"],
+.brand-name {
+    font-family: var(--kapea-font-display) !important;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+.content [typo="page-title"] {
+    font-size: 34px;
+    line-height: 1.15;
+}
 
 .body-content {
-    padding: 1.5rem 2rem;
+    background: var(--kapea-page);
+    padding: 2rem 2.5rem 3rem;
     overflow-y: auto;
 }
 
@@ -13,14 +129,20 @@
 /* Separa el texto introductorio del título y de lo que viene debajo. */
 .intro {
     margin: 0.25rem 0 1.5rem 0;
-    color: var(--neutral-foreground-hint);
+    color: var(--kapea-ink-soft);
 }
 
 .navmenu {
     /* Ancho fijo: el menú no compite por el espacio con la tabla de la derecha,
        que es lo que de verdad necesita crecer. */
+    align-self: stretch;
+    /* Los elementos en reposo sobre el fondo de la página, sin tarjeta: Fluent les da
+       un relleno propio que sobre el papel cálido se ve como un parche. El hover y el
+       activo conservan el suyo. */
+    --neutral-fill-stealth-rest: transparent;
     min-width: 240px;
-    border-right: 1px solid var(--neutral-stroke-divider-rest);
+    background: var(--kapea-page);
+    border-right: 1px solid var(--kapea-line);
     overflow-y: auto;
 }
 
@@ -118,21 +240,309 @@
 /* Ganancia y pérdida en color, pero el signo sigue delante: el color solo refuerza
    lo que ya dice el número, para que se lea igual sin distinguirlos. */
 .gain {
-    color: var(--success);
+    color: var(--kapea-positive);
 }
 
 .loss {
-    color: var(--error);
+    color: var(--kapea-negative);
+}
+
+/* Cabecera: la marca a la izquierda y la sesión a la derecha, sobre la superficie y
+   no sobre el acento. Una franja de color entera compite con las cifras, que es lo
+   que se viene a mirar. */
+/* Con !important porque Fluent pinta la cabecera con el acento desde su propia hoja,
+   con más especificidad que una clase. */
+header.app-header {
+    background: var(--kapea-surface) !important;
+    border-bottom: 1px solid var(--kapea-line);
+    color: var(--kapea-ink) !important;
 }
 
 .brand {
+    align-items: center;
+    color: inherit;
+    display: flex;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.brand:hover {
+    text-decoration: none;
+}
+
+.brand-mark rect {
+    fill: var(--kapea-accent);
+}
+
+.brand-name {
+    color: var(--kapea-ink);
+    font-size: 22px;
     font-weight: 600;
+    line-height: 1;
 }
 
 .session-user {
-    opacity: 0.85;
-    font-size: 0.9rem;
+    align-items: center;
+    color: var(--kapea-ink-soft);
+    display: flex;
+    font-size: 14px;
+    gap: 10px;
 }
+
+.avatar {
+    align-items: center;
+    background: var(--kapea-accent-soft);
+    border-radius: 999px;
+    color: var(--kapea-accent-ink);
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 600;
+    height: 30px;
+    justify-content: center;
+    width: 30px;
+}
+
+/* Variación con su signo, su flecha y su fondo suave. El color refuerza lo que ya
+   dicen el signo y la flecha; nunca va solo. */
+.delta {
+    align-items: center;
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 500;
+    gap: 4px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.delta svg {
+    flex-shrink: 0;
+}
+
+.delta.gain {
+    background: var(--kapea-positive-soft);
+}
+
+.delta.loss {
+    background: var(--kapea-negative-soft);
+}
+
+.delta.flat {
+    background: var(--kapea-line-soft);
+    color: var(--kapea-ink-soft);
+}
+
+.delta.delta-plain {
+    background: none;
+    padding: 0;
+}
+
+/* Paneles del inicio y tarjetas en general: superficie, borde fino y radio de 8. */
+.panel {
+    background: var(--kapea-surface);
+    border: 1px solid var(--kapea-line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+    padding: 20px 24px;
+}
+
+.panel-title {
+    color: var(--kapea-ink-soft);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.panel-head {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.stat-value {
+    color: var(--kapea-ink);
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+
+.stat-note {
+    color: var(--kapea-ink-soft);
+    font-size: 13px;
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dashboard-row {
+    display: grid;
+    gap: 16px;
+}
+
+.dashboard-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-main {
+    grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+}
+
+.dashboard-lists {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* En una ventana estrecha los paneles se apilan: tres cifras de 32 px en un tercio
+   de móvil no se leen. */
+@media (max-width: 1100px) {
+    .dashboard-stats,
+    .dashboard-main,
+    .dashboard-lists {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Reparto por clase: una barra partida y la leyenda debajo con cifra y peso. */
+.allocation-bar {
+    border-radius: 4px;
+    display: block;
+    height: 12px;
+    width: 100%;
+}
+
+.allocation-row,
+.list-row {
+    align-items: center;
+    border-top: 1px solid var(--kapea-line-soft);
+    display: flex;
+    font-size: 14px;
+    gap: 10px;
+    padding: 10px 0;
+}
+
+.allocation-row .name,
+.list-row .grow {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.allocation-row .share,
+.list-row .soft {
+    color: var(--kapea-ink-soft);
+}
+
+.allocation-row .share {
+    text-align: right;
+    width: 64px;
+}
+
+.swatch {
+    border-radius: 3px;
+    flex-shrink: 0;
+    height: 10px;
+    width: 10px;
+}
+
+/* Las clases de serie pintan fondo, trazo o relleno según el elemento, para que un
+   mismo color siga a la misma serie en la barra, la leyenda y la gráfica. */
+.series-0 { --series: var(--kapea-series-1); }
+.series-1 { --series: var(--kapea-series-2); }
+.series-2 { --series: var(--kapea-series-3); }
+.series-3 { --series: var(--kapea-series-4); }
+.series-4 { --series: var(--kapea-series-5); }
+.series-other { --series: var(--kapea-series-other); }
+
+span.series-0, span.series-1, span.series-2, span.series-3, span.series-4, span.series-other {
+    background: var(--series);
+}
+
+polyline.series-0, polyline.series-1, polyline.series-2, polyline.series-3, polyline.series-4, polyline.series-other {
+    stroke: var(--series);
+}
+
+polygon.series-0, polygon.series-1, polygon.series-2, polygon.series-3, polygon.series-4, polygon.series-other,
+rect.series-0, rect.series-1, rect.series-2, rect.series-3, rect.series-4, rect.series-other {
+    fill: var(--series);
+}
+
+/* Avisos del inicio: icono en su cuadro, texto y una acción a la derecha. */
+.notice {
+    align-items: flex-start;
+    border-top: 1px solid var(--kapea-line-soft);
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.notice-icon {
+    align-items: center;
+    border-radius: 6px;
+    display: flex;
+    flex-shrink: 0;
+    height: 32px;
+    justify-content: center;
+    width: 32px;
+}
+
+.notice-icon.warning {
+    background: var(--kapea-warning-soft);
+    color: var(--kapea-warning);
+}
+
+.notice-icon.signal {
+    background: var(--kapea-accent-soft);
+    color: var(--kapea-accent);
+}
+
+.notice-body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: 2px;
+    min-width: 0;
+}
+
+.notice-head {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.notice-text {
+    color: var(--kapea-ink-soft);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+/* Peso de una posición: la cifra y una barra corta que se compara de un vistazo. */
+.weight {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.weight-track {
+    flex-grow: 1;
+    height: 6px;
+    min-width: 40px;
+}
+
+.weight-rest {
+    fill: var(--kapea-line-soft);
+}
+
+.weight-value {
+    color: var(--kapea-ink-soft);
+    text-align: right;
+    width: 52px;
+}
+
 
 .signin {
     display: flex;
@@ -198,7 +608,7 @@ table.sample th {
 }
 
 .chart-grid {
-    stroke: var(--neutral-stroke-divider-rest);
+    stroke: var(--kapea-chart-grid);
     stroke-width: 1;
 }
 

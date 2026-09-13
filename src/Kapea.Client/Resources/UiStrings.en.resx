@@ -1390,4 +1390,52 @@
   <data name="Nav_Review_PendingCount" xml:space="preserve">
     <value>{0} pending review</value>
   </data>
+  <data name="App_Wordmark" xml:space="preserve">
+    <value>kapea</value>
+  </data>
+  <data name="Home_Start" xml:space="preserve">
+    <value>Add an account</value>
+  </data>
+  <data name="Home_UpdatedAt" xml:space="preserve">
+    <value>Data loaded on</value>
+  </data>
+  <data name="Home_Today" xml:space="preserve">
+    <value>Last day</value>
+  </data>
+  <data name="Home_TodayUnavailable" xml:space="preserve">
+    <value>Two priced days are needed to compare.</value>
+  </data>
+  <data name="Home_EvolutionYear" xml:space="preserve">
+    <value>Evolution · last year</value>
+  </data>
+  <data name="Home_SeeEvolution" xml:space="preserve">
+    <value>See evolution</value>
+  </data>
+  <data name="Home_Allocation" xml:space="preserve">
+    <value>Allocation by class</value>
+  </data>
+  <data name="Home_Notices" xml:space="preserve">
+    <value>Notices</value>
+  </data>
+  <data name="Home_Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Home_SeeSignal" xml:space="preserve">
+    <value>See signals</value>
+  </data>
+  <data name="Home_NoNotices" xml:space="preserve">
+    <value>Nothing pending and no signals in the last week.</value>
+  </data>
+  <data name="Home_LastMovements" xml:space="preserve">
+    <value>Latest movements</value>
+  </data>
+  <data name="Home_SeeAll" xml:space="preserve">
+    <value>See all</value>
+  </data>
+  <data name="Home_SignalEntry" xml:space="preserve">
+    <value>Entry signal on {0}</value>
+  </data>
+  <data name="Home_SignalExit" xml:space="preserve">
+    <value>Exit signal on {0}</value>
+  </data>
 </root>

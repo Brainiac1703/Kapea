@@ -78,7 +78,7 @@ else
 
     @* Un grupo por clase de activo, con sus subtotales. Salen de los datos, así que una
        clase nueva aparece sola sin tocar la pantalla. *@
-    @foreach (var group in _portfolio.Groups)
+    @foreach (var group in OrderedGroups)
     {
         <FluentLabel Typo="Typography.H4">@ClassName(group.AssetClass)</FluentLabel>
 
@@ -93,7 +93,7 @@ else
 
         <FluentDataGrid Items="@group.Positions.AsQueryable()"
                         TGridItem="OpenPositionResponse"
-                        GridTemplateColumns="1.2fr 1fr 1fr 1.2fr 1fr 1fr 1fr 1fr 0.8fr">
+                        GridTemplateColumns="0.9fr 1fr 1fr 1.1fr 0.9fr 1.7fr 0.9fr 0.8fr 1.3fr">
             <TemplateColumn Title="@Ui["Common_Asset"]">
                 @* El símbolo lleva a su evolución: es donde se mira cuando una posición
                    llama la atención en la tabla. *@
@@ -108,28 +108,38 @@ else
                                 Title="@Ui["Portfolio_Unverified"]" />
                 }
             </TemplateColumn>
-            <TemplateColumn Title="@Ui["Common_Quantity"]">@Format.Quantity(context.Quantity)</TemplateColumn>
-            <TemplateColumn Title="@Ui["Portfolio_AverageCost"]">@Euros(context.AverageCostInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Quantity"]" Align="Align.End">@Format.Quantity(context.Quantity)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_AverageCost"]" Align="Align.End">@Euros(context.AverageCostInEuros)</TemplateColumn>
 
             @* El instante acompaña al precio: un precio sin fecha no se puede contrastar
                con nada, y uno de hace tres días se lee como el de ahora. *@
-            <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]">
+            <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]" Align="Align.End">
                 @Euros(context.MarketPriceInEuros)
                 @if (context.PriceAsOf is { } asOf)
                 {
                     <div class="moment">@Ui["Portfolio_PriceAsOf"] @Format.Moment(asOf)</div>
                 }
             </TemplateColumn>
-            <TemplateColumn Title="@Ui["Portfolio_MarketValue"]">@Euros(context.MarketValueInEuros)</TemplateColumn>
-            <TemplateColumn Title="@Ui["Portfolio_Unrealised"]">
-                <span class="@Sign(context.UnrealisedResultInEuros)">@Euros(context.UnrealisedResultInEuros)</span>
+            <TemplateColumn Title="@Ui["Portfolio_MarketValue"]" Align="Align.End">@Euros(context.MarketValueInEuros)</TemplateColumn>
+            @* Resultado con signo, flecha y porcentaje sobre el coste: el color acompaña, y
+               sin el porcentaje cien euros de una posición pequeña y de una grande se
+               leerían igual. *@
+            <TemplateColumn Title="@Ui["Portfolio_Unrealised"]" Align="Align.End">
+                @if (context.UnrealisedResultInEuros is { } unrealised)
+                {
+                    <Delta Amount="@unrealised" Rate="@RateOnCost(unrealised, context.CostInEuros)" Plain="true" />
+                }
+                else
+                {
+                    @Ui["Portfolio_NoPrice"]
+                }
             </TemplateColumn>
-            <TemplateColumn Title="@Ui["Portfolio_Realized"]">
-                <span class="@Sign(context.RealizedResultInEuros)">@Format.Euros(context.RealizedResultInEuros)</span>
+            <TemplateColumn Title="@Ui["Portfolio_Realized"]" Align="Align.End">
+                <Delta Amount="@context.RealizedResultInEuros" Plain="true" />
             </TemplateColumn>
-            <TemplateColumn Title="@Ui["Portfolio_Fees"]">@Format.Euros(context.FeesInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_Fees"]" Align="Align.End">@Format.Euros(context.FeesInEuros)</TemplateColumn>
             <TemplateColumn Title="@Ui["Portfolio_Weight"]">
-                @Format.Percent(context.Weight, Ui["Portfolio_NoPrice"])
+                <WeightBar Weight="@context.Weight" Missing="@Ui["Portfolio_NoPrice"]" Series="@GroupSeries(group)" />
 
                 @* Los niveles del sistema que propuso entrar, con el aviso cuando el
                    precio ya los ha alcanzado. Es un aviso: Kapea no ejecuta nada. *@
@@ -256,4 +266,20 @@ else
     private string Euros(decimal? amount) => Format.Euros(amount, Ui["Portfolio_NoPrice"]);
 
     private static string Sign(decimal? amount) => Format.Sign(amount);
+
+    /// <summary>
+    /// Grupos en orden fijo por clase.
+    /// </summary>
+    /// <remarks>
+    /// El mismo orden que el reparto del inicio, para que cada clase lleve allí y aquí
+    /// el mismo color.
+    /// </remarks>
+    private IReadOnlyList<PortfolioGroupResponse> OrderedGroups =>
+        [.. _portfolio!.Groups.OrderBy(group => group.AssetClass, StringComparer.Ordinal)];
+
+    private string GroupSeries(PortfolioGroupResponse group) =>
+        ChartLine.SeriesAt(OrderedGroups.ToList().FindIndex(candidate => candidate.AssetClass == group.AssetClass));
+
+    /// <summary>Resultado sobre lo que costó. Sin coste no hay porcentaje que dar.</summary>
+    private static decimal? RateOnCost(decimal result, decimal cost) => cost > 0m ? result / cost : null;
 }
