@@ -1,0 +1,506 @@
+name: Deploy
+
+# ---------------------------------------------------------------------------
+# Camino único a producción, en el orden en que las cosas pueden romperse:
+#
+#   1. Compilar y probar        si una prueba falla, no se toca nada
+#   2. Planificar               qué cambiaría en la infraestructura
+#   3. Revisar y aprobar        parada manual del entorno 'production'
+#   4. Aplicar infraestructura  el plan aprobado, no uno nuevo
+#   5. Actualizar la base       migraciones y alta de la identidad
+#   6. Publicar                 las dos revisiones, y comprobar que responden
+#
+# El orden entre 5 y 6 no es negociable: el esquema tiene que estar listo antes
+# de que arranque el código que lo usa. Al revés, la revisión nueva fallaría al
+# consultar columnas que todavía no existen, y lo haría ya con tráfico.
+# ---------------------------------------------------------------------------
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      infrastructure_only:
+        description: 'Stop after applying the infrastructure'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  RESOURCE_GROUP: rg-kapea
+  API_IMAGE_REPOSITORY: kapea-api
+  SYNC_IMAGE_REPOSITORY: kapea-sync
+
+jobs:
+  # -------------------------------------------------------------------------
+  # 1. Compilar y probar
+  # -------------------------------------------------------------------------
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Kapea.slnx
+
+      - name: Build the solution
+        run: dotnet build Kapea.slnx --no-restore --configuration Release
+
+      # Las pruebas de integración levantan SQL Server con Testcontainers sobre
+      # el Docker del ejecutor.
+      - name: Run the tests
+        run: dotnet test Kapea.slnx --no-build --configuration Release
+
+  # -------------------------------------------------------------------------
+  # 2. Planificar la infraestructura
+  # -------------------------------------------------------------------------
+  plan-infrastructure:
+    name: Plan infrastructure
+    needs: build
+    runs-on: ubuntu-latest
+
+    # Sin las variables de arranque el flujo no puede funcionar. Se omite en
+    # lugar de fallar, para no dejar un aspa roja permanente en el repositorio.
+    if: >-
+      vars.TFSTATE_STORAGE_ACCOUNT != ''
+      && vars.AZURE_INFRA_CLIENT_ID != ''
+      && vars.SQL_ADMIN_OBJECT_ID != ''
+
+    env:
+      ARM_USE_OIDC: 'true'
+      ARM_CLIENT_ID: ${{ vars.AZURE_INFRA_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_deploy_app: 'true'
+
+      # La identidad que administra el servidor SQL. Es la misma que aplica la
+      # infraestructura, porque es la que despues tiene que aplicar las
+      # migraciones: el servidor no admite usuario y contrasena, solo Entra.
+      #
+      # object_id es el del service principal, no el del registro de aplicacion.
+      # Son distintos y usar el equivocado hace que Azure rechace el
+      # administrador sin explicar por que.
+      TF_VAR_sql_admin: >-
+        {"login":"${{ vars.SQL_ADMIN_LOGIN }}",
+         "object_id":"${{ vars.SQL_ADMIN_OBJECT_ID }}"}
+      TF_IN_AUTOMATION: 'true'
+
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./Deploy/actions/terraform
+        with:
+          storage-account: ${{ vars.TFSTATE_STORAGE_ACCOUNT }}
+          container: ${{ vars.TFSTATE_CONTAINER }}
+          key: ${{ vars.TFSTATE_KEY }}
+
+      - name: Check formatting and validate
+        working-directory: Deploy/infra
+        run: |
+          terraform fmt -check -recursive
+          terraform validate
+
+      - name: Plan
+        id: plan
+        working-directory: Deploy/infra
+        run: |
+          # Nombres de variable en ASCII: bash no admite acentos en un
+          # identificador, asi que "codigo=..." con tilde no seria una
+          # asignacion sino un comando inexistente, y el paso no podria fallar.
+          set +e
+          terraform plan -no-color -input=false -out=tfplan -detailed-exitcode | tee plan.txt
+          exit_code=${PIPESTATUS[0]}
+          set -e
+
+          # 0 sin cambios, 2 con cambios, 1 error. Cualquier otro valor tambien
+          # se trata como fallo en lugar de darlo por bueno.
+          if [ "$exit_code" != '0' ] && [ "$exit_code" != '2' ]; then
+            echo "::error::terraform plan fallo con codigo $exit_code."
+            exit 1
+          fi
+
+          echo "has_changes=$([ "$exit_code" = '2' ] && echo si || echo no)" >> "$GITHUB_OUTPUT"
+
+          {
+            echo '### Plan de infraestructura'
+            echo ''
+            [ "$exit_code" = '2' ] && echo 'Hay cambios pendientes de aplicar.' || echo 'Sin cambios.'
+            echo ''
+            echo '<details><summary>Ver el plan</summary>'
+            echo ''
+            echo '```hcl'
+            tail -c 50000 plan.txt
+            echo '```'
+            echo ''
+            echo '</details>'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # El plan se guarda para aplicar exactamente lo que se revisó, sin ventana
+      # para que algo cambie entre la aprobación y la aplicación.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tfplan
+          path: Deploy/infra/tfplan
+          retention-days: 5
+
+  # -------------------------------------------------------------------------
+  # 3 y 4. Revisar, aprobar y aplicar
+  # -------------------------------------------------------------------------
+  apply-infrastructure:
+    name: Apply infrastructure
+    needs: plan-infrastructure
+    runs-on: ubuntu-latest
+
+    # La parada de revisión: con revisores requeridos en el entorno
+    # 'production', GitHub espera aquí una aprobación manual antes de continuar.
+    environment: production
+
+    env:
+      ARM_USE_OIDC: 'true'
+      ARM_CLIENT_ID: ${{ vars.AZURE_INFRA_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_deploy_app: 'true'
+
+      # La identidad que administra el servidor SQL. Es la misma que aplica la
+      # infraestructura, porque es la que despues tiene que aplicar las
+      # migraciones: el servidor no admite usuario y contrasena, solo Entra.
+      #
+      # object_id es el del service principal, no el del registro de aplicacion.
+      # Son distintos y usar el equivocado hace que Azure rechace el
+      # administrador sin explicar por que.
+      TF_VAR_sql_admin: >-
+        {"login":"${{ vars.SQL_ADMIN_LOGIN }}",
+         "object_id":"${{ vars.SQL_ADMIN_OBJECT_ID }}"}
+      TF_IN_AUTOMATION: 'true'
+
+    outputs:
+      sql_server: ${{ steps.collect.outputs.sql_server }}
+      sql_database: ${{ steps.collect.outputs.sql_database }}
+      api_url: ${{ steps.collect.outputs.api_url }}
+      registry: ${{ steps.collect.outputs.registry }}
+      api_app: ${{ steps.collect.outputs.api_app }}
+      sync_app: ${{ steps.collect.outputs.sync_app }}
+      identity: ${{ steps.collect.outputs.identity }}
+      identity_client_id: ${{ steps.collect.outputs.identity_client_id }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./Deploy/actions/terraform
+        with:
+          storage-account: ${{ vars.TFSTATE_STORAGE_ACCOUNT }}
+          container: ${{ vars.TFSTATE_CONTAINER }}
+          key: ${{ vars.TFSTATE_KEY }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: tfplan
+          path: Deploy/infra
+
+      # lock-timeout espera si otra ejecucion tiene el estado tomado, en lugar
+      # de fallar al instante. Ojo con lo que NO resuelve: un lease abandonado
+      # —terraform muerto a media ejecucion— es infinito y esperar no lo libera.
+      # Como romperlo esta en Deploy/README.md.
+      - name: Apply the approved plan
+        working-directory: Deploy/infra
+        run: terraform apply -input=false -auto-approve -lock-timeout=5m tfplan
+
+      - name: Collect the outputs
+        id: collect
+        working-directory: Deploy/infra
+        run: |
+          {
+            echo "sql_server=$(terraform output -raw sql_server_fqdn)"
+            echo "sql_database=$(terraform output -raw sql_database_name)"
+            echo "api_url=$(terraform output -raw api_url)"
+            echo "registry=$(terraform output -raw container_registry)"
+            echo "api_app=$(terraform output -raw api_app_name)"
+            echo "sync_app=$(terraform output -raw sync_app_name)"
+            echo "identity=$(terraform output -raw app_identity_name)"
+            echo "identity_client_id=$(terraform output -raw app_identity_client_id)"
+          } >> "$GITHUB_OUTPUT"
+
+  # -------------------------------------------------------------------------
+  # 5. Actualizar la base de datos
+  # -------------------------------------------------------------------------
+  update-database:
+    name: Update database
+    needs: apply-infrastructure
+    if: inputs.infrastructure_only != true
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # Se autentica con la identidad de infraestructura porque es la que
+      # Terraform ha dejado como administradora de Entra del servidor SQL.
+      - name: Sign in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_INFRA_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # El ejecutor de GitHub tiene IP pública variable, así que hay que abrirle
+      # el cortafuegos justo para esta ejecución y cerrarlo después.
+      - name: Open the firewall for the runner
+        id: firewall
+        env:
+          SQL_SERVER: ${{ needs.apply-infrastructure.outputs.sql_server }}
+        run: |
+          ip=$(curl -s --max-time 10 https://api.ipify.org)
+          rule="pipeline-${{ github.run_id }}"
+
+          echo "rule=$rule" >> "$GITHUB_OUTPUT"
+
+          az sql server firewall-rule create \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "${SQL_SERVER%%.*}" \
+            --name "$rule" \
+            --start-ip-address "$ip" \
+            --end-ip-address "$ip" \
+            --output none
+
+          echo "Cortafuegos abierto para $ip"
+
+      # Version fijada a la de los paquetes de EF del proyecto. Sin fijarla se
+      # instala la ultima estable, que hoy coincide, pero saltaria sola a la
+      # siguiente mayor en cuanto se publique.
+      - name: Install the EF tool
+        run: dotnet tool install --global dotnet-ef --version 10.0.12
+
+      # Se compila aparte y la migracion se aplica con --no-build, para que un
+      # fallo de compilacion se distinga de un fallo al aplicar la migracion en
+      # vez de quedar los dos mezclados en el mismo paso.
+      - name: Build the startup project
+        run: dotnet build src/Kapea.Api --configuration Release
+
+      # Authentication=Active Directory Default hace que el cliente pida un token
+      # con la sesión de az que acabamos de abrir. Ninguna contraseña.
+      #
+      # Si esto falla, el flujo se detiene aquí: la revisión anterior sigue
+      # sirviendo con el esquema que ya conocía.
+      - name: Apply migrations
+        env:
+          ConnectionStrings__Kapea: >-
+            Server=tcp:${{ needs.apply-infrastructure.outputs.sql_server }},1433;
+            Database=${{ needs.apply-infrastructure.outputs.sql_database }};
+            Authentication=Active Directory Default;Encrypt=True;Connection Timeout=60;
+        run: |
+          dotnet ef database update \
+            --project src/Kapea.Infrastructure \
+            --startup-project src/Kapea.Api \
+            --no-build --configuration Release
+
+      # Version fijada: 'latest' haria que el flujo cambiara de herramienta sin
+      # que nadie lo decidiera.
+      - name: Install sqlcmd
+        run: |
+          curl -fsSL \
+            https://github.com/microsoft/go-sqlcmd/releases/download/v1.10.0/sqlcmd-linux-amd64.tar.bz2 \
+            | tar -xj -C /usr/local/bin sqlcmd
+          sqlcmd --version
+
+      # Terraform no puede hacer esto: conceder acceso dentro de Azure SQL es
+      # una operación del plano de datos. Ver el comentario del script.
+      #
+      # Las banderas son las de compatibilidad de go-sqlcmd, y no coinciden con
+      # lo que uno esperaría: la base de datos es --database-name y las
+      # variables son --variables, en plural.
+      - name: Register the application identity
+        env:
+          SERVER: ${{ needs.apply-infrastructure.outputs.sql_server }}
+          DATABASE: ${{ needs.apply-infrastructure.outputs.sql_database }}
+          IDENTITY: ${{ needs.apply-infrastructure.outputs.identity }}
+          IDENTITY_CLIENT_ID: ${{ needs.apply-infrastructure.outputs.identity_client_id }}
+        run: |
+          if ! output=$(sqlcmd \
+            --server "$SERVER" \
+            --database-name "$DATABASE" \
+            --authentication-method ActiveDirectoryDefault \
+            --variables APP_IDENTITY="$IDENTITY" \
+            --variables APP_CLIENT_ID="$IDENTITY_CLIENT_ID" \
+            --input-file Deploy/sql/grant-identity-access.sql \
+            --exit-on-error 2>&1); then
+            echo "$output"
+            echo "::error::sqlcmd fallo al dar de alta $IDENTITY."
+            exit 1
+          fi
+
+          echo "$output"
+
+          # sqlcmd devuelve 0 aunque no consiga conectarse: --exit-on-error solo
+          # cubre errores de T-SQL, no de conexion. Sin esta comprobacion el
+          # paso saldria verde sin haber concedido nada, y el fallo apareceria
+          # mucho mas tarde, al arrancar la aplicacion.
+          if ! grep -q 'GRANT_CONFIRMED' <<< "$output"; then
+            echo "::error::La identidad $IDENTITY no quedo dada de alta en $DATABASE."
+            exit 1
+          fi
+
+          echo "Identidad $IDENTITY dada de alta con lectura y escritura."
+
+      # En always() para que el cortafuegos se cierre también si la migración
+      # falla: dejarlo abierto sería peor que el fallo original.
+      - name: Close the firewall
+        if: always() && steps.firewall.outputs.rule != ''
+        env:
+          SQL_SERVER: ${{ needs.apply-infrastructure.outputs.sql_server }}
+        run: |
+          az sql server firewall-rule delete \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "${SQL_SERVER%%.*}" \
+            --name "${{ steps.firewall.outputs.rule }}" \
+            --output none || echo "La regla ya no existia."
+
+  # -------------------------------------------------------------------------
+  # 6. Publicar las dos revisiones
+  # -------------------------------------------------------------------------
+  deploy-apps:
+    name: Deploy apps
+    needs: [apply-infrastructure, update-database]
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Sign in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_INFRA_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # az acr build construye dentro de Azure: el ejecutor no necesita
+      # credenciales del registro ni subir capas por la red, y el registro sigue
+      # con las credenciales de administrador desactivadas.
+      #
+      # Se construye aqui y no en el trabajo de compilacion porque el registro
+      # nace con la infraestructura: en el primer despliegue todavia no existe
+      # cuando se compila y se prueba.
+      - name: Build the images in Azure
+        id: image
+        env:
+          REGISTRY: ${{ needs.apply-infrastructure.outputs.registry }}
+        run: |
+          tag="${GITHUB_SHA::12}"
+          registry_name="${REGISTRY%%.*}"
+
+          # Dos destinos del mismo Dockerfile: la API con el cliente dentro y el
+          # trabajador sin entrada.
+          az acr build \
+            --registry "$registry_name" \
+            --image "$API_IMAGE_REPOSITORY:$tag" \
+            --image "$API_IMAGE_REPOSITORY:latest" \
+            --target api \
+            --file Dockerfile \
+            .
+
+          az acr build \
+            --registry "$registry_name" \
+            --image "$SYNC_IMAGE_REPOSITORY:$tag" \
+            --image "$SYNC_IMAGE_REPOSITORY:latest" \
+            --target sync \
+            --file Dockerfile \
+            .
+
+          {
+            echo "api=$REGISTRY/$API_IMAGE_REPOSITORY:$tag"
+            echo "sync=$REGISTRY/$SYNC_IMAGE_REPOSITORY:$tag"
+            echo "tag=$tag"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish the revisions
+        run: |
+          az containerapp update \
+            --name '${{ needs.apply-infrastructure.outputs.api_app }}' \
+            --resource-group "$RESOURCE_GROUP" \
+            --image '${{ steps.image.outputs.api }}' \
+            --output none
+
+          az containerapp update \
+            --name '${{ needs.apply-infrastructure.outputs.sync_app }}' \
+            --resource-group "$RESOURCE_GROUP" \
+            --image '${{ steps.image.outputs.sync }}' \
+            --output none
+
+      # No basta con que az devuelva exito: una revision puede fallar al
+      # arrancar, por ejemplo si no puede autenticarse contra la base de datos.
+      - name: Check the api responds
+        run: |
+          url='${{ needs.apply-infrastructure.outputs.api_url }}/health'
+
+          for attempt in $(seq 1 20); do
+            http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url" || echo 000)
+
+            # 204 es lo que devuelve el punto de comprobacion; 200 se acepta por
+            # si alguna vez pasa a devolver cuerpo.
+            if [ "$http_code" = '204' ] || [ "$http_code" = '200' ]; then
+              echo "La API responde $http_code en el intento $attempt."
+              exit 0
+            fi
+
+            echo "Intento $attempt: $http_code. Esperando..."
+            sleep 15
+          done
+
+          echo "::error::La API no respondio tras 20 intentos."
+          exit 1
+
+      # El trabajador no tiene entrada que consultar, asi que se mira su estado
+      # de aprovisionamiento: si la revision no arranco, aqui no dice Succeeded.
+      - name: Check the worker revision is healthy
+        run: |
+          for attempt in $(seq 1 20); do
+            state=$(az containerapp revision list \
+              --name '${{ needs.apply-infrastructure.outputs.sync_app }}' \
+              --resource-group "$RESOURCE_GROUP" \
+              --query "[?properties.active].properties.provisioningState | [0]" \
+              --output tsv)
+
+            if [ "$state" = 'Provisioned' ]; then
+              echo "La revision del trabajador esta aprovisionada."
+              exit 0
+            fi
+
+            echo "Intento $attempt: $state. Esperando..."
+            sleep 15
+          done
+
+          echo "::error::La revision del trabajador no llego a aprovisionarse."
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### Despliegue completado'
+            echo ''
+            echo '| | |'
+            echo '| --- | --- |'
+            echo "| URL | ${{ needs.apply-infrastructure.outputs.api_url }} |"
+            echo "| Imagen de la API | \`${{ steps.image.outputs.api }}\` |"
+            echo "| Imagen del trabajador | \`${{ steps.image.outputs.sync }}\` |"
+            echo "| Commit | \`${GITHUB_SHA::12}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

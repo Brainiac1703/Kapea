@@ -1,0 +1,71 @@
+name: CI
+
+# ---------------------------------------------------------------------------
+# Valida los pull request. No toca Azure ni necesita ninguna credencial: solo
+# compila, prueba y comprueba que las dos imágenes se construyen.
+# ---------------------------------------------------------------------------
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Kapea.slnx
+
+      - name: Build the solution
+        run: dotnet build Kapea.slnx --no-restore --configuration Release
+
+      # Las pruebas de integración levantan SQL Server con Testcontainers, que
+      # usa el Docker del ejecutor. No hace falta declararlo como servicio: cada
+      # prueba crea y tira el suyo.
+      - name: Run the tests
+        run: dotnet test Kapea.slnx --no-build --configuration Release
+
+      # Los dos destinos se construyen por separado: un fallo en el del
+      # trabajador no aparecería construyendo solo el de la API.
+      - name: Build the api image
+        run: docker build --target api -t kapea-api:ci .
+
+      - name: Build the sync image
+        run: docker build --target sync -t kapea-sync:ci .
+
+  infrastructure:
+    name: Check infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.4
+
+      # Sin backend y sin credenciales: comprueba la forma de los ficheros, que
+      # es lo que se puede comprobar en un pull request. Un plan de verdad
+      # necesitaría acceso al estado y a la suscripción, y eso solo lo tiene el
+      # flujo de despliegue.
+      - name: Validate
+        working-directory: Deploy/infra
+        run: |
+          terraform init -backend=false -input=false
+          terraform fmt -check -recursive
+          terraform validate
