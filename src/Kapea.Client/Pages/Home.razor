@@ -1,9 +1,304 @@
 @page "/"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+@inject PendingReviewState PendingReview
+@implements IDisposable
 
 <PageTitle>@Ui["Home_Title"]</PageTitle>
 
-<FluentLabel Typo="Typography.PageTitle">@Ui["Home_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.PageTitle">@Ui["Home_Title"]</FluentLabel>
 
-<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Home_Intro"]</FluentLabel>
+@if (_portfolio is null)
+{
+    <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Home_Intro"]</FluentLabel>
 
-<FluentLabel Typo="Typography.Body">@Ui["Home_NextStep"]</FluentLabel>
+    @if (_failed)
+    {
+        <FluentLabel Typo="Typography.Body">@Ui["Home_NextStep"]</FluentLabel>
+    }
+    else
+    {
+        <FluentProgressRing />
+    }
+}
+else if (_portfolio.Groups.Count == 0 && _portfolio.Cash.Count == 0)
+{
+    @* Sin nada importado, un panel de ceros no dice nada: lo útil es el primer paso. *@
+    <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Home_Intro"]</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@Ui["Home_NextStep"]</FluentLabel>
+    <FluentAnchor Href="accounts" Appearance="Appearance.Accent">@Ui["Home_Start"]</FluentAnchor>
+}
+else
+{
+    <FluentLabel Typo="Typography.Body" Class="intro">
+        @Ui["Home_UpdatedAt"] @Format.Moment(_loadedAt)
+    </FluentLabel>
+
+    <div class="dashboard">
+        <div class="dashboard-row dashboard-stats">
+            <section class="panel">
+                <span class="panel-title">@Ui["Portfolio_Wealth"]</span>
+                <span class="stat-value">@Format.Euros(_portfolio.WealthInEuros)</span>
+                <span class="stat-note">@Ui["Portfolio_TotalCost"] @Format.Euros(_portfolio.TotalCostInEuros)</span>
+            </section>
+
+            <section class="panel">
+                <span class="panel-title">@Ui["Portfolio_Accumulated"]</span>
+                <span class="stat-value">@Format.SignedEuros(Accumulated)</span>
+                <span>
+                    <Delta Amount="@Accumulated" Rate="@AccumulatedRate" RateOnly="true" />
+                </span>
+            </section>
+
+            <section class="panel">
+                <span class="panel-title">@Ui["Home_Today"]</span>
+                @if (_today is { } today)
+                {
+                    <span class="stat-value">@Format.SignedEuros(today.Amount)</span>
+                    <span>
+                        <Delta Amount="@today.Amount" Rate="@today.Rate" RateOnly="true" />
+                    </span>
+                }
+                else
+                {
+                    @* Sin dos días con precio no hay con qué comparar, y un cero diría
+                       que no se movió nada. *@
+                    <span class="stat-value">—</span>
+                    <span class="stat-note">@Ui["Home_TodayUnavailable"]</span>
+                }
+            </section>
+        </div>
+
+        <div class="dashboard-row dashboard-main">
+            <section class="panel">
+                <div class="panel-head">
+                    <span class="panel-title">@Ui["Home_EvolutionYear"]</span>
+                    <FluentAnchor Href="evolution" Appearance="Appearance.Hypertext">@Ui["Home_SeeEvolution"]</FluentAnchor>
+                </div>
+                @if (_history is not null)
+                {
+                    <LineChart Lines="@Evolution()" Title="@Ui["Home_EvolutionYear"]" />
+                }
+                else
+                {
+                    <FluentProgressRing />
+                }
+            </section>
+
+            <section class="panel">
+                <span class="panel-title">@Ui["Home_Allocation"]</span>
+                <AllocationBar Slices="@Allocation" Label="@Ui["Home_Allocation"]" />
+                <div>
+                    @foreach (var slice in Allocation)
+                    {
+                        <div class="allocation-row">
+                            <span class="swatch @slice.Series"></span>
+                            <span class="name">@slice.Name</span>
+                            <span>@Format.Euros(slice.Value)</span>
+                            <span class="share">@Format.Percent(Share(slice), "—")</span>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="dashboard-row dashboard-lists">
+            <section class="panel">
+                <span class="panel-title">@Ui["Home_Notices"]</span>
+                <div>
+                    @if (PendingReview.Count > 0)
+                    {
+                        <div class="notice">
+                            <span class="notice-icon warning">
+                                <FluentIcon Value="@(new Icons.Regular.Size20.Warning())" Color="Color.Custom" CustomColor="currentColor" />
+                            </span>
+                            <span class="notice-body">
+                                <span class="notice-head">@PendingText</span>
+                                <span class="notice-text">@Ui["Portfolio_Incomplete"]</span>
+                            </span>
+                            <FluentAnchor Href="review" Appearance="Appearance.Hypertext">@Ui["Home_Review"]</FluentAnchor>
+                        </div>
+                    }
+
+                    @foreach (var signal in RecentSignals)
+                    {
+                        <div class="notice">
+                            <span class="notice-icon signal">
+                                <FluentIcon Value="@(new Icons.Regular.Size20.DataTrending())" Color="Color.Custom" CustomColor="currentColor" />
+                            </span>
+                            <span class="notice-body">
+                                <span class="notice-head">@SignalHead(signal)</span>
+                                <span class="notice-text">@SignalText(signal)</span>
+                            </span>
+                            <FluentAnchor Href="signals" Appearance="Appearance.Hypertext">@Ui["Home_SeeSignal"]</FluentAnchor>
+                        </div>
+                    }
+
+                    @if (PendingReview.Count == 0 && RecentSignals.Count == 0)
+                    {
+                        <div class="notice">
+                            <span class="notice-text">@Ui["Home_NoNotices"]</span>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <span class="panel-title">@Ui["Home_LastMovements"]</span>
+                    <FluentAnchor Href="transactions" Appearance="Appearance.Hypertext">@Ui["Home_SeeAll"]</FluentAnchor>
+                </div>
+                <div>
+                    @foreach (var movement in _movements)
+                    {
+                        <div class="list-row">
+                            <span class="soft">@Format.Moment(movement.OccurredAt)</span>
+                            <span class="grow">@movement.Type · @(movement.AssetSymbol ?? movement.Currency)</span>
+                            <span>@Format.Money(movement.GrossAmount, movement.Currency)</span>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Señales de la última semana: las de hace un mes ya no son un aviso.</summary>
+    private const int SignalDays = 7;
+
+    private const int MaxSignals = 3;
+
+    private PortfolioResponse? _portfolio;
+    private PortfolioHistoryResponse? _history;
+    private IReadOnlyList<SignalResponse> _signals = [];
+    private IReadOnlyList<TransactionResponse> _movements = [];
+    private DailyChange? _today;
+    private DateTimeOffset _loadedAt;
+    private bool _failed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PendingReview.Changed += OnPendingChanged;
+
+        try
+        {
+            // Lo que se ve primero va primero: las cifras de arriba no esperan a la
+            // gráfica ni a las listas, que llegan después sin mover lo ya pintado.
+            _portfolio = await Api.GetPortfolioAsync();
+            _loadedAt = DateTimeOffset.Now;
+        }
+        catch (KapeaApiException exception)
+        {
+            _failed = true;
+            Toasts.ShowApiError(exception);
+
+            return;
+        }
+
+        StateHasChanged();
+
+        var history = Api.GetHistoryAsync(days: 365);
+        var signals = Api.ListSignalsAsync(days: SignalDays);
+        var movements = Api.SearchTransactionsAsync(pageSize: 5);
+
+        try
+        {
+            _history = await history;
+            _today = DashboardFigures.LastDay(_history.Days);
+            _signals = await signals;
+            _movements = (await movements).Items;
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private decimal Accumulated => _portfolio!.RealizedResultInEuros + _portfolio.UnrealisedResultInEuros;
+
+    private decimal? AccumulatedRate =>
+        _portfolio!.TotalCostInEuros > 0m ? Accumulated / _portfolio.TotalCostInEuros : null;
+
+    /// <summary>Una porción por clase de activo y otra para el efectivo, en orden fijo.</summary>
+    /// <remarks>
+    /// El orden es el de las clases y no el del tamaño: si una clase adelantara a otra, se
+    /// intercambiarían los colores y el reparto de ayer no se reconocería en el de hoy.
+    /// </remarks>
+    private IReadOnlyList<AllocationSlice> Allocation =>
+    [
+        .. _portfolio!.Groups
+            .OrderBy(group => group.AssetClass, StringComparer.Ordinal)
+            .Select((group, index) => new AllocationSlice(
+                ClassName(group.AssetClass), group.MarketValueInEuros, ChartLine.SeriesAt(index))),
+        new AllocationSlice(Ui["Portfolio_Cash"], _portfolio.CashTotalInEuros, ChartLine.SeriesAt(_portfolio.Groups.Count)),
+    ];
+
+    private decimal? Share(AllocationSlice slice)
+    {
+        var total = Allocation.Sum(item => item.Value);
+
+        return total > 0m ? slice.Value / total : null;
+    }
+
+    private IReadOnlyList<SignalResponse> RecentSignals =>
+        [.. _signals.OrderBy(signal => signal.DaysOld).Take(MaxSignals)];
+
+    private string PendingText => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture, Ui["Nav_Review_PendingCount"].Value, PendingReview.Count);
+
+    private string SignalHead(SignalResponse signal) => string.Format(
+        System.Globalization.CultureInfo.CurrentCulture,
+        Ui[signal.Direction == "Entry" ? "Home_SignalEntry" : "Home_SignalExit"].Value,
+        signal.AssetSymbol);
+
+    private string SignalText(SignalResponse signal)
+    {
+        var parts = new List<string> { signal.StrategyName, Format.Day(signal.Date) };
+
+        if (signal.TargetInEuros is { } target)
+        {
+            parts.Add($"{Ui["Strategies_Target"]} {Format.Euros(target)}");
+        }
+
+        if (signal.StopLossInEuros is { } stop)
+        {
+            parts.Add($"{Ui["Strategies_Stop"]} {Format.Euros(stop)}");
+        }
+
+        return string.Join(" · ", parts);
+    }
+
+    /// <summary>Valor frente a lo aportado, igual que en la pantalla de evolución.</summary>
+    private IReadOnlyList<ChartLine> Evolution()
+    {
+        var running = 0m;
+        var contributed = new List<ChartPoint>();
+
+        foreach (var day in _history!.Days)
+        {
+            running += day.ContributionInEuros;
+            contributed.Add(new ChartPoint(day.Date, running));
+        }
+
+        return
+        [
+            new ChartLine(
+                Ui["Evolution_Wealth"],
+                [.. _history.Days.Select(day => new ChartPoint(day.Date, day.IsComplete ? day.ValueInEuros : null))],
+                ChartLine.SeriesAt(0)),
+            new ChartLine(Ui["Evolution_Contributed"], contributed, "series-other", Dashed: true),
+        ];
+    }
+
+    private string ClassName(string assetClass) => assetClass switch
+    {
+        "Equity" => Ui["Portfolio_ClassEquity"],
+        "Crypto" => Ui["Portfolio_ClassCrypto"],
+        _ => assetClass,
+    };
+
+    private void OnPendingChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => PendingReview.Changed -= OnPendingChanged;
+}

@@ -1,0 +1,53 @@
+@* Una variación con signo, flecha y fondo suave. El color refuerza lo que dicen el
+   signo y la flecha, nunca los sustituye. *@
+<span class="@CssClass">
+    @if (IsGain)
+    {
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M6 9.5V2.5M2.5 6L6 2.5L9.5 6" stroke="currentColor" stroke-width="1.6"
+                  stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+    }
+    else if (IsLoss)
+    {
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M6 2.5V9.5M2.5 6L6 9.5L9.5 6" stroke="currentColor" stroke-width="1.6"
+                  stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+    }
+    @Text
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public decimal Amount { get; set; }
+
+    /// <summary>La misma variación en tanto por uno. Sin ella sólo se enseñan los euros.</summary>
+    [Parameter]
+    public decimal? Rate { get; set; }
+
+    /// <summary>
+    /// Sólo el porcentaje, para cuando el importe ya está escrito en grande encima y
+    /// repetirlo en la píldora sería leer dos veces la misma cifra.
+    /// </summary>
+    [Parameter]
+    public bool RateOnly { get; set; }
+
+    /// <summary>Sin fondo, para dentro de una tabla, donde las píldoras cansan en cada fila.</summary>
+    [Parameter]
+    public bool Plain { get; set; }
+
+    private bool IsGain => Amount > 0m;
+
+    private bool IsLoss => Amount < 0m;
+
+    private string CssClass =>
+        $"delta {(IsGain ? "gain" : IsLoss ? "loss" : "flat")}{(Plain ? " delta-plain" : string.Empty)}";
+
+    private string Text => (Rate, RateOnly) switch
+    {
+        ({ } rate, true) => Format.Rate(rate, string.Empty),
+        ({ } rate, false) => $"{Format.SignedEuros(Amount)} · {Format.Rate(rate, string.Empty)}",
+        _ => Format.SignedEuros(Amount),
+    };
+}

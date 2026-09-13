@@ -1,0 +1,45 @@
+@* Reparto en una barra partida. Cada tramo lleva un hueco de 2 unidades con el
+   siguiente para que dos colores contiguos no se fundan. *@
+<svg class="allocation-bar" viewBox="0 0 1000 12" preserveAspectRatio="none" role="img" aria-label="@Label">
+    @foreach (var segment in Segments())
+    {
+        <rect x="@segment.X" width="@segment.Width" height="12" class="@segment.Series"></rect>
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired]
+    public required IReadOnlyList<AllocationSlice> Slices { get; set; }
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    private const decimal Gap = 2m;
+
+    private IEnumerable<(string X, string Width, string Series)> Segments()
+    {
+        var total = Slices.Sum(slice => Math.Max(slice.Value, 0m));
+
+        if (total <= 0m)
+        {
+            yield break;
+        }
+
+        var available = 1000m - Gap * Math.Max(Slices.Count - 1, 0);
+        var x = 0m;
+
+        foreach (var slice in Slices.Where(slice => slice.Value > 0m))
+        {
+            // Tres unidades como mínimo: una clase pequeña sigue siendo una clase, y
+            // desaparecer de la barra la borraría del reparto a la vista.
+            var width = Math.Max(slice.Value / total * available, 3m);
+
+            yield return (N(x), N(width), slice.Series);
+
+            x += width + Gap;
+        }
+    }
+
+    private static string N(decimal value) =>
+        value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}
