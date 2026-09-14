@@ -1,15 +1,68 @@
 # Kapea
 
-Plataforma personal de gestión de inversiones: consolida las operaciones repartidas
-entre las plataformas que uses, calcula el resultado con criterio FIFO en euros y
-prepara la información fiscal.
+Kapea es una aplicación personal de gestión de inversiones. Reúne en un solo sitio
+todo lo que tienes repartido entre brókeres y exchanges, calcula qué has ganado o
+perdido como lo calcula Hacienda, y te ayuda a decidir con reglas escritas en lugar de
+con corazonadas.
 
-Kapea no está atada a un conjunto cerrado de brókeres. Las plataformas que exponen una
-API se integran con su adaptador —hoy Kraken y Bit2Me—, y cualquiera que exporte una
-tabla de movimientos se da de alta desde la propia aplicación definiendo cómo se lee su
-fichero. XTB viene configurado de serie por esa vía.
+## Qué hace
 
-## Levantar el entorno de desarrollo
+**Consolida tu cartera**
+
+- Descarga el histórico de las plataformas con API mediante credenciales de sólo
+  lectura. Kraken y Bit2Me vienen configuradas y se sincronizan solas cada pocas horas.
+- Importa cualquier plataforma que exporte una tabla de movimientos. El formato se
+  describe desde la aplicación con un perfil de importación, sin programar. XTB viene
+  configurado de serie.
+- Si un fichero no lo reconoce ningún perfil, puede proponer el mapeo con Azure OpenAI.
+  Al servicio sólo van las cabeceras y tres filas de ejemplo; los importes los calcula
+  siempre Kapea.
+- Descarta duplicados al repetir una importación, detecta traspasos entre tus propias
+  cuentas y aparta lo que no sabe clasificar para que lo revises.
+
+**Te dice cómo vas**
+
+- Posiciones abiertas con coste medio, precio de mercado, valor, resultado latente y
+  realizado, comisiones y peso.
+- Patrimonio con el efectivo de cada cuenta, convertido a euros con el tipo del Banco
+  Central Europeo.
+- Evolución diaria del patrimonio frente a lo aportado, reparto por clase de activo y
+  gráfica de cada activo con medias y fuerza relativa.
+- Rendimiento medido como el de un fondo: rentabilidad de tus decisiones, de tu dinero,
+  volatilidad y mayor caída, comparado con haber puesto lo mismo en tu mayor posición.
+- Avisos de concentración cuando pocas posiciones pesan demasiado.
+
+**Prepara la información fiscal**
+
+- Ganancias y pérdidas patrimoniales por ejercicio con criterio FIFO en euros, con el
+  tipo de cambio de la fecha de cada operación.
+- Desglose por activo y hasta los lotes de compra que consume cada venta.
+- Rendimientos cobrados, con su retención.
+
+**Te ayuda a especular con método**
+
+- Sistemas de especulación con reglas sobre precio, medias, RSI, MACD, bandas de
+  Bollinger y recorrido diario, con objetivo y nivel de salida. También se pueden
+  describir con palabras y dejar que Azure OpenAI proponga las reglas.
+- Señales de entrada y salida con la condición que las disparó.
+- Simulación de un sistema sobre el histórico real de un activo, con tus comisiones y
+  los impuestos del ahorro, comparada con comprar y no tocar.
+- Seguimiento de ideas de fuentes externas hasta su desenlace, con el balance de
+  aciertos de cada fuente.
+- Diario de decisiones para anotar por qué hiciste lo que hiciste.
+
+Kapea no ejecuta órdenes ni recomienda comprar o vender: aplica lo que tú escribes y te
+enseña lo que ha pasado.
+
+## Documentación
+
+- [Guía de uso](docs/uso.md): cómo se trabaja con cada pantalla y cómo leer sus cifras.
+- [Configuración](docs/configuracion.md): variables, identidad, secretos, servicios
+  externos y comprobaciones de arranque.
+- [Despliegue en Azure](Deploy/README.md): infraestructura, flujo de publicación y
+  costes.
+
+## Empezar en local
 
 Hace falta Docker. No hace falta ni SQL Server ni una cuenta de Azure.
 
@@ -21,106 +74,21 @@ docker compose up --build
 - Aplicación en <http://localhost:8082>
 - SQL Server en `localhost:14331`, base de datos `Kapea`
 
-Levanta tres piezas:
+Sin Google configurado, la pantalla de acceso ofrece entrar como usuario de desarrollo.
+El primer paso dentro es dar de alta una cuenta; la [guía de uso](docs/uso.md) sigue
+desde ahí.
 
-| Servicio | Qué hace |
+## Cómo está hecho
+
+| Pieza | Qué hace |
 |---|---|
-| `api` | Web API y, además, los estáticos del cliente Blazor WebAssembly. Es la única que ve las credenciales de los brokers. |
-| `sync` | Sincronización periódica con Kraken y Bit2Me. Vive aparte para que un fallo hablando con un tercero no arrastre a la API. |
-| `sqlserver` | Base de datos. Las migraciones las aplica la API al arrancar en desarrollo. |
+| `api` | Web API en ASP.NET Core que además sirve el cliente Blazor WebAssembly. Es la única que ve las credenciales de las plataformas. |
+| `sync` | Proceso aparte que sincroniza las cuentas con API y completa el histórico de precios. Un fallo hablando con un tercero no arrastra a la API. |
+| `sqlserver` | Base de datos. En desarrollo la API aplica las migraciones al arrancar. |
 
-Sin credenciales de broker configuradas el entorno funciona igual: se pueden crear
-cuentas e importar ficheros de XTB, y la sincronización simplemente no encuentra nada
-que sincronizar.
-
-### Identidad en desarrollo
-
-Kapea no guarda contraseñas: se entra con un proveedor externo. Sin
-`GOOGLE_CLIENT_ID` configurado, la pantalla de acceso ofrece entrar como un usuario
-fijo de desarrollo. No es un modo sin sesión: emite la misma cookie que emitiría
-Google, así que cerrar sesión, caducar y volver a entrar recorren el mismo camino que
-en producción. Es deliberado que esto **solo** valga en `Development`: fuera de él la
-API se niega a arrancar sin identidad configurada, en lugar de abrirse a cualquiera.
-
-Para activar Google, crea un ID de cliente de OAuth en Google Cloud con la URI de
-redirección `http://localhost:8082/signin-google` y rellena `GOOGLE_CLIENT_ID` y
-`GOOGLE_CLIENT_SECRET` en el `.env`. Crear esas credenciales es gratuito y no exige
-cuenta de facturación.
-
-Con Google configurado el acceso de desarrollo desaparece. Para conservar los dos a la
-vez mientras se trabaja, pon `DEV_USER_ENABLED=true` en el `.env`: la pantalla de acceso
-ofrecerá ambos botones. Esa bandera **solo** surte efecto en `Development`; fuera de
-ahí la API la ignora, de modo que copiarla por descuido a un despliegue no abre nada.
-
-#### Activar Apple
-
-Apple queda preparado y sin implementar. El modelo ya admite varios proveedores por
-usuario —una identidad es un par de proveedor y sujeto—, así que activarlo no toca el
-esquema de la base de datos ni los datos existentes. Lo que hace falta:
-
-1. Una cuenta de Apple Developer, que es de pago y de renovación anual. Es el único
-   motivo por el que esto no está hecho ya.
-2. En el portal de Apple: un identificador de aplicación con «Sign in with Apple»
-   habilitado, un identificador de servicio para el acceso web, y una clave privada
-   para generar el secreto de cliente.
-3. En Kapea: el paquete de autenticación de Apple para ASP.NET Core, una entrada
-   `Apple` junto a la de Google en `KapeaAuthentication`, y sus credenciales en la
-   configuración con la misma forma que las de Google.
-
-El secreto de cliente de Apple no es una cadena fija: es un JWT firmado con esa clave
-privada y caduca como mucho a los seis meses, así que hay que renovarlo. Conviene
-resolverlo al arrancar y no dejarlo escrito en el `.env`.
-
-La pantalla de acceso no necesita ningún cambio: pinta un botón por cada proveedor que
-la API declara disponible.
-
-### Cada cuándo se sincroniza
-
-El proceso de sincronización corre al arrancar y después cada `SYNC_INTERVAL`, que en
-docker compose son quince minutos y en producción seis horas. Solo mira las cuentas cuya
-credencial está activa: una revocada o rechazada por la plataforma queda fuera hasta que
-se rote.
-
-Tras dar de alta una credencial no hace falta esperar al siguiente ciclo: el botón
-«Sincronizar ahora» de la pantalla de credenciales la lanza en el momento, y solo sobre
-las cuentas de quien la pide.
-
-### Propuesta automática del mapeo
-
-Cuando aparece un formato de fichero que ningún perfil reconoce, Kapea puede pedir a
-Azure OpenAI que deduzca el mapeo. Es opcional: sin `AZURE_OPENAI_ENDPOINT` configurado
-el mapeo se hace a mano y todo lo demás funciona igual.
-
-Al servicio van las cabeceras y **como mucho tres filas** de ejemplo. Un extracto es un
-dato personal, y para saber qué columna es la fecha no hace falta ver el año entero; hay
-un test que inspecciona la petición emitida y falla si se cuela una cuarta fila.
-
-Lo que devuelve es un mapeo, nunca una cifra. Los importes los calcula después el motor
-determinista aplicando el perfil, así que recalcular un ejercicio ya presentado da
-siempre lo mismo. La propuesta se contrasta además con las filas de ejemplo: si la
-columna que dice ser la fecha no se lee como fecha en ninguna, se pregunta aunque el
-modelo declare estar seguro.
-
-`MappingProposals:AzureOpenAi:ConfidenceThreshold` decide cuánta seguridad basta para no
-preguntar. Sale a configuración porque el valor bueno solo se sabe usándolo.
-
-### Secretos de los brokers
-
-Sin `KEYVAULT_URI` se usa el almacén de desarrollo, un fichero de User Secrets en un
-volumen del contenedor. La API comprueba al arrancar que puede escribir ahí y se niega
-a levantar si no: un almacén de solo lectura haría fallar el alta de una credencial
-mucho después, con una ruta denegada que no dice qué arreglar. Si eso ocurre, el
-volumen se creó con otro propietario y se resuelve así:
-
-```
-docker compose down
-docker volume rm kapea_broker-secrets
-docker compose up -d --build
-```
- Guarda en claro, como todo User Secrets: no pongas ahí claves
-de una cuenta con dinero real. En producción manda Key Vault.
-
-## Desarrollo sin contenedores
+.NET 10, Blazor WebAssembly con Fluent UI, EF Core sobre SQL Server y arquitectura por
+capas: dominio sin dependencias, casos de uso con sus puertos, e infraestructura y API
+en los bordes. Las decisiones y especificaciones de cada fase están en `openspec/`.
 
 ```bash
 dotnet test                                   # los de integración necesitan Docker
