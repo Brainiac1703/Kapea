@@ -33,6 +33,7 @@ public static class PortfolioEndpoints
         api.MapImports();
         api.MapPortfolio();
         api.MapTransfers();
+        api.MapManualMovements();
         api.MapStrategies();
         api.MapJournal();
         api.MapIdeas();
@@ -167,7 +168,11 @@ public static class PortfolioEndpoints
                 return Results.NotFound();
             }
 
-            var transactions = await context.Transactions.CountAsync(entity => entity.AccountId == accountId, token);
+            // Con los anulados: siguen siendo movimientos de la cuenta, y borrarla los dejaría
+            // sin cuenta a la que pertenecer.
+            var transactions = await context.Transactions
+                .IgnoreQueryFilters(TransactionQueryFilters.OnlyInForce)
+                .CountAsync(entity => entity.AccountId == accountId, token);
             account.EnsureCanBeDeleted(transactions);
 
             context.Accounts.Remove(account);
@@ -456,11 +461,14 @@ public static class PortfolioEndpoints
             string? search,
             int? page,
             int? pageSize,
+            string? origin,
+            bool? voided,
             IPortfolioQueries queries,
             CancellationToken token) =>
             queries.SearchTransactionsAsync(
                 new TransactionQuery(
-                    accountId, asset, type, year, requiresReview ?? false, search, page ?? 1, pageSize ?? 50),
+                    accountId, asset, type, year, requiresReview ?? false, search, page ?? 1, pageSize ?? 50,
+                    origin, voided),
                 token));
 
         api.MapGet("/portfolio", (IPortfolioQueries queries, CancellationToken token) =>

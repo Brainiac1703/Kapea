@@ -38,10 +38,14 @@ public sealed record ImportRunResponse(
     IReadOnlyList<RejectedRecordResponse> Rejected,
     string? ProfileName = null,
     int? ProfileVersion = null,
-    IReadOnlyList<InterpretedRowResponse>? Sample = null)
+    IReadOnlyList<InterpretedRowResponse>? Sample = null,
+    IReadOnlyList<ManualMatchResponse>? ManualMatches = null)
 {
     /// <summary>Las primeras filas ya interpretadas. Vacía en importaciones de API.</summary>
     public IReadOnlyList<InterpretedRowResponse> Sample { get; init; } = Sample ?? [];
+
+    /// <summary>Filas que coinciden con un apunte manual de la cuenta. Vacía si no hay ninguna.</summary>
+    public IReadOnlyList<ManualMatchResponse> ManualMatches { get; init; } = ManualMatches ?? [];
 }
 
 /// <summary>
@@ -65,6 +69,21 @@ public sealed record InterpretedRowResponse(
 
 /// <summary>Registro rechazado con su contenido original y el motivo, para poder corregirlo.</summary>
 public sealed record RejectedRecordResponse(Guid Id, int? RowNumber, string? NaturalId, string RawContent, string Reason);
+
+/// <summary>
+/// De dónde viene un movimiento, tal como se enseña.
+/// </summary>
+/// <remarks>
+/// Distingue API de fichero, cosa que el dominio no hace porque para el cálculo da igual;
+/// para quien revisa una cifra no: un fichero se puede volver a mirar, una API no.
+/// </remarks>
+public static class MovementOrigins
+{
+    public const string Api = "Api";
+    public const string File = "File";
+    public const string Manual = "Manual";
+    public const string Adjustment = "ManualAdjustment";
+}
 
 /// <summary>Movimiento normalizado con su rastro hasta el origen.</summary>
 public sealed record TransactionResponse(
@@ -91,7 +110,17 @@ public sealed record TransactionResponse(
     bool ExchangeRateWasSubstituted,
     Guid? ProfileId = null,
     string? ProfileName = null,
-    int? ProfileVersion = null);
+    int? ProfileVersion = null,
+    string? Note = null,
+    DateTimeOffset? RegisteredAt = null,
+    DateTimeOffset? RevisedAt = null,
+    string? AdjustmentReason = null,
+    DateTimeOffset? VoidedAt = null,
+    string? VoidReason = null,
+    string? ImportFileName = null)
+{
+    public bool IsVoided => VoidedAt is not null;
+}
 
 /// <summary>Posición abierta. El valor de mercado puede faltar y se dice explícitamente.</summary>
 public sealed record OpenPositionResponse(
@@ -196,7 +225,8 @@ public sealed record RealizedResultResponse(
     decimal ProceedsInEuros,
     decimal AcquisitionCostInEuros,
     decimal ResultInEuros,
-    IReadOnlyList<ConsumedLotResponse> ConsumedLots);
+    IReadOnlyList<ConsumedLotResponse> ConsumedLots,
+    string? DisposalOrigin = null);
 
 public sealed record ConsumedLotResponse(
     Guid LotId,
@@ -205,7 +235,8 @@ public sealed record ConsumedLotResponse(
     decimal Quantity,
     decimal AcquisitionCostInEuros,
     decimal ProceedsInEuros,
-    decimal ResultInEuros);
+    decimal ResultInEuros,
+    string? AcquisitionOrigin = null);
 
 /// <summary>Resultados de un ejercicio, agregados por activo y con su total.</summary>
 public sealed record TaxYearResultsResponse(
@@ -230,10 +261,33 @@ public sealed record AssetResultResponse(
 /// contenido original para contarlos en el navegador sería mover miles de filas para
 /// pintar un número.
 /// </remarks>
-public sealed record PendingReviewResponse(int Transfers, int Transactions)
+public sealed record PendingReviewResponse(int Transfers, int Transactions, int ManualDuplicates = 0)
 {
-    public int Total => Transfers + Transactions;
+    public int Total => Transfers + Transactions + ManualDuplicates;
 }
+
+/// <summary>
+/// Un apunte manual y un importado que parecen el mismo movimiento.
+/// </summary>
+/// <remarks>
+/// Un manual no tiene huella de origen, así que la deduplicación no lo reconoce. La pareja
+/// se enseña para que decida una persona: borrar el manual o marcar que son distintos.
+/// </remarks>
+public sealed record ManualDuplicateResponse(TransactionResponse Manual, TransactionResponse Imported);
+
+/// <summary>Una fila de una importación pendiente que coincide con un apunte manual de la cuenta.</summary>
+public sealed record ManualMatchResponse(
+    int? RowNumber,
+    DateTimeOffset OccurredAt,
+    string Type,
+    string? AssetSymbol,
+    decimal Quantity,
+    Guid ManualId,
+    DateTimeOffset ManualOccurredAt,
+    string? ManualNote);
+
+/// <summary>Qué ejercicio puede cambiar una corrección y si es anterior al actual.</summary>
+public sealed record CorrectionImpactResponse(int TaxYear, bool IsPastYear);
 
 /// <summary>Traspaso propuesto, pendiente de que el usuario confirme o rechace.</summary>
 public sealed record InternalTransferResponse(
@@ -339,3 +393,28 @@ public sealed record PerformanceResponse(
     decimal? BenchmarkValueInEuros,
     bool IsComplete,
     bool BenchmarkIsComplete);
+
+/// <summary>
+/// Un movimiento tal como se escribe en el formulario: para apuntarlo a mano, editarlo o
+/// corregir un importado.
+/// </summary>
+/// <param name="AssetSymbol">Símbolo del activo, o nulo en un movimiento sólo de dinero.</param>
+/// <param name="AssetClass">Clase del activo, para darlo de alta si aún no existe: <c>Crypto</c> o <c>Equity</c>.</param>
+/// <param name="TimeZoneId">Zona horaria en la que ocurrió, para saber a qué día pertenece.</param>
+/// <param name="Text">Nota de un movimiento manual o motivo de una corrección.</param>
+public sealed record ManualMovementRequest(
+    Guid AccountId,
+    string Type,
+    string? AssetSymbol,
+    string? AssetClass,
+    decimal Quantity,
+    decimal? UnitPrice,
+    decimal GrossAmount,
+    string Currency,
+    decimal Fee,
+    DateTimeOffset OccurredAt,
+    string TimeZoneId,
+    string? Text);
+
+/// <summary>Motivo de una anulación.</summary>
+public sealed record VoidMovementRequest(string Reason);

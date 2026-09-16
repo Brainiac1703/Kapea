@@ -1,0 +1,19 @@
+@implements IDialogContentComponent<ReasonModel>
+
+@* El motivo de una anulación. Es lo único que explicará dentro de un año por qué falta
+   un movimiento que la plataforma sí trae, así que se pide siempre. *@
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    <FluentLabel Typo="Typography.Body">@Content.Subject</FluentLabel>
+    <FluentLabel Typo="Typography.Body">@Ui["Movement_VoidHelp"]</FluentLabel>
+    <FluentTextArea @bind-Value="Content.Reason"
+                    Label="@Ui["Movement_Reason"]"
+                    Placeholder="@Ui["Movement_ReasonPlaceholder"]"
+                    Required="true"
+                    Rows="3"
+                    Class="full-width" />
+</FluentStack>
+
+@code {
+    [Parameter]
+    public ReasonModel Content { get; set; } = new();
+}

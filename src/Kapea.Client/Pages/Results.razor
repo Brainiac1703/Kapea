@@ -62,11 +62,19 @@ else
             @foreach (var detail in _results.Details)
             {
                 <FluentAccordionItem Heading="@DetailHeading(detail)">
+                    @* De dónde sale la venta y cada compra que consume: es lo primero que se
+                       pregunta al revisar un resultado, qué parte se apunta a mano. *@
+                    <div class="detail-origin">
+                        @Ui["Results_SaleOrigin"] <OriginBadge Origin="@detail.DisposalOrigin" />
+                    </div>
                     <FluentDataGrid Items="@detail.ConsumedLots.AsQueryable()"
                                     TGridItem="ConsumedLotResponse"
-                                    GridTemplateColumns="1fr 1fr 1fr 1fr 1fr">
+                                    GridTemplateColumns="1fr 1fr 1fr 1fr 1fr 1fr">
                         <TemplateColumn Title="@Ui["Results_Acquired"]">
                             @context.AcquiredAt.ToLocalTime().ToString("d")
+                        </TemplateColumn>
+                        <TemplateColumn Title="@Ui["Common_Origin"]">
+                            <OriginBadge Origin="@context.AcquisitionOrigin" />
                         </TemplateColumn>
                         <TemplateColumn Title="@Ui["Common_Quantity"]">@Format.Quantity(context.Quantity)</TemplateColumn>
                         <TemplateColumn Title="@Ui["Results_AcquisitionCost"]">

@@ -79,6 +79,8 @@ public static class DependencyInjection
         services.AddScoped<DevelopmentDataAdoption>();
         services.AddScoped<IInternalTransferRepository, InternalTransferRepository>();
         services.AddScoped<InternalTransferService>();
+        services.AddScoped<IManualMovementRepository, ManualMovementRepository>();
+        services.AddScoped<ManualMovementService>();
         services.AddScoped<ImportPipeline>();
         services.AddScoped<BrokerCredentialService>();
         services.AddScoped<SynchronizationService>();

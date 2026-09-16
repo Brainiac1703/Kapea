@@ -10,11 +10,11 @@ namespace Kapea.Domain.Transactions;
 /// que se recalculan a partir de estos movimientos.
 /// </summary>
 /// <remarks>
-/// Sus datos financieros no tienen mutadores a propósito. Editar un movimiento
+/// Sus datos financieros no tienen mutadores públicos a propósito. Editar un movimiento
 /// importado rompería la correspondencia con el registro de origen, que es
-/// justamente lo que permite defender una cifra ante una gestoría. Las correcciones
-/// se expresan como ajuste manual, y deshacer una importación es eliminar su
-/// ejecución completa.
+/// justamente lo que permite defender una cifra ante una gestoría. Un importado se
+/// corrige anulándolo y registrando un ajuste; sólo un movimiento apuntado a mano, que
+/// no tiene registro de origen, se revisa en sitio.
 /// </remarks>
 public sealed class Transaction
 {
@@ -69,12 +69,12 @@ public sealed class Transaction
 
     public UserId UserId { get; }
 
-    public Guid AccountId { get; }
+    public Guid AccountId { get; private set; }
 
     public TransactionType Type { get; private set; }
 
     /// <summary>Activo operado. Nulo en movimientos puramente dinerarios (una comisión de cuenta, un ingreso).</summary>
-    public Guid? AssetId { get; }
+    public Guid? AssetId { get; private set; }
 
     public Quantity Quantity { get; private set; }
 
@@ -100,12 +100,44 @@ public sealed class Transaction
     /// <summary>Motivo del ajuste. Obligatorio en un ajuste manual, siempre nulo en un importado.</summary>
     public string? AdjustmentReason { get; }
 
+    /// <summary>Nota libre de un movimiento apuntado a mano. Nula en los demás orígenes.</summary>
+    public string? Note { get; private set; }
+
+    /// <summary>Cuándo se apuntó a mano. Nulo en los demás orígenes.</summary>
+    public DateTimeOffset? RegisteredAt { get; private set; }
+
+    /// <summary>Cuándo se editó por última vez un movimiento apuntado a mano.</summary>
+    public DateTimeOffset? RevisedAt { get; private set; }
+
+    /// <summary>
+    /// Cuándo se anuló. Nulo mientras está vigente.
+    /// </summary>
+    /// <remarks>
+    /// Anular no borra: el movimiento conserva su registro de origen y su huella, y por eso
+    /// volver a importar no lo resucita. Sólo deja de contar en el cálculo.
+    /// </remarks>
+    public DateTimeOffset? VoidedAt { get; private set; }
+
+    /// <summary>Por qué se anuló. Obligatorio al anular.</summary>
+    public string? VoidReason { get; private set; }
+
+    public bool IsVoided => VoidedAt is not null;
+
+    /// <summary>
+    /// Importado con el que el usuario confirmó que este apunte manual no coincide.
+    /// </summary>
+    /// <remarks>
+    /// Guarda el identificador y no una marca suelta: si más tarde llega otro importado
+    /// igual, esa coincidencia es nueva y tiene que volver a verse.
+    /// </remarks>
+    public Guid? DistinctFrom { get; private set; }
+
     /// <summary>
     /// Tipo de cambio congelado en el momento de importar. Nulo cuando la operación ya
     /// estaba en euros. Es el que usa cualquier recálculo posterior: la fuente de tipos
     /// no se vuelve a consultar.
     /// </summary>
-    public ExchangeRate? AppliedExchangeRate { get; }
+    public ExchangeRate? AppliedExchangeRate { get; private set; }
 
     /// <summary>
     /// El movimiento se liquidó con dinero de la cuenta.
@@ -152,6 +184,132 @@ public sealed class Transaction
             appliedExchangeRate, settledInCash);
     }
 
+    /// <summary>Un movimiento apuntado a mano: el dato normal de una cuenta cuando no llega por otra vía.</summary>
+    public static Transaction FromManualEntry(
+        UserId userId,
+        Guid accountId,
+        TransactionType type,
+        Guid? assetId,
+        Quantity quantity,
+        Money? unitPrice,
+        Money grossAmount,
+        Money fee,
+        Occurrence occurredAt,
+        DateTimeOffset registeredAt,
+        string? note = null,
+        ExchangeRate? appliedExchangeRate = null)
+    {
+        EnsureManualType(type);
+        EnsureConsistent(type, assetId, quantity, unitPrice, grossAmount, fee, withholdingTax: null);
+        EnsureRateMatchesCurrency(grossAmount, appliedExchangeRate);
+
+        var id = Guid.NewGuid();
+
+        return new Transaction(id, userId, accountId, type, assetId, quantity, unitPrice, grossAmount,
+            fee, withholdingTax: null, occurredAt, TransactionOrigin.Manual,
+            TransactionSource.ForManualEntry(id), adjustmentReason: null, appliedExchangeRate)
+        {
+            Note = CleanNote(note),
+            RegisteredAt = registeredAt,
+        };
+    }
+
+    /// <summary>
+    /// Cambia los datos de un movimiento apuntado a mano.
+    /// </summary>
+    /// <remarks>
+    /// Sólo a mano, y a propósito: un importado tiene detrás el registro de la plataforma
+    /// y un ajuste tiene su motivo; cambiar cualquiera de los dos en sitio borraría lo que
+    /// defiende la cifra. Un apunte manual no tiene nada de eso que conservar.
+    /// </remarks>
+    public void Revise(
+        Guid accountId,
+        TransactionType type,
+        Guid? assetId,
+        Quantity quantity,
+        Money? unitPrice,
+        Money grossAmount,
+        Money fee,
+        Occurrence occurredAt,
+        string? note,
+        ExchangeRate? appliedExchangeRate,
+        DateTimeOffset revisedAt)
+    {
+        if (Origin != TransactionOrigin.Manual)
+        {
+            throw new DomainException(Origin == TransactionOrigin.Imported
+                ? "Un movimiento importado no se edita: se corrige o se anula."
+                : "Un ajuste no se edita: se borra y se corrige de nuevo.");
+        }
+
+        EnsureManualType(type);
+        EnsureConsistent(type, assetId, quantity, unitPrice, grossAmount, fee, withholdingTax: null);
+        EnsureRateMatchesCurrency(grossAmount, appliedExchangeRate);
+
+        AccountId = accountId;
+        Type = type;
+        AssetId = assetId;
+        Quantity = quantity;
+        UnitPrice = unitPrice;
+        GrossAmount = grossAmount;
+        Fee = fee;
+        OccurredAt = occurredAt;
+        Note = CleanNote(note);
+        AppliedExchangeRate = appliedExchangeRate;
+        RevisedAt = revisedAt;
+    }
+
+    /// <summary>Deja un importado fuera del cálculo sin borrarlo.</summary>
+    public void Void(string reason, DateTimeOffset at)
+    {
+        if (Origin != TransactionOrigin.Imported)
+        {
+            throw new DomainException(
+                "Sólo se anula un movimiento importado. Uno apuntado a mano o un ajuste se borra.");
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new DomainException("Anular un movimiento necesita motivo: sin él no se sabe por qué falta.");
+        }
+
+        if (IsVoided)
+        {
+            throw new DomainException("El movimiento ya está anulado.");
+        }
+
+        VoidedAt = at;
+        VoidReason = reason.Trim();
+    }
+
+    /// <summary>Devuelve al cálculo un movimiento anulado, con los mismos datos que tenía.</summary>
+    public void Restore()
+    {
+        if (!IsVoided)
+        {
+            throw new DomainException("El movimiento no está anulado.");
+        }
+
+        VoidedAt = null;
+        VoidReason = null;
+    }
+
+    /// <summary>
+    /// Anota que este apunte manual y un importado que coincide con él son movimientos
+    /// distintos, para que la coincidencia deje de señalarse.
+    /// </summary>
+    public void MarkDistinctFrom(Transaction imported)
+    {
+        ArgumentNullException.ThrowIfNull(imported);
+
+        if (Origin != TransactionOrigin.Manual || imported.Origin != TransactionOrigin.Imported)
+        {
+            throw new DomainException("La distinción se anota en un movimiento manual frente a uno importado.");
+        }
+
+        DistinctFrom = imported.Id;
+    }
+
     /// <summary>
     /// Vuelve a clasificar un movimiento que quedó sin clasificar.
     /// </summary>
@@ -196,6 +354,7 @@ public sealed class Transaction
         string reason,
         ExchangeRate? appliedExchangeRate = null)
     {
+        EnsureManualType(type);
         EnsureConsistent(type, assetId, quantity, unitPrice, grossAmount, fee, withholdingTax: null);
         EnsureRateMatchesCurrency(grossAmount, appliedExchangeRate);
 
@@ -246,6 +405,24 @@ public sealed class Transaction
             throw new CurrencyMismatchException(rate.Currency, grossAmount.Currency, "combinar");
         }
     }
+
+    /// <summary>
+    /// Un apunte manual o un ajuste tiene que decir qué es.
+    /// </summary>
+    /// <remarks>
+    /// Un movimiento sin clasificar existe porque la plataforma trajo un concepto que no se
+    /// entendió. A mano no hay concepto que entender: quien lo apunta sabe qué es.
+    /// </remarks>
+    private static void EnsureManualType(TransactionType type)
+    {
+        if (type == TransactionType.Unknown)
+        {
+            throw new DomainException("Un movimiento apuntado a mano tiene que indicar su tipo.");
+        }
+    }
+
+    private static string? CleanNote(string? note) =>
+        string.IsNullOrWhiteSpace(note) ? null : note.Trim();
 
     /// <summary>Las invariantes viven en TransactionRules para que la importación pueda comprobarlas antes.</summary>
     private static void EnsureConsistent(

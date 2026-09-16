@@ -1,0 +1,80 @@
+@* De dónde viene un movimiento, con un icono distinto para cada procedencia. El detalle
+   va en la descripción emergente: la nota y los instantes de un apunte manual, el
+   fichero de un importado, el motivo de un ajuste o de una anulación. *@
+<span class="@CssClass" title="@Detail">
+    <FluentIcon Value="@Icon" Color="Color.Custom" CustomColor="currentColor" />
+    @if (!Compact)
+    {
+        <span>@Ui[MovementOriginLabels.LabelKey(Origin)]</span>
+    }
+    else
+    {
+        <span class="visually-hidden">@Ui[MovementOriginLabels.LabelKey(Origin)]</span>
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public string? Origin { get; set; }
+
+    /// <summary>El movimiento completo, cuando se tiene, para el detalle de la descripción.</summary>
+    [Parameter]
+    public TransactionResponse? Movement { get; set; }
+
+    /// <summary>Sólo el icono, para tablas estrechas.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    private Icon Icon => Origin switch
+    {
+        MovementOrigins.Api => new Icons.Regular.Size16.ArrowSync(),
+        MovementOrigins.File => new Icons.Regular.Size16.DocumentArrowUp(),
+        MovementOrigins.Manual => new Icons.Regular.Size16.Edit(),
+        _ => new Icons.Regular.Size16.Wrench(),
+    };
+
+    private string CssClass => $"origin origin-{Origin?.ToLowerInvariant()}";
+
+    private string Detail
+    {
+        get
+        {
+            List<string> lines = [Ui[MovementOriginLabels.LabelKey(Origin)].Value];
+
+            if (Movement is { } movement)
+            {
+                if (movement.Note is { Length: > 0 } note)
+                {
+                    lines.Add(note);
+                }
+
+                if (movement.AdjustmentReason is { Length: > 0 } reason)
+                {
+                    lines.Add($"{Ui["Movement_Reason"]}: {reason}");
+                }
+
+                if (movement.RegisteredAt is { } registered)
+                {
+                    lines.Add($"{Ui["Movement_RegisteredAt"]} {MovementOriginLabels.Moment(registered)}");
+                }
+
+                if (movement.RevisedAt is { } revised)
+                {
+                    lines.Add($"{Ui["Movement_RevisedAt"]} {MovementOriginLabels.Moment(revised)}");
+                }
+
+                if (movement.ImportFileName is { Length: > 0 } file)
+                {
+                    lines.Add(file);
+                }
+
+                if (movement.VoidedAt is { } voided)
+                {
+                    lines.Add($"{Ui["Movement_VoidedAt"]} {MovementOriginLabels.Moment(voided)}: {movement.VoidReason}");
+                }
+            }
+
+            return string.Join(Environment.NewLine, lines);
+        }
+    }
+}

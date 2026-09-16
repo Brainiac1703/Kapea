@@ -1438,4 +1438,160 @@
   <data name="Home_SignalExit" xml:space="preserve">
     <value>Señal de salida en {0}</value>
   </data>
+  <data name="Import_ManualMatch" xml:space="preserve">
+    <value>Apunte manual</value>
+  </data>
+  <data name="Import_ManualMatches" xml:space="preserve">
+    <value>Filas que coinciden con movimientos que apuntaste a mano en esta cuenta: {0}. Si son los mismos, entrarán dos veces: borra el apunte manual o descarta la importación.</value>
+  </data>
+  <data name="Movement_AllOrigins" xml:space="preserve">
+    <value>Todas las procedencias</value>
+  </data>
+  <data name="Movement_AllStates" xml:space="preserve">
+    <value>Vigentes y anulados</value>
+  </data>
+  <data name="Movement_AssetClass" xml:space="preserve">
+    <value>Clase de activo</value>
+  </data>
+  <data name="Movement_Continue" xml:space="preserve">
+    <value>Continuar</value>
+  </data>
+  <data name="Movement_Correct" xml:space="preserve">
+    <value>Corregir</value>
+  </data>
+  <data name="Movement_CorrectHelp" xml:space="preserve">
+    <value>Al guardar, el movimiento importado queda anulado con este motivo y se registra un ajuste con los datos corregidos. El importado no se borra: sigue visible, anulado.</value>
+  </data>
+  <data name="Movement_DeleteMessage" xml:space="preserve">
+    <value>Se borrará el movimiento y se recalcularán la cartera y los resultados.</value>
+  </data>
+  <data name="Movement_Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="Movement_InForce" xml:space="preserve">
+    <value>Vigentes</value>
+  </data>
+  <data name="Movement_New" xml:space="preserve">
+    <value>Nuevo movimiento</value>
+  </data>
+  <data name="Movement_Note" xml:space="preserve">
+    <value>Nota (opcional)</value>
+  </data>
+  <data name="Movement_NotePlaceholder" xml:space="preserve">
+    <value>Por ejemplo: compra en la sucursal, justificante en papel.</value>
+  </data>
+  <data name="Movement_PastYear" xml:space="preserve">
+    <value>La fecha es del ejercicio {0}. Si ya lo declaraste, sus resultados y los de los ejercicios siguientes pueden cambiar.</value>
+  </data>
+  <data name="Movement_PastYearTitle" xml:space="preserve">
+    <value>Ejercicio anterior</value>
+  </data>
+  <data name="Movement_Reason" xml:space="preserve">
+    <value>Motivo</value>
+  </data>
+  <data name="Movement_ReasonPlaceholder" xml:space="preserve">
+    <value>Por qué: sin esto, dentro de un año no se sabrá.</value>
+  </data>
+  <data name="Movement_RegisteredAt" xml:space="preserve">
+    <value>Apuntado el</value>
+  </data>
+  <data name="Movement_Restore" xml:space="preserve">
+    <value>Deshacer anulación</value>
+  </data>
+  <data name="Movement_RestoreMessage" xml:space="preserve">
+    <value>El movimiento vuelve a contar en la cartera y los resultados, con los mismos datos que tenía.</value>
+  </data>
+  <data name="Movement_RevisedAt" xml:space="preserve">
+    <value>Editado el</value>
+  </data>
+  <data name="Movement_Saved" xml:space="preserve">
+    <value>Movimientos actualizados.</value>
+  </data>
+  <data name="Movement_UnitPrice" xml:space="preserve">
+    <value>Precio unitario</value>
+  </data>
+  <data name="Movement_Void" xml:space="preserve">
+    <value>Anular</value>
+  </data>
+  <data name="Movement_VoidHelp" xml:space="preserve">
+    <value>El movimiento deja de contar en la cartera y los resultados, pero no se borra: conserva de dónde vino y volver a importar no lo trae de nuevo.</value>
+  </data>
+  <data name="Movement_Voided" xml:space="preserve">
+    <value>Anulado</value>
+  </data>
+  <data name="Movement_VoidedAt" xml:space="preserve">
+    <value>Anulado el</value>
+  </data>
+  <data name="Origin_Adjustment" xml:space="preserve">
+    <value>Ajuste</value>
+  </data>
+  <data name="Origin_Api" xml:space="preserve">
+    <value>API</value>
+  </data>
+  <data name="Origin_File" xml:space="preserve">
+    <value>Fichero</value>
+  </data>
+  <data name="Origin_Manual" xml:space="preserve">
+    <value>A mano</value>
+  </data>
+  <data name="Origin_Unknown" xml:space="preserve">
+    <value>Desconocida</value>
+  </data>
+  <data name="Results_SaleOrigin" xml:space="preserve">
+    <value>Procedencia de la venta:</value>
+  </data>
+  <data name="Review_ManualDuplicates" xml:space="preserve">
+    <value>Posibles duplicados de movimientos apuntados a mano</value>
+  </data>
+  <data name="Review_ManualDuplicates_Help" xml:space="preserve">
+    <value>Un movimiento que apuntaste a mano y otro importado con la misma cuenta, tipo, activo, cantidad y día. Si son el mismo, cuentan dos veces.</value>
+  </data>
+  <data name="Review_ManualDuplicates_Delete" xml:space="preserve">
+    <value>Borrar el apunte manual</value>
+  </data>
+  <data name="Review_ManualDuplicates_DeleteMessage" xml:space="preserve">
+    <value>Se borrará el movimiento apuntado a mano y se quedará el importado, que es el que trae el respaldo de la plataforma.</value>
+  </data>
+  <data name="Review_ManualDuplicates_Distinct" xml:space="preserve">
+    <value>Son distintos</value>
+  </data>
+  <data name="Review_ManualDuplicates_Imported" xml:space="preserve">
+    <value>Importado</value>
+  </data>
+  <data name="TransactionType_Buy" xml:space="preserve">
+    <value>Compra</value>
+  </data>
+  <data name="TransactionType_Sell" xml:space="preserve">
+    <value>Venta</value>
+  </data>
+  <data name="TransactionType_Deposit" xml:space="preserve">
+    <value>Ingreso</value>
+  </data>
+  <data name="TransactionType_Withdrawal" xml:space="preserve">
+    <value>Retirada</value>
+  </data>
+  <data name="TransactionType_Dividend" xml:space="preserve">
+    <value>Dividendo</value>
+  </data>
+  <data name="TransactionType_Interest" xml:space="preserve">
+    <value>Interés</value>
+  </data>
+  <data name="TransactionType_Fee" xml:space="preserve">
+    <value>Comisión</value>
+  </data>
+  <data name="TransactionType_Reward" xml:space="preserve">
+    <value>Recompensa</value>
+  </data>
+  <data name="TransactionType_Transfer" xml:space="preserve">
+    <value>Traspaso</value>
+  </data>
+  <data name="TransactionType_Split" xml:space="preserve">
+    <value>Desdoblamiento</value>
+  </data>
+  <data name="TransactionType_Unknown" xml:space="preserve">
+    <value>Sin clasificar</value>
+  </data>
+  <data name="Movement_AssetPlaceholder" xml:space="preserve">
+    <value>Símbolo, por ejemplo BTC</value>
+  </data>
 </root>

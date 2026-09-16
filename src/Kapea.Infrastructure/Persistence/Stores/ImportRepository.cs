@@ -55,7 +55,10 @@ public sealed class ImportRepository(KapeaDbContext context) : IImportRepository
 
         var candidates = fingerprints.ToList();
 
+        // Con los anulados: su huella sigue ocupada, y es lo que impide que volver a
+        // importar o releer el histórico resucite lo que el usuario dejó fuera.
         var found = await context.Transactions
+            .IgnoreQueryFilters(TransactionQueryFilters.OnlyInForce)
             .Where(transaction => transaction.AccountId == accountId
                 && candidates.Contains(transaction.Source.Fingerprint))
             .Select(transaction => transaction.Source.Fingerprint)
@@ -77,7 +80,10 @@ public sealed class ImportRepository(KapeaDbContext context) : IImportRepository
     public async Task<IReadOnlyList<Transaction>> ListTransactionsOfRunAsync(
         Guid runId,
         CancellationToken cancellationToken = default) =>
+        // Con los anulados: eliminar una importación elimina todo lo que creó, también lo
+        // que el usuario había dejado fuera del cálculo.
         await context.Transactions
+            .IgnoreQueryFilters(TransactionQueryFilters.OnlyInForce)
             .Where(transaction => transaction.Source.ImportRunId == runId)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

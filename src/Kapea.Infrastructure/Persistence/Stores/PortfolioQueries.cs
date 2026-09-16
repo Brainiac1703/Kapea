@@ -100,7 +100,74 @@ public sealed class PortfolioQueries(
             .SingleOrDefaultAsync(stored => stored.Id == runId, cancellationToken)
             .ConfigureAwait(false);
 
-        return run is null ? null : ToResponse(run, await ProfileNameAsync(run, cancellationToken).ConfigureAwait(false));
+        if (run is null)
+        {
+            return null;
+        }
+
+        var response = ToResponse(run, await ProfileNameAsync(run, cancellationToken).ConfigureAwait(false));
+
+        return run.Status == Domain.Import.ImportRunStatus.Staged
+            ? response with { ManualMatches = await ManualMatchesAsync(run, cancellationToken).ConfigureAwait(false) }
+            : response;
+    }
+
+    /// <summary>
+    /// Filas de una importación pendiente que coinciden con un apunte manual de su cuenta.
+    /// </summary>
+    /// <remarks>
+    /// Todas las que entrarían, no sólo las de la muestra: la coincidencia puede estar en la
+    /// fila quinientos. El símbolo de la fila se traduce al activo del catálogo para
+    /// compararlo con el del apunte.
+    /// </remarks>
+    private async Task<IReadOnlyList<ManualMatchResponse>> ManualMatchesAsync(ImportRun run, CancellationToken cancellationToken)
+    {
+        var manuals = await context.Transactions
+            .Where(transaction => transaction.Origin == TransactionOrigin.Manual && transaction.AccountId == run.AccountId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (manuals.Count == 0)
+        {
+            return [];
+        }
+
+        var assetsBySymbol = await context.Assets
+            .ToDictionaryAsync(asset => asset.CanonicalSymbol, asset => asset.Id, StringComparer.OrdinalIgnoreCase, cancellationToken)
+            .ConfigureAwait(false);
+
+        var matches = new List<ManualMatchResponse>();
+
+        foreach (var staged in run.Records.Where(record => record.Outcome == StagedRecordOutcome.Importable))
+        {
+            var record = StagedRecordReader.Read(staged.Payload, staged.RawContent);
+            var occurredAt = record.ToOccurrence();
+            var day = DateOnly.FromDateTime(occurredAt.InSourceTimeZone.DateTime);
+            Guid? assetId = record.AssetSymbol is { } symbol && assetsBySymbol.TryGetValue(symbol, out var found) ? found : null;
+
+            if (record.AssetSymbol is not null && assetId is null)
+            {
+                continue;
+            }
+
+            var manual = manuals.FirstOrDefault(candidate => ManualCoincidence.Matches(
+                candidate, run.AccountId, record.Type, assetId, new Quantity(record.Quantity), day));
+
+            if (manual is not null)
+            {
+                matches.Add(new ManualMatchResponse(
+                    staged.RowNumber,
+                    occurredAt.Instant,
+                    record.Type.ToString(),
+                    record.AssetSymbol,
+                    record.Quantity,
+                    manual.Id,
+                    manual.OccurredAt.Instant,
+                    manual.Note));
+            }
+        }
+
+        return matches;
     }
 
     public async Task<TransactionPageResponse> SearchTransactionsAsync(
@@ -118,7 +185,12 @@ public sealed class PortfolioQueries(
                 .ToHashSet()
             : null;
 
+        var fileNames = await ImportFileNamesAsync(cancellationToken).ConfigureAwait(false);
+
+        // Con los anulados: la lista de movimientos es donde se ven, marcados, y desde
+        // donde se deshace la anulación. El filtro de estado decide si se quieren.
         var filtered = context.Transactions
+            .IgnoreQueryFilters(TransactionQueryFilters.OnlyInForce)
             .Where(transaction => query.AccountId == null || transaction.AccountId == query.AccountId)
             .Where(transaction => !query.OnlyRequiringReview || transaction.Type == TransactionType.Unknown)
             .Where(transaction => query.Year == null || transaction.OccurredAt.Instant.Year == query.Year);
@@ -128,6 +200,23 @@ public sealed class PortfolioQueries(
         {
             filtered = filtered.Where(transaction => transaction.Type == parsedType);
         }
+
+        if (query.Voided is { } voided)
+        {
+            filtered = voided
+                ? filtered.Where(transaction => transaction.VoidedAt != null)
+                : filtered.Where(transaction => transaction.VoidedAt == null);
+        }
+
+        filtered = query.Origin switch
+        {
+            MovementOrigins.Manual => filtered.Where(transaction => transaction.Origin == TransactionOrigin.Manual),
+            MovementOrigins.Adjustment => filtered.Where(transaction => transaction.Origin == TransactionOrigin.ManualAdjustment),
+            MovementOrigins.File => ImportedFrom(filtered, [.. fileNames.Keys]),
+            MovementOrigins.Api => filtered.Where(transaction => transaction.Origin == TransactionOrigin.Imported
+                && (transaction.Source.ImportRunId == null || !fileNames.Keys.Contains(transaction.Source.ImportRunId.Value))),
+            _ => filtered,
+        };
 
         if (assetIds is not null)
         {
@@ -147,6 +236,7 @@ public sealed class PortfolioQueries(
         // desplegable que solo ofreciera lo que ya se ve no serviría para llegar a lo
         // que no se ve.
         var years = await context.Transactions
+            .IgnoreQueryFilters(TransactionQueryFilters.OnlyInForce)
             .Select(transaction => transaction.OccurredAt.Instant.Year)
             .Distinct()
             .OrderByDescending(year => year)
@@ -154,6 +244,7 @@ public sealed class PortfolioQueries(
             .ConfigureAwait(false);
 
         var types = await context.Transactions
+            .IgnoreQueryFilters(TransactionQueryFilters.OnlyInForce)
             .Select(transaction => transaction.Type)
             .Distinct()
             .ToListAsync(cancellationToken)
@@ -174,7 +265,7 @@ public sealed class PortfolioQueries(
             .ConfigureAwait(false);
 
         return new TransactionPageResponse(
-            [.. items.Select(transaction => ToResponse(transaction, symbols, profileNames))],
+            [.. items.Select(transaction => ToResponse(transaction, symbols, profileNames, fileNames))],
             total,
             page,
             size,
@@ -201,19 +292,49 @@ public sealed class PortfolioQueries(
             .ToDictionaryAsync(profile => profile.Id, profile => profile.Name, cancellationToken)
             .ConfigureAwait(false);
 
+        var fileNames = await ImportFileNamesAsync(cancellationToken).ConfigureAwait(false);
+
         return
         [
             .. transactions
                 .OrderByDescending(transaction => transaction.OccurredAt.Instant)
-                .Select(transaction => ToResponse(transaction, symbols, profileNames)),
+                .Select(transaction => ToResponse(transaction, symbols, profileNames, fileNames)),
         ];
     }
+
+    /// <summary>
+    /// Nombre del fichero de cada importación que vino de un fichero.
+    /// </summary>
+    /// <remarks>
+    /// Es lo que separa un importado por fichero de uno por API: el dominio no lo distingue
+    /// porque para el cálculo da igual, pero quien revisa una cifra quiere saberlo.
+    /// </remarks>
+    private async Task<Dictionary<Guid, string>> ImportFileNamesAsync(CancellationToken cancellationToken) =>
+        await context.ImportRuns
+            .Where(run => run.FileName != null)
+            .ToDictionaryAsync(run => run.Id, run => run.FileName!, cancellationToken)
+            .ConfigureAwait(false);
+
+    private static IQueryable<Transaction> ImportedFrom(IQueryable<Transaction> transactions, List<Guid> fileRuns) =>
+        transactions.Where(transaction => transaction.Origin == TransactionOrigin.Imported
+            && transaction.Source.ImportRunId != null
+            && fileRuns.Contains(transaction.Source.ImportRunId.Value));
+
+    private static string OriginOf(Transaction transaction, IReadOnlyDictionary<Guid, string> fileNames) =>
+        transaction.Origin switch
+        {
+            TransactionOrigin.Manual => MovementOrigins.Manual,
+            TransactionOrigin.ManualAdjustment => MovementOrigins.Adjustment,
+            _ when transaction.Source.ImportRunId is { } run && fileNames.ContainsKey(run) => MovementOrigins.File,
+            _ => MovementOrigins.Api,
+        };
 
     /// <summary>Un movimiento con su rastro hasta el origen, en la forma que lee el cliente.</summary>
     private static TransactionResponse ToResponse(
         Transaction transaction,
         IReadOnlyDictionary<Guid, string> symbols,
-        IReadOnlyDictionary<Guid, string> profileNames) =>
+        IReadOnlyDictionary<Guid, string> profileNames,
+        IReadOnlyDictionary<Guid, string> fileNames) =>
         new(
                     transaction.Id,
                     transaction.AccountId,
@@ -227,7 +348,7 @@ public sealed class PortfolioQueries(
                     transaction.Fee.Amount,
                     transaction.OccurredAt.Instant,
                     transaction.OccurredAt.SourceTimeZoneId,
-                    transaction.Origin.ToString(),
+                    OriginOf(transaction, fileNames),
                     transaction.RequiresReview,
                     transaction.Source.ImportRunId,
                     transaction.Source.NaturalId,
@@ -240,7 +361,14 @@ public sealed class PortfolioQueries(
                     transaction.Source.ProfileId is { } profileId
                         ? profileNames.GetValueOrDefault(profileId)
                         : null,
-                    transaction.Source.ProfileVersion);
+                    transaction.Source.ProfileVersion,
+                    transaction.Note,
+                    transaction.RegisteredAt,
+                    transaction.RevisedAt,
+                    transaction.AdjustmentReason,
+                    transaction.VoidedAt,
+                    transaction.VoidReason,
+                    transaction.Source.ImportRunId is { } runId ? fileNames.GetValueOrDefault(runId) : null);
 
     /// <summary>
     /// La cartera entera: posiciones agrupadas por clase, efectivo, patrimonio,
@@ -523,10 +651,11 @@ public sealed class PortfolioQueries(
         // origen, y esa conversión no se puede traducir a SQL.
         var ofYear = results.Where(result => result.TaxYear == taxYear).ToList();
         var symbols = await SymbolsAsync(cancellationToken).ConfigureAwait(false);
+        var origins = await OriginsAsync(ofYear, cancellationToken).ConfigureAwait(false);
 
         var details = ofYear
             .OrderBy(result => result.DisposedAt.Instant)
-            .Select(result => ToResponse(result, symbols))
+            .Select(result => ToResponse(result, symbols, origins))
             .ToList();
 
         var byAsset = ofYear
@@ -563,7 +692,42 @@ public sealed class PortfolioQueries(
 
         return result is null
             ? null
-            : ToResponse(result, await SymbolsAsync(cancellationToken).ConfigureAwait(false));
+            : ToResponse(
+                result,
+                await SymbolsAsync(cancellationToken).ConfigureAwait(false),
+                await OriginsAsync([result], cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// Procedencia de las ventas y de las compras que consumen, para el detalle fiscal.
+    /// </summary>
+    /// <remarks>
+    /// Es lo primero que se pregunta al revisar un resultado: qué parte se apoya en datos
+    /// apuntados a mano y qué parte en lo que trajo la plataforma.
+    /// </remarks>
+    private async Task<Dictionary<Guid, string>> OriginsAsync(
+        IReadOnlyCollection<RealizedResult> results,
+        CancellationToken cancellationToken)
+    {
+        var ids = results
+            .Select(result => result.DisposalTransactionId)
+            .Concat(results.SelectMany(result => result.ConsumedLots).Select(lot => lot.AcquisitionTransactionId))
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var fileNames = await ImportFileNamesAsync(cancellationToken).ConfigureAwait(false);
+        var transactions = await context.Transactions
+            .IgnoreQueryFilters(TransactionQueryFilters.OnlyInForce)
+            .Where(transaction => ids.Contains(transaction.Id))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return transactions.ToDictionary(transaction => transaction.Id, transaction => OriginOf(transaction, fileNames));
     }
 
     public async Task<PendingReviewResponse> CountPendingReviewAsync(CancellationToken cancellationToken = default)
@@ -578,7 +742,77 @@ public sealed class PortfolioQueries(
             .CountAsync(transaction => transaction.Type == TransactionType.Unknown, cancellationToken)
             .ConfigureAwait(false);
 
-        return new PendingReviewResponse(transfers, transactions);
+        var duplicates = (await ManualDuplicatePairsAsync(cancellationToken).ConfigureAwait(false)).Count;
+
+        return new PendingReviewResponse(transfers, transactions, duplicates);
+    }
+
+    public async Task<IReadOnlyList<ManualDuplicateResponse>> ListManualDuplicatesAsync(CancellationToken cancellationToken = default)
+    {
+        var pairs = await ManualDuplicatePairsAsync(cancellationToken).ConfigureAwait(false);
+
+        if (pairs.Count == 0)
+        {
+            return [];
+        }
+
+        var symbols = await SymbolsAsync(cancellationToken).ConfigureAwait(false);
+        var profileNames = await context.ImportProfiles
+            .ToDictionaryAsync(profile => profile.Id, profile => profile.Name, cancellationToken)
+            .ConfigureAwait(false);
+        var fileNames = await ImportFileNamesAsync(cancellationToken).ConfigureAwait(false);
+
+        return
+        [
+            .. pairs
+                .OrderByDescending(pair => pair.Manual.OccurredAt.Instant)
+                .Select(pair => new ManualDuplicateResponse(
+                    ToResponse(pair.Manual, symbols, profileNames, fileNames),
+                    ToResponse(pair.Imported, symbols, profileNames, fileNames))),
+        ];
+    }
+
+    /// <summary>
+    /// Apuntes manuales vigentes y los importados que coinciden con ellos.
+    /// </summary>
+    /// <remarks>
+    /// Los manuales son pocos, así que se cargan todos y sólo se piden los importados que
+    /// podrían coincidir: mismas cuentas, activos y tipos, en las fechas de los manuales
+    /// con un día de margen por la zona horaria. La comparación fina la hace el dominio.
+    /// </remarks>
+    private async Task<List<(Transaction Manual, Transaction Imported)>> ManualDuplicatePairsAsync(CancellationToken cancellationToken)
+    {
+        var manuals = await context.Transactions
+            .Where(transaction => transaction.Origin == TransactionOrigin.Manual)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (manuals.Count == 0)
+        {
+            return [];
+        }
+
+        var accounts = manuals.Select(manual => manual.AccountId).Distinct().ToList();
+        var assets = manuals.Where(manual => manual.AssetId != null).Select(manual => manual.AssetId!.Value).Distinct().ToList();
+        var from = manuals.Min(manual => manual.OccurredAt.Instant).AddDays(-1);
+        var to = manuals.Max(manual => manual.OccurredAt.Instant).AddDays(1);
+
+        var candidates = await context.Transactions
+            .Where(transaction => transaction.Origin == TransactionOrigin.Imported
+                && accounts.Contains(transaction.AccountId)
+                && (transaction.AssetId == null || assets.Contains(transaction.AssetId.Value))
+                && transaction.OccurredAt.Instant >= from
+                && transaction.OccurredAt.Instant <= to)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return
+        [
+            .. from manual in manuals
+               from imported in candidates
+               where ManualCoincidence.Matches(manual, imported)
+               select (manual, imported),
+        ];
     }
 
     public async Task<IReadOnlyList<InternalTransferResponse>> ListTransfersAsync(
@@ -614,7 +848,10 @@ public sealed class PortfolioQueries(
             .ToDictionaryAsync(asset => asset.Id, asset => asset.CanonicalSymbol, cancellationToken)
             .ConfigureAwait(false);
 
-    private static RealizedResultResponse ToResponse(RealizedResult result, Dictionary<Guid, string> symbols) =>
+    private static RealizedResultResponse ToResponse(
+        RealizedResult result,
+        Dictionary<Guid, string> symbols,
+        IReadOnlyDictionary<Guid, string> origins) =>
         new(
             result.DisposalTransactionId,
             result.AssetId,
@@ -635,8 +872,10 @@ public sealed class PortfolioQueries(
                         lot.Quantity.Value,
                         lot.AcquisitionCostInEuros.Amount,
                         lot.ProceedsInEuros.Amount,
-                        lot.ResultInEuros.Amount)),
-            ]);
+                        lot.ResultInEuros.Amount,
+                        origins.GetValueOrDefault(lot.AcquisitionTransactionId))),
+            ],
+            origins.GetValueOrDefault(result.DisposalTransactionId));
 
     /// <summary>Cuántas filas se enseñan interpretadas. Suficientes para ver un mapeo mal puesto.</summary>
     private const int SampleSize = 10;

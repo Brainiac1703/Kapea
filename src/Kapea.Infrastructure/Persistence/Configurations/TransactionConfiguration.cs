@@ -16,6 +16,8 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.Property(transaction => transaction.Type).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(transaction => transaction.Origin).HasConversion<string>().HasMaxLength(24).IsRequired();
         builder.Property(transaction => transaction.AdjustmentReason).HasMaxLength(500);
+        builder.Property(transaction => transaction.Note).HasMaxLength(500);
+        builder.Property(transaction => transaction.VoidReason).HasMaxLength(500);
 
         // Por omisión sí liquida en efectivo: es lo que hace la inmensa mayoría de los
         // movimientos, y así lo ya guardado no cambia de significado.
@@ -79,6 +81,7 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
             rate.Ignore(value => value.WasSubstituted);
         });
 
+        builder.Ignore(transaction => transaction.IsVoided);
         builder.Ignore(transaction => transaction.Currency);
         builder.Ignore(transaction => transaction.RequiresReview);
         builder.Ignore(transaction => transaction.IsAcquisition);

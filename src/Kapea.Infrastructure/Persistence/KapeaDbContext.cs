@@ -90,7 +90,13 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
         // ajenos. Assets, DailyRates y DailyPrices quedan fuera a propósito: son catálogos
         // globales sin información de nadie.
         modelBuilder.Entity<PlatformAccount>().HasQueryFilter(account => account.UserId == CurrentUserId);
-        modelBuilder.Entity<Transaction>().HasQueryFilter(transaction => transaction.UserId == CurrentUserId);
+        // Dos filtros con nombre en los movimientos, para poder quitar uno sin el otro. El
+        // de vigentes deja fuera los anulados en toda lectura que alimente cifras sin que
+        // cada consulta tenga que acordarse; sólo la deduplicación y la lista de
+        // movimientos lo quitan, y nunca el de usuario.
+        modelBuilder.Entity<Transaction>()
+            .HasQueryFilter(TransactionQueryFilters.Owner, transaction => transaction.UserId == CurrentUserId)
+            .HasQueryFilter(TransactionQueryFilters.InForce, transaction => transaction.VoidedAt == null);
         modelBuilder.Entity<Lot>().HasQueryFilter(lot => lot.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Strategies.Strategy>()
             .HasQueryFilter(strategy => strategy.UserId == CurrentUserId);

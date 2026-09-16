@@ -50,11 +50,28 @@ public sealed class PortfolioCalculationService(
             results.Add(result);
         }
 
+        // Un activo que se ha quedado sin movimientos —se anuló o se borró el último— no
+        // aparece en los grupos de arriba, y sin esto su posición y sus resultados seguirían
+        // guardados como si nada. Se vacía su proyección.
+        var calculated = results.Select(result => result.AssetId).ToHashSet();
+        var orphaned = assetId is { } single
+            ? (calculated.Contains(single) ? [] : [single])
+            : (await projections.ListProjectedAssetsAsync(cancellationToken).ConfigureAwait(false))
+                .Where(asset => !calculated.Contains(asset))
+                .ToList();
+
+        foreach (var asset in orphaned)
+        {
+            await projections.ReplaceAsync(asset, Empty(asset), cancellationToken).ConfigureAwait(false);
+        }
+
         logger.LogInformation(
             "Cartera recalculada: {Activos} activos, {Movimientos} movimientos.", results.Count, transactions.Count);
 
         return results;
     }
+
+    private static AssetCalculationResult Empty(Guid assetId) => new(assetId, [], [], [], [], 0);
 
     /// <summary>
     /// Empareja cada movimiento con lo que el motor necesita saber de él: su valoración

@@ -2,19 +2,20 @@
 @inject KapeaApiClient Api
 @inject IToastService Toasts
 @inject PendingReviewState PendingReview
+@inject IDialogService Dialogs
 
 <PageTitle>@Ui["Review_Title"]</PageTitle>
 
 <FluentLabel Typo="Typography.PageTitle">@Ui["Review_Heading"]</FluentLabel>
 <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Review_Intro"]</FluentLabel>
 
-@if (_transfers is null || _unclassified is null)
+@if (_transfers is null || _unclassified is null || _duplicates is null)
 {
     <FluentProgressRing />
 }
 else
 {
-    @if (_transfers.Count == 0 && _unclassified.Count == 0)
+    @if (_transfers.Count == 0 && _unclassified.Count == 0 && _duplicates.Count == 0)
     {
         <FluentMessageBar Intent="MessageIntent.Success">@Ui["Review_AllClear"]</FluentMessageBar>
     }
@@ -47,6 +48,40 @@ else
                 </FluentButton>
                 <FluentButton Appearance="Appearance.Neutral" OnClick="@(() => ResolveAsync(context, false))">
                     @Ui["Transfer_Reject"]
+                </FluentButton>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+
+    @* Sólo si hay alguna: una sección vacía más en una pantalla que ya tiene dos se lee
+       como otra cosa pendiente. *@
+    @if (_duplicates.Count > 0)
+    {
+        <FluentLabel Typo="Typography.H3" Class="section">@Ui["Review_ManualDuplicates"]</FluentLabel>
+        <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Review_ManualDuplicates_Help"]</FluentLabel>
+
+        <FluentDataGrid Items="@_duplicates.AsQueryable()"
+                        RowClass="@(_ => "tall-row")"
+                        TGridItem="ManualDuplicateResponse"
+                        GridTemplateColumns="1fr 1fr 1fr 1.5fr 1.5fr auto">
+            <TemplateColumn Title="@Ui["Common_Date"]">@context.Manual.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Asset"]">@(context.Manual.AssetSymbol ?? context.Manual.Currency)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Quantity"]" Align="Align.End">
+                @(context.Manual.Quantity == 0m ? Format.Money(context.Manual.GrossAmount, context.Manual.Currency) : Format.Quantity(context.Manual.Quantity))
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Origin_Manual"]">
+                <OriginBadge Origin="@context.Manual.Origin" Movement="@context.Manual" Compact="true" />
+                <span class="moment">@context.Manual.Note</span>
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Review_ManualDuplicates_Imported"]">
+                <OriginBadge Origin="@context.Imported.Origin" Movement="@context.Imported" />
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Actions"]" Align="Align.End">
+                <FluentButton Appearance="Appearance.Accent" OnClick="@(() => DeleteManualAsync(context))">
+                    @Ui["Review_ManualDuplicates_Delete"]
+                </FluentButton>
+                <FluentButton Appearance="Appearance.Neutral" OnClick="@(() => MarkDistinctAsync(context))">
+                    @Ui["Review_ManualDuplicates_Distinct"]
                 </FluentButton>
             </TemplateColumn>
         </FluentDataGrid>
@@ -91,6 +126,7 @@ else
     private bool _reinterpreting;
     private IReadOnlyList<InternalTransferResponse>? _transfers;
     private IReadOnlyList<TransactionResponse>? _unclassified;
+    private IReadOnlyList<ManualDuplicateResponse>? _duplicates;
 
     protected override Task OnInitializedAsync() => ReloadAsync();
 
@@ -100,6 +136,7 @@ else
         {
             _transfers = await Api.GetTransfersAsync(onlyPending: true);
             _unclassified = await Api.GetTransactionsAsync(onlyRequiringReview: true);
+            _duplicates = await Api.GetManualDuplicatesAsync();
 
             // Cada acción de esta pantalla recarga por aquí, así que es el sitio donde
             // el contador del menú se entera de lo resuelto sin esperar a navegar.
@@ -143,6 +180,40 @@ else
         {
             _reinterpreting = false;
         }
+    }
+
+    /// <summary>Borra el apunte manual: lo que trajo la plataforma es el dato con respaldo.</summary>
+    private async Task DeleteManualAsync(ManualDuplicateResponse pair)
+    {
+        var confirmation = await Dialogs.ShowConfirmationAsync(
+            Ui["Review_ManualDuplicates_DeleteMessage"],
+            Ui["Review_ManualDuplicates_Delete"],
+            Ui["Common_Cancel"],
+            Ui["Review_ManualDuplicates"]);
+
+        if ((await confirmation.Result).Cancelled)
+        {
+            return;
+        }
+
+        await RunAsync(() => Api.DeleteMovementAsync(pair.Manual.Id));
+    }
+
+    private Task MarkDistinctAsync(ManualDuplicateResponse pair) =>
+        RunAsync(() => Api.MarkDistinctAsync(pair.Manual.Id, pair.Imported.Id));
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+
+        await ReloadAsync();
     }
 
     private async Task DetectAsync()

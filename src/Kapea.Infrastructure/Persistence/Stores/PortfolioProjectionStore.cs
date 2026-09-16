@@ -17,6 +17,20 @@ namespace Kapea.Infrastructure.Persistence.Stores;
 public sealed class PortfolioProjectionStore(KapeaDbContext context, ILogger<PortfolioProjectionStore> logger)
     : IPortfolioProjectionStore
 {
+    public async Task<IReadOnlyCollection<Guid>> ListProjectedAssetsAsync(CancellationToken cancellationToken = default)
+    {
+        var lots = await context.Lots.Select(lot => lot.AssetId).Distinct().ToListAsync(cancellationToken).ConfigureAwait(false);
+        var realized = await context.RealizedResults.Select(result => result.AssetId).Distinct().ToListAsync(cancellationToken).ConfigureAwait(false);
+        var income = await context.CapitalIncomes
+            .Where(entry => entry.AssetId != null)
+            .Select(entry => entry.AssetId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return lots.Concat(realized).Concat(income).ToHashSet();
+    }
+
     public async Task ReplaceAsync(
         Guid assetId,
         AssetCalculationResult result,
