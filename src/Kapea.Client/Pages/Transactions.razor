@@ -82,7 +82,7 @@ else
         <FluentDataGrid Items="@_page.Items.AsQueryable()"
                         TGridItem="TransactionResponse"
                         RowClass="@(movement => movement.IsVoided ? "voided" : string.Empty)"
-                        GridTemplateColumns="0.9fr 0.9fr 0.8fr 1fr 1.1fr 0.8fr 1fr 1.3fr 1.6fr">
+                        GridTemplateColumns="0.8fr 0.9fr 0.7fr 0.9fr 1fr 0.7fr 1.5fr 1.1fr 90px">
             <TemplateColumn Title="@Ui["Common_Date"]">@context.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
             <TemplateColumn Title="@Ui["Common_Type"]">@TypeName(context.Type)</TemplateColumn>
             <PropertyColumn Property="@(t => t.AssetSymbol)" Title="@Ui["Common_Asset"]" />
@@ -120,23 +120,25 @@ else
                     <span class="moment">@reason</span>
                 }
             </TemplateColumn>
+            @* Sólo iconos, con su nombre en la descripción: con texto, dos acciones no
+               caben en la columna y la segunda se corta. *@
             <TemplateColumn Title="@Ui["Common_Actions"]">
                 @if (IsManual(context))
                 {
-                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Edit())" OnClick="@(() => EditAsync(context))">@Ui["Movement_Edit"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Edit())" OnClick="@(() => EditAsync(context))" Title="@Ui["Movement_Edit"]"></FluentButton>
                 }
                 @if (!IsImported(context))
                 {
-                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Delete())" OnClick="@(() => DeleteAsync(context))">@Ui["Common_Delete"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Delete())" OnClick="@(() => DeleteAsync(context))" Title="@Ui["Common_Delete"]"></FluentButton>
                 }
                 else if (context.IsVoided)
                 {
-                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.ArrowUndo())" OnClick="@(() => RestoreAsync(context))">@Ui["Movement_Restore"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.ArrowUndo())" OnClick="@(() => RestoreAsync(context))" Title="@Ui["Movement_Restore"]"></FluentButton>
                 }
                 else
                 {
-                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Wrench())" OnClick="@(() => CorrectAsync(context))">@Ui["Movement_Correct"]</FluentButton>
-                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Prohibited())" OnClick="@(() => VoidAsync(context))">@Ui["Movement_Void"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Wrench())" OnClick="@(() => CorrectAsync(context))" Title="@Ui["Movement_Correct"]"></FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Prohibited())" OnClick="@(() => VoidAsync(context))" Title="@Ui["Movement_Void"]"></FluentButton>
                 }
             </TemplateColumn>
         </FluentDataGrid>
@@ -433,8 +435,17 @@ else
         await SendAsync(() => Api.RestoreMovementAsync(movement.Id));
     }
 
+    /// <summary>El movimiento en una línea, sin separadores vacíos cuando no tiene activo.</summary>
     private string Describe(TransactionResponse movement) =>
-        $"{movement.OccurredAt.ToLocalTime():d} · {TypeName(movement.Type)} · {movement.AssetSymbol} · {Format.Money(movement.GrossAmount, movement.Currency)}";
+        string.Join(
+            " · ",
+            new[]
+            {
+                movement.OccurredAt.ToLocalTime().ToString("d", System.Globalization.CultureInfo.CurrentCulture),
+                TypeName(movement.Type),
+                movement.AssetSymbol,
+                Format.Money(movement.GrossAmount, movement.Currency),
+            }.Where(part => !string.IsNullOrWhiteSpace(part)));
 
     /// <summary>Confirmación con el aviso de ejercicio delante cuando corresponde.</summary>
     private async Task<bool> ConfirmAsync(string message, string action, DateOnly day)

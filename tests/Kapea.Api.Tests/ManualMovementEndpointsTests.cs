@@ -256,6 +256,53 @@ public class ManualMovementEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task Deleting_the_only_movement_of_an_asset_removes_its_position()
+    {
+        // El recálculo sólo rehacía los activos que aún tenían movimientos: borrado el
+        // último, la posición se quedaba guardada como si nada.
+        var (client, account) = await AccountAsync("Kraken", "Único borrado");
+        var symbol = "ONLY" + Suffix();
+        var id = await RegisterAsync(client, Buy(account, symbol, quantity: 2m));
+
+        await client.DeleteAsync($"/api/transactions/{id}");
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+        Assert.DoesNotContain(portfolio!.Groups.SelectMany(group => group.Positions), position => position.AssetSymbol == symbol);
+    }
+
+    [Fact]
+    public async Task Voiding_the_only_movement_of_an_asset_removes_its_position()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var account = await CreateAccountAsync(client, "Kraken", "Único anulado");
+        var symbol = "VOID" + Suffix();
+
+        Guid id;
+        await using (var context = factory.CreateContext(user))
+        {
+            var asset = Domain.Assets.Asset.Create(symbol, Domain.Assets.AssetClass.Crypto);
+            context.Assets.Add(asset);
+
+            var buy = Domain.Transactions.Transaction.Imported(
+                new UserId(user), account, Domain.Transactions.TransactionType.Buy, asset.Id, new Quantity(1m),
+                Money.Euros(10m), Money.Euros(10m), Money.Euros(0m), Domain.Transactions.Occurrence.FromOffset(Day, "UTC"),
+                Domain.Transactions.TransactionSource.FromImport(Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString()));
+            context.Transactions.Add(buy);
+            await context.SaveChangesAsync();
+            id = buy.Id;
+        }
+
+        await client.PostAsync("/api/portfolio/recalculate", null);
+        Assert.Contains((await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio"))!.Groups.SelectMany(group => group.Positions), position => position.AssetSymbol == symbol);
+
+        await client.PostAsJsonAsync($"/api/transactions/{id}/void", new VoidMovementRequest("no era mía"));
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+        Assert.DoesNotContain(portfolio!.Groups.SelectMany(group => group.Positions), position => position.AssetSymbol == symbol);
+    }
+
+    [Fact]
     public async Task The_impact_names_the_oldest_year_involved()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());

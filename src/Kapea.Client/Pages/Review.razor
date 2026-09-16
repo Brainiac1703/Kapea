@@ -61,6 +61,7 @@ else
         <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Review_ManualDuplicates_Help"]</FluentLabel>
 
         <FluentDataGrid Items="@_duplicates.AsQueryable()"
+                        RowClass="@(_ => "tall-row")"
                         TGridItem="ManualDuplicateResponse"
                         GridTemplateColumns="1fr 1fr 1fr 1.5fr 1.5fr auto">
             <TemplateColumn Title="@Ui["Common_Date"]">@context.Manual.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>

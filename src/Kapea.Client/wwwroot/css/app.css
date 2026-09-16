@@ -713,3 +713,10 @@ table.sample th {
     white-space: nowrap;
     width: 1px;
 }
+
+/* Filas con dos botones con texto: la altura por omisión de la tabla los recorta. */
+.tall-row fluent-data-grid-cell {
+    align-items: center;
+    display: flex;
+    min-height: 48px;
+}

@@ -65,6 +65,9 @@ public interface IMarketPriceProvider
 /// </summary>
 public interface IPortfolioProjectionStore
 {
+    /// <summary>Activos que tienen algo proyectado: lotes, resultados o rendimientos.</summary>
+    Task<IReadOnlyCollection<Guid>> ListProjectedAssetsAsync(CancellationToken cancellationToken = default);
+
     Task ReplaceAsync(
         Guid assetId,
         Domain.Calculation.AssetCalculationResult result,
