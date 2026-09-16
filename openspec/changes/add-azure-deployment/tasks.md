@@ -44,7 +44,7 @@
 
 ## 6. Puesta en marcha y cierre
 
-- [ ] 6.1 Activar la aplicación, desplegar y registrar en Google la URL de vuelta con el nombre que asigna el servicio. Se verifica entrando con la cuenta de Google en la aplicación desplegada.
+- [x] 6.1 Activar la aplicación, desplegar y registrar en Google la URL de vuelta con el nombre que asigna el servicio. Se verifica entrando con la cuenta de Google en la aplicación desplegada.
 - [ ] 6.2 Dar de alta una credencial de bróker en la aplicación desplegada y sincronizar. Se verifica viendo el movimiento importado y el secreto guardado en el almacén gestionado, no en la base de datos.
 - [ ] 6.3 Publicar una revisión con una sesión abierta y comprobar que no se cierra. Se verifica navegando después del despliegue sin volver a entrar.
 - [x] 6.4 Levantar el entorno local desde cero tras todos los cambios. Se verifica con `docker compose up` sin credenciales de Azure y la aplicación funcionando como antes.
