@@ -1,0 +1,104 @@
+@implements IDialogContentComponent<ManualMovementModel>
+
+<FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+    @if (Content.Error is { Length: > 0 } error)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false">@error</FluentMessageBar>
+    }
+
+    @if (Content.Mode == ManualMovementMode.Correct)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">@Ui["Movement_CorrectHelp"]</FluentMessageBar>
+    }
+
+    <FluentSelect TOption="AccountResponse"
+                  Label="@Ui["Credentials_Account"]"
+                  Items="@Content.AvailableAccounts"
+                  OptionValue="@(account => account.Id.ToString())"
+                  OptionText="@(account => $"{account.Alias} ({account.Platform})")"
+                  Value="@Content.AccountId.ToString()"
+                  SelectedOptionChanged="OnAccountSelected"
+                  Required="true" />
+
+    <FluentSelect TOption="string"
+                  Label="@Ui["Common_Type"]"
+                  Items="@ManualMovementModel.Types"
+                  OptionValue="@(type => type)"
+                  OptionText="@TypeName"
+                  @bind-Value="Content.Type"
+                  Required="true" />
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12">
+        <FluentTextField @bind-Value="Content.AssetSymbol"
+                         Label="@Ui["Common_Asset"]"
+                         Placeholder="@Ui["Movement_AssetPlaceholder"]"
+                         Required="@Content.NeedsAsset" />
+        @if (Content.NeedsAsset)
+        {
+            <FluentSelect TOption="string"
+                          Label="@Ui["Movement_AssetClass"]"
+                          Items="@AssetClasses"
+                          OptionValue="@(assetClass => assetClass)"
+                          OptionText="@ClassName"
+                          @bind-Value="Content.AssetClass" />
+        }
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12">
+        @if (Content.NeedsAsset)
+        {
+            <FluentNumberField TValue="decimal?" @bind-Value="Content.Quantity" Label="@Ui["Common_Quantity"]" Step="any" />
+            <FluentNumberField TValue="decimal?" @bind-Value="Content.UnitPrice" Label="@Ui["Movement_UnitPrice"]" Step="any" />
+        }
+        <FluentNumberField TValue="decimal?" @bind-Value="Content.GrossAmount" Label="@Ui["Common_Amount"]" Step="any" Required="true" />
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12">
+        <FluentTextField @bind-Value="Content.Currency" Label="@Ui["Portfolio_Currency"]" Maxlength="3" />
+        <FluentNumberField TValue="decimal?" @bind-Value="Content.Fee" Label="@Ui["Common_Fee"]" Step="any" />
+        <FluentDatePicker @bind-Value="Content.Date" Label="@Ui["Common_Date"]" />
+    </FluentStack>
+
+    <FluentTextArea @bind-Value="Content.Text"
+                    Label="@(Content.RequiresReason ? Ui["Movement_Reason"] : Ui["Movement_Note"])"
+                    Placeholder="@(Content.RequiresReason ? Ui["Movement_ReasonPlaceholder"] : Ui["Movement_NotePlaceholder"])"
+                    Required="@Content.RequiresReason"
+                    Rows="2"
+                    Class="full-width" />
+</FluentStack>
+
+@code {
+    private static readonly string[] AssetClasses = ["Crypto", "Equity"];
+
+    [Parameter]
+    public ManualMovementModel Content { get; set; } = new();
+
+    /// <summary>Deja elegida la primera cuenta al abrir un movimiento nuevo: es la que ya se ve.</summary>
+    protected override void OnInitialized()
+    {
+        if (Content.AccountId == Guid.Empty && Content.AvailableAccounts.FirstOrDefault() is { } first)
+        {
+            OnAccountSelected(first);
+        }
+    }
+
+    private void OnAccountSelected(AccountResponse? account)
+    {
+        if (account is null)
+        {
+            return;
+        }
+
+        Content.AccountId = account.Id;
+
+        if (Content.Mode == ManualMovementMode.New)
+        {
+            Content.Currency = account.BaseCurrency;
+        }
+    }
+
+    private string TypeName(string type) => Ui[$"TransactionType_{type}"];
+
+    private string ClassName(string assetClass) =>
+        assetClass == "Equity" ? Ui["Portfolio_ClassEquity"] : Ui["Portfolio_ClassCrypto"];
+}

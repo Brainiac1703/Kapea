@@ -655,3 +655,61 @@ table.sample th {
     padding: 1rem;
     margin: 1rem 0;
 }
+
+/* Procedencia de un movimiento: icono y texto juntos, en el color de apoyo. El icono
+   cambia por procedencia; el color no, para no confundirlo con ganancia o pérdida. */
+.origin {
+    align-items: center;
+    color: var(--kapea-ink-soft);
+    display: inline-flex;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.origin-manual,
+.origin-manualadjustment {
+    color: var(--kapea-accent);
+}
+
+/* Anulado: sigue en la lista para poder deshacerlo, pero se lee como fuera de juego. */
+.voided {
+    color: var(--kapea-ink-muted);
+    text-decoration: line-through;
+}
+
+.voided .origin,
+.voided fluent-button {
+    text-decoration: none;
+}
+
+.voided-tag {
+    background: var(--kapea-line-soft);
+    border-radius: 999px;
+    color: var(--kapea-ink-soft);
+    font-size: 12px;
+    margin-inline-start: 6px;
+    padding: 1px 8px;
+    text-decoration: none;
+}
+
+.detail-origin {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+/* Texto que sólo leen los lectores de pantalla, para que un icono solo no quede mudo. */
+.visually-hidden {
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}

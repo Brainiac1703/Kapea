@@ -35,8 +35,9 @@ desarrollo. Funciona igual que un acceso real, con su sesión y su cierre.
 2. **Trae los movimientos:**
    - Si la plataforma tiene API, da de alta su credencial en *Configuración →
      Credenciales* y pulsa *Sincronizar ahora*.
-   - Si no, exporta el fichero desde la plataforma y súbelo en *Importar → Importar
-     fichero*.
+   - Si exporta un fichero, súbelo en *Importar → Importar fichero*.
+   - Si no hay ni una cosa ni otra, apúntalos en *Cartera → Movimientos → Nuevo
+     movimiento*.
 3. **Revisa lo pendiente** en *Importar → Por revisar*. Mientras quede algo, las cifras
    de la cartera y los resultados salen incompletas.
 4. **Mira la cartera** en *Cartera → Posiciones*.
@@ -169,6 +170,10 @@ otra, por ejemplo mover bitcoin de Bit2Me a Kraken. Kapea no lo da por hecho:
 
 *Buscar traspasos* vuelve a buscar coincidencias.
 
+**Posibles duplicados de movimientos apuntados a mano.** Un apunte manual y un importado
+con la misma cuenta, tipo, activo, cantidad y día. *Borrar el apunte manual* se queda
+con el importado; *Son distintos* deja de señalar esa pareja.
+
 **Movimientos sin clasificar.** El origen trajo un concepto que no encaja en ningún
 tipo conocido. Quedan fuera del cálculo hasta resolverlos. La forma habitual es añadir
 el concepto al perfil y pulsar *Releer con las reglas actuales*, que vuelve a
@@ -238,9 +243,75 @@ Precio diario con su media móvil simple, su media exponencial y su fuerza relat
 
 ### Movimientos
 
-Todo lo que ha entrado, venga de API o de fichero. Se filtra por cuenta, activo, tipo
-y año, y se busca por el contenido original. Cada movimiento guarda con qué perfil y
-versión se leyó y la fila tal como venía.
+Todo lo que ha entrado, venga de API, de fichero o apuntado a mano. Se filtra por
+cuenta, activo, tipo, año, procedencia y estado, y se busca por el contenido original.
+
+La columna **Procedencia** dice de dónde viene cada uno:
+
+| Procedencia | Qué es |
+|---|---|
+| API | Descargado de la plataforma con su credencial |
+| Fichero | Importado de una exportación, con el perfil y la versión con que se leyó |
+| A mano | Apuntado por ti, con su nota, cuándo lo apuntaste y cuándo lo editaste |
+| Ajuste | La versión corregida de un importado, con el motivo de la corrección |
+
+Pasando el ratón por encima se ve el detalle.
+
+#### Apuntar un movimiento a mano
+
+*Nuevo movimiento* da de alta un movimiento en cualquier cuenta: una compra de un
+bróker que no exporta, una operación antigua de la que sólo queda el justificante o
+algo que todavía no has importado.
+
+1. Elige cuenta y tipo.
+2. Si el tipo mueve un activo (compra, venta, recompensa o traspaso), indica su símbolo,
+   su clase, la cantidad y el precio. Si el activo no existe todavía, se da de alta.
+3. Indica importe, divisa, comisión y fecha.
+4. La nota es opcional.
+
+Pasa por las mismas comprobaciones que un movimiento importado. Si va en otra divisa,
+se guarda el tipo de cambio del Banco Central Europeo de su fecha.
+
+Un movimiento apuntado a mano se puede **editar** y **borrar** cuando quieras. Al
+editar, si cambias la fecha o la divisa, se vuelve a buscar el tipo de cambio.
+
+#### Corregir o anular un movimiento importado
+
+Un movimiento importado no se edita: detrás está el registro de la plataforma, que es
+lo que defiende la cifra. Hay dos formas de arreglarlo:
+
+- **Corregir** abre el formulario con sus datos. Cambias lo que esté mal y escribes el
+  motivo. Al guardar, el importado queda anulado con ese motivo y se registra un
+  **ajuste** con los datos buenos.
+- **Anular** lo deja fuera de la cartera y de los resultados, con un motivo. Sirve para
+  un duplicado o algo que no debió entrar.
+
+Un movimiento anulado no se borra: sigue en la lista, tachado, con su motivo y de dónde
+vino. Por eso volver a importar el fichero o releer el histórico no lo trae de nuevo.
+*Deshacer anulación* lo devuelve al cálculo con los mismos datos.
+
+Un ajuste no se edita: se borra y se corrige de nuevo, para que cada versión de la
+cifra tenga su motivo. Borrar un ajuste no deshace la anulación del importado.
+
+No se puede corregir ni anular un movimiento que forma parte de un traspaso ya
+confirmado.
+
+#### Aviso de ejercicio anterior
+
+Antes de apuntar, editar, borrar, corregir, anular o deshacer, si la fecha es de un
+ejercicio anterior al actual, Kapea lo avisa. Si ya lo declaraste, sus resultados y los
+de los ejercicios siguientes pueden cambiar. El aviso no impide nada.
+
+#### Lo que apuntas a mano y después importas
+
+Un movimiento apuntado a mano no tiene huella de la plataforma, así que la
+deduplicación no lo reconoce. Kapea busca coincidencias por cuenta, tipo, activo,
+cantidad y día:
+
+- **Al importar un fichero**, la vista previa avisa de las filas que coinciden con un
+  apunte manual y enseña cuál.
+- **Al sincronizar por API**, que no tiene vista previa, la pareja aparece en *Por
+  revisar*. Ahí eliges *Borrar el apunte manual* o *Son distintos*.
 
 ## Fiscal
 
@@ -250,7 +321,8 @@ ejercicio actual y los cuatro anteriores, que es el plazo de prescripción.
 - **Total del ejercicio:** valor de transmisión, coste de adquisición y resultado.
 - **Por activo:** lo mismo, activo a activo.
 - **Transmisiones:** cada venta, y dentro de cada una los lotes de compra que consumió,
-  con su fecha y su coste.
+  con su fecha, su coste y su procedencia. Así se ve qué parte de un resultado se apoya
+  en movimientos apuntados a mano.
 
 Si quedan movimientos sin clasificar, lo dice arriba. Una venta sin clasificar no
 cuenta, y el resultado del ejercicio saldría mal.
@@ -398,8 +470,7 @@ primera vez tarda, porque descarga desde la fecha de tu primera compra.
 
 ## Límites conocidos
 
-- No se puede corregir ni borrar un movimiento suelto. Se corrige el perfil y se
-  relee, o se elimina la importación entera y se vuelve a importar.
+- No se puede deshacer un traspaso confirmado, ni corregir o anular sus movimientos.
 - No se puede borrar un sistema de especulación.
 - Las comisiones por plataforma que usan la simulación y el balance de ideas no tienen
   pantalla. Ver [Configuración](configuracion.md#comisiones-por-plataforma).

@@ -1438,4 +1438,160 @@
   <data name="Home_SignalExit" xml:space="preserve">
     <value>Exit signal on {0}</value>
   </data>
+  <data name="Import_ManualMatch" xml:space="preserve">
+    <value>Manual entry</value>
+  </data>
+  <data name="Import_ManualMatches" xml:space="preserve">
+    <value>{0} rows match movements you entered by hand in this account. If they are the same, they will count twice: delete the manual entry or discard the import.</value>
+  </data>
+  <data name="Movement_AllOrigins" xml:space="preserve">
+    <value>All origins</value>
+  </data>
+  <data name="Movement_AllStates" xml:space="preserve">
+    <value>In force and voided</value>
+  </data>
+  <data name="Movement_AssetClass" xml:space="preserve">
+    <value>Asset class</value>
+  </data>
+  <data name="Movement_Continue" xml:space="preserve">
+    <value>Continue</value>
+  </data>
+  <data name="Movement_Correct" xml:space="preserve">
+    <value>Correct</value>
+  </data>
+  <data name="Movement_CorrectHelp" xml:space="preserve">
+    <value>On saving, the imported movement is voided with this reason and an adjustment with the corrected data is recorded. The import is not deleted: it stays visible, voided.</value>
+  </data>
+  <data name="Movement_DeleteMessage" xml:space="preserve">
+    <value>The movement will be deleted and the portfolio and results recalculated.</value>
+  </data>
+  <data name="Movement_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Movement_InForce" xml:space="preserve">
+    <value>In force</value>
+  </data>
+  <data name="Movement_New" xml:space="preserve">
+    <value>New movement</value>
+  </data>
+  <data name="Movement_Note" xml:space="preserve">
+    <value>Note (optional)</value>
+  </data>
+  <data name="Movement_NotePlaceholder" xml:space="preserve">
+    <value>For example: bought at the branch, paper receipt.</value>
+  </data>
+  <data name="Movement_PastYear" xml:space="preserve">
+    <value>The date belongs to tax year {0}. If you already filed it, its results and those of later years may change.</value>
+  </data>
+  <data name="Movement_PastYearTitle" xml:space="preserve">
+    <value>Previous tax year</value>
+  </data>
+  <data name="Movement_Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Movement_ReasonPlaceholder" xml:space="preserve">
+    <value>Why: without it, nobody will know a year from now.</value>
+  </data>
+  <data name="Movement_RegisteredAt" xml:space="preserve">
+    <value>Entered on</value>
+  </data>
+  <data name="Movement_Restore" xml:space="preserve">
+    <value>Undo void</value>
+  </data>
+  <data name="Movement_RestoreMessage" xml:space="preserve">
+    <value>The movement counts again in the portfolio and results, with the same data it had.</value>
+  </data>
+  <data name="Movement_RevisedAt" xml:space="preserve">
+    <value>Edited on</value>
+  </data>
+  <data name="Movement_Saved" xml:space="preserve">
+    <value>Movements updated.</value>
+  </data>
+  <data name="Movement_UnitPrice" xml:space="preserve">
+    <value>Unit price</value>
+  </data>
+  <data name="Movement_Void" xml:space="preserve">
+    <value>Void</value>
+  </data>
+  <data name="Movement_VoidHelp" xml:space="preserve">
+    <value>The movement stops counting in the portfolio and results, but it is not deleted: it keeps where it came from and importing again does not bring it back.</value>
+  </data>
+  <data name="Movement_Voided" xml:space="preserve">
+    <value>Voided</value>
+  </data>
+  <data name="Movement_VoidedAt" xml:space="preserve">
+    <value>Voided on</value>
+  </data>
+  <data name="Origin_Adjustment" xml:space="preserve">
+    <value>Adjustment</value>
+  </data>
+  <data name="Origin_Api" xml:space="preserve">
+    <value>API</value>
+  </data>
+  <data name="Origin_File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="Origin_Manual" xml:space="preserve">
+    <value>By hand</value>
+  </data>
+  <data name="Origin_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Results_SaleOrigin" xml:space="preserve">
+    <value>Sale origin:</value>
+  </data>
+  <data name="Review_ManualDuplicates" xml:space="preserve">
+    <value>Possible duplicates of manual movements</value>
+  </data>
+  <data name="Review_ManualDuplicates_Help" xml:space="preserve">
+    <value>A movement you entered by hand and an imported one with the same account, type, asset, quantity and day. If they are the same, they count twice.</value>
+  </data>
+  <data name="Review_ManualDuplicates_Delete" xml:space="preserve">
+    <value>Delete the manual entry</value>
+  </data>
+  <data name="Review_ManualDuplicates_DeleteMessage" xml:space="preserve">
+    <value>The manual movement will be deleted and the imported one kept, since it carries the platform's record.</value>
+  </data>
+  <data name="Review_ManualDuplicates_Distinct" xml:space="preserve">
+    <value>They are different</value>
+  </data>
+  <data name="Review_ManualDuplicates_Imported" xml:space="preserve">
+    <value>Imported</value>
+  </data>
+  <data name="TransactionType_Buy" xml:space="preserve">
+    <value>Buy</value>
+  </data>
+  <data name="TransactionType_Sell" xml:space="preserve">
+    <value>Sell</value>
+  </data>
+  <data name="TransactionType_Deposit" xml:space="preserve">
+    <value>Deposit</value>
+  </data>
+  <data name="TransactionType_Withdrawal" xml:space="preserve">
+    <value>Withdrawal</value>
+  </data>
+  <data name="TransactionType_Dividend" xml:space="preserve">
+    <value>Dividend</value>
+  </data>
+  <data name="TransactionType_Interest" xml:space="preserve">
+    <value>Interest</value>
+  </data>
+  <data name="TransactionType_Fee" xml:space="preserve">
+    <value>Fee</value>
+  </data>
+  <data name="TransactionType_Reward" xml:space="preserve">
+    <value>Reward</value>
+  </data>
+  <data name="TransactionType_Transfer" xml:space="preserve">
+    <value>Transfer</value>
+  </data>
+  <data name="TransactionType_Split" xml:space="preserve">
+    <value>Split</value>
+  </data>
+  <data name="TransactionType_Unknown" xml:space="preserve">
+    <value>Unclassified</value>
+  </data>
+  <data name="Movement_AssetPlaceholder" xml:space="preserve">
+    <value>Symbol, for example BTC</value>
+  </data>
 </root>

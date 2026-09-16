@@ -70,6 +70,8 @@ else
     }
 
     @* Antes de los rechazos: lo que va a entrar importa más que lo que no. *@
+    <ManualMatches Matches="@_preview.Run.ManualMatches" />
+
     <InterpretedRows Rows="@_preview.Run.Sample" />
 
     <RejectedRecords Records="@_preview.Run.Rejected" />

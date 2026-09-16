@@ -152,6 +152,7 @@ else
                     @foreach (var movement in _movements)
                     {
                         <div class="list-row">
+                            <OriginBadge Origin="@movement.Origin" Movement="@movement" Compact="true" />
                             <span class="soft">@Format.Moment(movement.OccurredAt)</span>
                             <span class="grow">@movement.Type · @(movement.AssetSymbol ?? movement.Currency)</span>
                             <span>@Format.Money(movement.GrossAmount, movement.Currency)</span>

@@ -1,11 +1,19 @@
 @page "/transactions"
 @inject KapeaApiClient Api
 @inject IToastService Toasts
+@inject IDialogService Dialogs
+@inject PendingReviewState PendingReview
 
 <PageTitle>@Ui["Transactions_Title"]</PageTitle>
 
 <FluentLabel Typo="Typography.PageTitle">@Ui["Transactions_Heading"]</FluentLabel>
 <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Transactions_Intro"]</FluentLabel>
+
+<FluentToolbar>
+    <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="NewAsync">
+        @Ui["Movement_New"]
+    </FluentButton>
+</FluentToolbar>
 
 <FluentToolbar>
     <FluentSelect TOption="AccountResponse"
@@ -32,6 +40,22 @@
                   ValueChanged="OnYearChanged"
                   Placeholder="@Ui["Transactions_AllYears"]" />
 
+    <FluentSelect TOption="string"
+                  Items="@Origins"
+                  OptionValue="@(origin => origin)"
+                  OptionText="@(origin => Ui[MovementOriginLabels.LabelKey(origin)].Value)"
+                  Value="@_origin"
+                  ValueChanged="OnOriginChanged"
+                  Placeholder="@Ui["Movement_AllOrigins"]" />
+
+    <FluentSelect TOption="string"
+                  Items="@States"
+                  OptionValue="@(state => state)"
+                  OptionText="@StateName"
+                  Value="@_state"
+                  ValueChanged="OnStateChanged"
+                  Placeholder="@Ui["Movement_AllStates"]" />
+
     <FluentTextField Value="@_asset" ValueChanged="OnAssetChanged" Placeholder="@Ui["Transactions_Asset"]" />
 
     <FluentSearch Value="@_search" ValueChanged="OnSearchChanged" Placeholder="@Ui["Transactions_Search"]" />
@@ -53,11 +77,14 @@ else
     }
     else
     {
+        @* Los anulados se ven, atenuados y tachados: esconderlos haría imposible deshacer
+           una anulación o explicar por qué falta algo que la plataforma sí trae. *@
         <FluentDataGrid Items="@_page.Items.AsQueryable()"
                         TGridItem="TransactionResponse"
-                        GridTemplateColumns="1fr 1fr 1fr 1.2fr 1.2fr 1fr 1.5fr">
+                        RowClass="@(movement => movement.IsVoided ? "voided" : string.Empty)"
+                        GridTemplateColumns="0.9fr 0.9fr 0.8fr 1fr 1.1fr 0.8fr 1fr 1.3fr 1.6fr">
             <TemplateColumn Title="@Ui["Common_Date"]">@context.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
-            <PropertyColumn Property="@(t => t.Type)" Title="@Ui["Common_Type"]" />
+            <TemplateColumn Title="@Ui["Common_Type"]">@TypeName(context.Type)</TemplateColumn>
             <PropertyColumn Property="@(t => t.AssetSymbol)" Title="@Ui["Common_Asset"]" />
             <TemplateColumn Title="@Ui["Common_Quantity"]" Align="Align.End">
                 @(context.Quantity == 0m ? string.Empty : Format.Quantity(context.Quantity))
@@ -72,14 +99,44 @@ else
             <TemplateColumn Title="@Ui["Common_Fee"]" Align="Align.End">
                 @(context.Fee == 0m ? string.Empty : Format.Money(context.Fee, context.Currency))
             </TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Origin"]">
+                <OriginBadge Origin="@context.Origin" Movement="@context" />
+                @if (context.IsVoided)
+                {
+                    <span class="voided-tag" title="@context.VoidReason">@Ui["Movement_Voided"]</span>
+                }
+            </TemplateColumn>
             <TemplateColumn Title="@Ui["Transactions_ReadWith"]">
                 @if (context.ProfileName is { Length: > 0 } profile)
                 {
                     <span>@profile @(context.ProfileVersion is { } v ? $"· v{v}" : string.Empty)</span>
                 }
+                else if (context.Note is { Length: > 0 } note)
+                {
+                    <span class="moment">@note</span>
+                }
+                else if (context.AdjustmentReason is { Length: > 0 } reason)
+                {
+                    <span class="moment">@reason</span>
+                }
+            </TemplateColumn>
+            <TemplateColumn Title="@Ui["Common_Actions"]">
+                @if (IsManual(context))
+                {
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Edit())" OnClick="@(() => EditAsync(context))">@Ui["Movement_Edit"]</FluentButton>
+                }
+                @if (!IsImported(context))
+                {
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Delete())" OnClick="@(() => DeleteAsync(context))">@Ui["Common_Delete"]</FluentButton>
+                }
+                else if (context.IsVoided)
+                {
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.ArrowUndo())" OnClick="@(() => RestoreAsync(context))">@Ui["Movement_Restore"]</FluentButton>
+                }
                 else
                 {
-                    <span>@context.Origin</span>
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Wrench())" OnClick="@(() => CorrectAsync(context))">@Ui["Movement_Correct"]</FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" IconStart="@(new Icons.Regular.Size16.Prohibited())" OnClick="@(() => VoidAsync(context))">@Ui["Movement_Void"]</FluentButton>
                 }
             </TemplateColumn>
         </FluentDataGrid>
@@ -104,7 +161,14 @@ else
     private IReadOnlyList<string> _types = [];
     private IReadOnlyList<int> _years = [];
 
+    private static readonly string[] Origins =
+        [MovementOrigins.Api, MovementOrigins.File, MovementOrigins.Manual, MovementOrigins.Adjustment];
+
+    private static readonly string[] States = ["InForce", "Voided"];
+
     private Guid? _accountId;
+    private string _origin = string.Empty;
+    private string _state = string.Empty;
     private string _type = string.Empty;
     private int? _year;
     private string _asset = string.Empty;
@@ -138,7 +202,9 @@ else
                 _type,
                 _year,
                 _search,
-                page);
+                page,
+                origin: _origin,
+                voided: _state switch { "Voided" => true, "InForce" => false, _ => null });
 
             // Los tipos y los años vienen de todo el histórico, no de la página: un
             // desplegable que solo ofreciera lo visible no llevaría a lo que no se ve.
@@ -184,5 +250,255 @@ else
         _search = value ?? string.Empty;
 
         return GoAsync(1);
+    }
+
+    private Task OnOriginChanged(string? value)
+    {
+        _origin = value ?? string.Empty;
+
+        return GoAsync(1);
+    }
+
+    private Task OnStateChanged(string? value)
+    {
+        _state = value ?? string.Empty;
+
+        return GoAsync(1);
+    }
+
+    private static bool IsManual(TransactionResponse movement) => movement.Origin == MovementOrigins.Manual;
+
+    private static bool IsImported(TransactionResponse movement) => MovementOriginLabels.IsImported(movement.Origin);
+
+    private string StateName(string state) => state == "Voided" ? Ui["Movement_Voided"] : Ui["Movement_InForce"];
+
+    /// <summary>El tipo con su nombre; uno que la pantalla no conozca se enseña con su código.</summary>
+    private string TypeName(string type)
+    {
+        var name = Ui[$"TransactionType_{type}"];
+
+        return name.ResourceNotFound ? type : name.Value;
+    }
+
+    private Task NewAsync() =>
+        AskUntilAcceptedAsync(
+            new ManualMovementModel { Mode = ManualMovementMode.New, AvailableAccounts = _accounts },
+            Ui["Movement_New"],
+            Ui["Common_Save"],
+            (model, request) => Api.RegisterMovementAsync(request));
+
+    private Task EditAsync(TransactionResponse movement) =>
+        AskUntilAcceptedAsync(
+            ManualMovementModel.From(movement, ManualMovementMode.Edit, _accounts),
+            Ui["Movement_Edit"],
+            Ui["Common_Save"],
+            (model, request) => Api.ReviseMovementAsync(movement.Id, request));
+
+    private Task CorrectAsync(TransactionResponse movement) =>
+        AskUntilAcceptedAsync(
+            ManualMovementModel.From(movement, ManualMovementMode.Correct, _accounts),
+            Ui["Movement_Correct"],
+            Ui["Movement_Correct"],
+            (model, request) => Api.CorrectMovementAsync(movement.Id, request));
+
+    /// <summary>
+    /// Abre el formulario hasta que el servidor lo acepte o el usuario cancele.
+    /// </summary>
+    /// <remarks>
+    /// Un rechazo reabre el formulario con lo escrito y el motivo encima: cerrarlo y avisar
+    /// aparte obligaría a teclearlo todo otra vez para corregir un campo.
+    /// </remarks>
+    private async Task AskUntilAcceptedAsync(
+        ManualMovementModel model,
+        string title,
+        string confirm,
+        Func<ManualMovementModel, ManualMovementRequest, Task> send)
+    {
+        while (true)
+        {
+            var dialog = await Dialogs.ShowDialogAsync<ManualMovementDialog, ManualMovementModel>(
+                model,
+                new DialogParameters<ManualMovementModel>
+                {
+                    Content = model,
+                    Title = title,
+                    PrimaryAction = confirm,
+                    SecondaryAction = Ui["Common_Cancel"],
+                    PreventDismissOnOverlayClick = true,
+                    Width = "640px",
+                });
+
+            var result = await dialog.Result;
+
+            if (result.Cancelled || result.Data is not ManualMovementModel filled)
+            {
+                return;
+            }
+
+            model = filled;
+
+            if (!model.IsComplete)
+            {
+                model.Error = string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Ui["Form_Missing"].Value,
+                    string.Join(", ", model.Missing.Select(key => Ui[key].Value)));
+
+                continue;
+            }
+
+            var request = model.ToRequest();
+
+            if (!await ConfirmImpactAsync(DateOnly.FromDateTime(model.Date!.Value), model.OriginalDate))
+            {
+                return;
+            }
+
+            try
+            {
+                await send(model, request);
+                await AfterChangeAsync();
+
+                return;
+            }
+            catch (KapeaApiException exception)
+            {
+                model.Error = exception.Message;
+            }
+        }
+    }
+
+    private async Task DeleteAsync(TransactionResponse movement)
+    {
+        var day = DateOnly.FromDateTime(movement.OccurredAt.ToLocalTime().DateTime);
+
+        if (!await ConfirmAsync(Ui["Movement_DeleteMessage"], Ui["Common_Delete"], day))
+        {
+            return;
+        }
+
+        await SendAsync(() => Api.DeleteMovementAsync(movement.Id));
+    }
+
+    private async Task VoidAsync(TransactionResponse movement)
+    {
+        var day = DateOnly.FromDateTime(movement.OccurredAt.ToLocalTime().DateTime);
+        var model = new ReasonModel { Subject = Describe(movement) };
+
+        while (true)
+        {
+            var dialog = await Dialogs.ShowDialogAsync<ReasonDialog, ReasonModel>(
+                model,
+                new DialogParameters<ReasonModel>
+                {
+                    Content = model,
+                    Title = Ui["Movement_Void"],
+                    PrimaryAction = Ui["Movement_Void"],
+                    SecondaryAction = Ui["Common_Cancel"],
+                    PreventDismissOnOverlayClick = true,
+                });
+
+            var result = await dialog.Result;
+
+            if (result.Cancelled || result.Data is not ReasonModel filled)
+            {
+                return;
+            }
+
+            model = filled;
+
+            if (!string.IsNullOrWhiteSpace(model.Reason))
+            {
+                break;
+            }
+        }
+
+        if (!await ConfirmImpactAsync(day, null))
+        {
+            return;
+        }
+
+        await SendAsync(() => Api.VoidMovementAsync(movement.Id, model.Reason.Trim()));
+    }
+
+    private async Task RestoreAsync(TransactionResponse movement)
+    {
+        var day = DateOnly.FromDateTime(movement.OccurredAt.ToLocalTime().DateTime);
+
+        if (!await ConfirmAsync(Ui["Movement_RestoreMessage"], Ui["Movement_Restore"], day))
+        {
+            return;
+        }
+
+        await SendAsync(() => Api.RestoreMovementAsync(movement.Id));
+    }
+
+    private string Describe(TransactionResponse movement) =>
+        $"{movement.OccurredAt.ToLocalTime():d} · {TypeName(movement.Type)} · {movement.AssetSymbol} · {Format.Money(movement.GrossAmount, movement.Currency)}";
+
+    /// <summary>Confirmación con el aviso de ejercicio delante cuando corresponde.</summary>
+    private async Task<bool> ConfirmAsync(string message, string action, DateOnly day)
+    {
+        var impact = await ImpactAsync(day, null);
+        var text = impact is { IsPastYear: true } ? $"{message} {ImpactText(impact)}" : message;
+
+        var confirmation = await Dialogs.ShowConfirmationAsync(text, action, Ui["Common_Cancel"], action);
+
+        return !(await confirmation.Result).Cancelled;
+    }
+
+    /// <summary>
+    /// Sólo pregunta si la fecha es de un ejercicio anterior al actual; si no, sigue.
+    /// </summary>
+    private async Task<bool> ConfirmImpactAsync(DateOnly day, DateOnly? previous)
+    {
+        var impact = await ImpactAsync(day, previous);
+
+        if (impact is not { IsPastYear: true })
+        {
+            return true;
+        }
+
+        var confirmation = await Dialogs.ShowConfirmationAsync(
+            ImpactText(impact), Ui["Movement_Continue"], Ui["Common_Cancel"], Ui["Movement_PastYearTitle"]);
+
+        return !(await confirmation.Result).Cancelled;
+    }
+
+    private async Task<CorrectionImpactResponse?> ImpactAsync(DateOnly day, DateOnly? previous)
+    {
+        try
+        {
+            return await Api.GetCorrectionImpactAsync(day, previous);
+        }
+        catch (KapeaApiException)
+        {
+            // Sin el aviso se sigue: es una ayuda para confirmar, no una condición.
+            return null;
+        }
+    }
+
+    private string ImpactText(CorrectionImpactResponse impact) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["Movement_PastYear"].Value, impact.TaxYear);
+
+    private async Task SendAsync(Func<Task> send)
+    {
+        try
+        {
+            await send();
+            await AfterChangeAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    /// <summary>Tras un cambio, la lista y el contador del menú: los dos pueden haber cambiado.</summary>
+    private async Task AfterChangeAsync()
+    {
+        Toasts.ShowSuccess(Ui["Movement_Saved"]);
+        await GoAsync(_page?.Page ?? 1);
+        await PendingReview.RefreshAsync();
     }
 }

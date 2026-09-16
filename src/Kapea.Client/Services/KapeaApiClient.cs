@@ -69,9 +69,21 @@ public sealed class KapeaApiClient(HttpClient http)
         string? search = null,
         int page = 1,
         int pageSize = 50,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? origin = null,
+        bool? voided = null)
     {
         var query = new List<string> { $"page={page}", $"pageSize={pageSize}" };
+
+        if (!string.IsNullOrWhiteSpace(origin))
+        {
+            query.Add($"origin={Uri.EscapeDataString(origin)}");
+        }
+
+        if (voided is { } state)
+        {
+            query.Add($"voided={(state ? "true" : "false")}");
+        }
 
         if (accountId is { } id)
         {
@@ -102,6 +114,62 @@ public sealed class KapeaApiClient(HttpClient http)
 
         return await ReadAsync<TransactionPageResponse>(response, cancellationToken);
     }
+
+    public async Task RegisterMovementAsync(ManualMovementRequest request, CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/transactions", request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task ReviseMovementAsync(Guid id, ManualMovementRequest request, CancellationToken cancellationToken = default)
+    {
+        var response = await http.PutAsJsonAsync($"api/transactions/{id}", request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task DeleteMovementAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/transactions/{id}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task CorrectMovementAsync(Guid id, ManualMovementRequest request, CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync($"api/transactions/{id}/correct", request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task VoidMovementAsync(Guid id, string reason, CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync($"api/transactions/{id}/void", new VoidMovementRequest(reason), cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task RestoreMovementAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync($"api/transactions/{id}/restore", content: null, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task MarkDistinctAsync(Guid manualId, Guid importedId, CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsync($"api/transactions/{manualId}/distinct/{importedId}", content: null, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<CorrectionImpactResponse> GetCorrectionImpactAsync(
+        DateOnly date,
+        DateOnly? previous = null,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"api/transactions/impact?date={date:yyyy-MM-dd}"
+            + (previous is { } before ? $"&previous={before:yyyy-MM-dd}" : string.Empty);
+
+        return await ReadAsync<CorrectionImpactResponse>(await http.GetAsync(url, cancellationToken), cancellationToken);
+    }
+
+    public Task<IReadOnlyList<ManualDuplicateResponse>> GetManualDuplicatesAsync(CancellationToken cancellationToken = default) =>
+        GetListAsync<ManualDuplicateResponse>("api/review/manual-duplicates", cancellationToken);
 
     /// <param name="full">Relee el histórico entero en lugar de pedir solo lo nuevo.</param>
     public async Task<SynchronizationResponse> SynchroniseAsync(

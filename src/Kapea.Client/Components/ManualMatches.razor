@@ -1,0 +1,28 @@
+@* Filas del fichero que coinciden con algo apuntado a mano en la cuenta. Un apunte manual
+   no tiene huella de origen y la deduplicación no lo ve, así que sin este aviso la misma
+   compra entraría dos veces. Va antes de la muestra: es lo que hay que decidir primero. *@
+@if (Matches.Count > 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+        @string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["Import_ManualMatches"].Value, Matches.Count)
+    </FluentMessageBar>
+
+    <FluentDataGrid Items="@Matches.AsQueryable()"
+                    TGridItem="ManualMatchResponse"
+                    GridTemplateColumns="auto 1fr 1fr 1fr 1fr 2fr">
+        <TemplateColumn Title="@Ui["Common_Row"]">@context.RowNumber</TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Date"]">@context.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
+        <PropertyColumn Property="@(match => match.Type)" Title="@Ui["Common_Type"]" />
+        <PropertyColumn Property="@(match => match.AssetSymbol)" Title="@Ui["Common_Asset"]" />
+        <TemplateColumn Title="@Ui["Common_Quantity"]" Align="Align.End">@Format.Quantity(context.Quantity)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Import_ManualMatch"]">
+            <OriginBadge Origin="@MovementOrigins.Manual" />
+            <span class="moment">@context.ManualOccurredAt.ToLocalTime().ToString("d") @context.ManualNote</span>
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<ManualMatchResponse> Matches { get; set; } = [];
+}

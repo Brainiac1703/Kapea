@@ -19,6 +19,8 @@ con corazonadas.
   siempre Kapea.
 - Descarta duplicados al repetir una importación, detecta traspasos entre tus propias
   cuentas y aparta lo que no sabe clasificar para que lo revises.
+- Permite apuntar movimientos a mano, y corregir o anular un importado sin perder de
+  dónde vino. Cada movimiento dice si llegó por API, por fichero, a mano o como ajuste.
 
 **Te dice cómo vas**
 
