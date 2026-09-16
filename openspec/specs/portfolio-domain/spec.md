@@ -8,7 +8,9 @@ Define el modelo de cartera de Kapea —activos, divisas, cuentas por plataforma
 
 ### Requirement: Aislamiento por usuario
 
-Toda entidad de cartera DEBE estar asociada a un `UserId`, y toda lectura o escritura DEBE quedar restringida al usuario autenticado, aunque en la fase actual exista un único usuario.
+Toda entidad de cartera DEBE estar asociada a un `UserId`, y toda lectura o escritura DEBE quedar restringida al usuario autenticado.
+
+El `UserId` DEBE corresponder a un usuario del registro y DEBE deducirse siempre de la sesión, nunca de un dato de entrada de la petición.
 
 #### Scenario: Lectura restringida al propietario
 
@@ -19,6 +21,11 @@ Toda entidad de cartera DEBE estar asociada a un `UserId`, y toda lectura o escr
 
 - **WHEN** un usuario solicita por identificador una entidad que pertenece a otro `UserId`
 - **THEN** el sistema responde como si la entidad no existiera, sin revelar su existencia
+
+#### Scenario: Datos creados por otro usuario en la misma instalación
+
+- **WHEN** dos usuarios distintos usan la misma instalación de Kapea
+- **THEN** ninguno de los dos ve rastro de las cuentas, movimientos ni resultados del otro
 
 ### Requirement: Catálogo de activos
 
@@ -41,7 +48,9 @@ El sistema DEBE mantener un catálogo de activos identificados de forma estable 
 
 ### Requirement: Cuentas por plataforma
 
-El usuario DEBE poder registrar una o varias cuentas, cada una asociada a una plataforma (`XTB`, `Kraken`, `Bit2Me`) y a una divisa base. Todo movimiento DEBE pertenecer exactamente a una cuenta.
+El usuario DEBE poder registrar una o varias cuentas, cada una asociada a una plataforma y a una divisa base. Todo movimiento DEBE pertenecer exactamente a una cuenta.
+
+Las plataformas DEBEN ser datos y no un conjunto cerrado en el código. Cada plataforma DEBE declarar cómo se importa —por fichero o por API—, y el sistema DEBE usar esa declaración para decidir qué cuentas admiten credencial y cuáles admiten subida de fichero.
 
 #### Scenario: Alta de cuenta
 
@@ -52,6 +61,16 @@ El usuario DEBE poder registrar una o varias cuentas, cada una asociada a una pl
 
 - **WHEN** el usuario intenta borrar una cuenta que tiene movimientos importados
 - **THEN** el sistema rechaza la operación y explica que primero deben eliminarse o reasignarse sus movimientos
+
+#### Scenario: Alta de una plataforma nueva
+
+- **WHEN** se da de alta una plataforma que se importa por fichero
+- **THEN** queda disponible al crear una cuenta sin haber modificado el código
+
+#### Scenario: Credencial solo donde tiene sentido
+
+- **WHEN** el usuario va a dar de alta una credencial
+- **THEN** solo se ofrecen las cuentas cuya plataforma declara que se importa por API
 
 ### Requirement: Movimiento normalizado
 

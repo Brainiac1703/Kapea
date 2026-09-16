@@ -27,21 +27,21 @@ El sistema DEBE permitir al usuario subir un fichero de exportación de XTB en f
 
 ### Requirement: Detección de formato y fallo explícito
 
-El adaptador DEBE reconocer el formato del fichero por sus cabeceras antes de procesar filas. Si las cabeceras no se corresponden con ningún formato conocido, la importación DEBE fallar por completo indicando qué columnas se esperaban y cuáles se encontraron.
+El sistema DEBE reconocer el formato del fichero por sus cabeceras antes de procesar filas, emparejándolo con un perfil de importación. Si ninguna cabecera se corresponde con un perfil conocido, la importación NO DEBE procesar filas a ciegas: DEBE ofrecer crear un perfil, indicando qué columnas se han encontrado.
 
 #### Scenario: Cabeceras desconocidas
 
-- **WHEN** el fichero no contiene las columnas de ningún formato de exportación conocido
-- **THEN** el sistema rechaza la importación entera e informa de las columnas esperadas y las encontradas
+- **WHEN** el fichero no se corresponde con ningún perfil conocido
+- **THEN** el sistema no importa nada y ofrece crear un perfil, enumerando las columnas encontradas
 
 #### Scenario: Columna opcional ausente
 
-- **WHEN** falta una columna que el formato reconocido declara opcional
+- **WHEN** falta una columna que el perfil declara opcional
 - **THEN** la importación continúa y los movimientos afectados quedan sin ese dato, señalados para revisión
 
 #### Scenario: Columnas adicionales
 
-- **WHEN** el fichero contiene columnas que el formato conocido no declara
+- **WHEN** el fichero contiene columnas que el perfil no mapea
 - **THEN** el sistema las ignora y procesa el fichero con normalidad
 
 ### Requirement: Vista previa antes de confirmar
@@ -60,19 +60,40 @@ Antes de persistir, el sistema DEBE ofrecer una vista previa con los movimientos
 
 ### Requirement: Interpretación de las convenciones de XTB
 
-El adaptador DEBE interpretar correctamente las convenciones locales de la exportación —separador decimal, separador de columnas, formato de fecha y divisa de la operación— y DEBE traducir los conceptos de operación de XTB a los tipos de movimiento normalizados.
+El perfil DEBE declarar las convenciones locales del informe —separador decimal, separador de columnas y formato de fecha— y el sistema DEBE aplicarlas al leer cada fila. La traducción de los conceptos de operación a tipos de movimiento DEBE venir del perfil, no del código.
 
 #### Scenario: Convención decimal europea
 
-- **WHEN** el fichero usa coma como separador decimal y punto como separador de millares
+- **WHEN** el perfil declara coma decimal y punto de millares
 - **THEN** las cantidades y los importes se interpretan sin pérdida de precisión
 
 #### Scenario: Concepto sin equivalencia
 
-- **WHEN** una fila declara un concepto de operación que no tiene equivalencia en los tipos normalizados
+- **WHEN** una fila declara un concepto que el perfil no traduce
 - **THEN** el movimiento se importa con tipo `Unknown` y queda pendiente de clasificar
 
 #### Scenario: Fila con importe cero y sin activo
 
 - **WHEN** una fila corresponde a un apunte informativo sin efecto financiero
 - **THEN** el sistema la descarta y la contabiliza como registro no financiero en la ejecución
+
+### Requirement: Perfiles de XTB distribuidos de serie
+
+Kapea DEBE traer perfiles preparados para los informes conocidos de xStation5 —operaciones de efectivo, posiciones cerradas y posiciones abiertas— de modo que un usuario de XTB pueda importar sin definir ningún mapeo.
+
+Esos perfiles DEBEN ser editables como cualquier otro: cuando XTB cambie su exportación, corregirlos NO DEBE requerir una versión nueva de la aplicación.
+
+#### Scenario: Importación sin configurar nada
+
+- **WHEN** un usuario sube una exportación de xStation5 de un formato conocido
+- **THEN** el sistema la reconoce con el perfil de serie y no pide ningún mapeo
+
+#### Scenario: XTB cambia su informe
+
+- **WHEN** la exportación deja de coincidir con el perfil de serie
+- **THEN** el usuario puede corregir el perfil desde la aplicación, sin esperar a una versión nueva
+
+#### Scenario: Equivalencia con el comportamiento anterior
+
+- **WHEN** se reimporta un fichero ya importado con la versión anterior de Kapea
+- **THEN** todos sus registros se descartan como duplicados, porque los perfiles de serie reproducen la misma interpretación
