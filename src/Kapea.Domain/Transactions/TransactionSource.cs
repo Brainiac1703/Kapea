@@ -51,6 +51,17 @@ public sealed record TransactionSource(
             importRunId, naturalId, rowNumber, fingerprint, rawContent, profileId, profileVersion);
     }
 
+    /// <summary>
+    /// Origen de un movimiento apuntado a mano.
+    /// </summary>
+    /// <remarks>
+    /// La huella lleva un prefijo propio y un identificador nuevo: nunca coincide con la de
+    /// un importado, así que la deduplicación no puede confundir un apunte con un registro
+    /// de la plataforma. Esa coincidencia se busca aparte, por los datos.
+    /// </remarks>
+    public static TransactionSource ForManualEntry(Guid entryId) =>
+        new(ImportRunId: null, NaturalId: null, RowNumber: null, Fingerprint: $"entry:{entryId:N}", RawContent: null);
+
     public static TransactionSource ForManualAdjustment(Guid adjustmentId) =>
         new(ImportRunId: null, NaturalId: null, RowNumber: null, Fingerprint: $"manual:{adjustmentId:N}", RawContent: null);
 }

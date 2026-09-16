@@ -12,7 +12,9 @@ public sealed record TransactionQuery(
     bool OnlyRequiringReview = false,
     string? Search = null,
     int Page = 1,
-    int PageSize = 50);
+    int PageSize = 50,
+    string? Origin = null,
+    bool? Voided = null);
 
 /// <summary>
 /// Consultas de lectura que devuelven directamente los contratos del cliente.
@@ -48,8 +50,11 @@ public interface IPortfolioQueries
 
     Task<PortfolioResponse> GetPortfolioAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Traspasos por confirmar y movimientos sin clasificar, sólo contados.</summary>
+    /// <summary>Traspasos por confirmar, movimientos sin clasificar y posibles duplicados de manuales, sólo contados.</summary>
     Task<PendingReviewResponse> CountPendingReviewAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Parejas de apunte manual e importado que parecen el mismo movimiento.</summary>
+    Task<IReadOnlyList<ManualDuplicateResponse>> ListManualDuplicatesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Evolución de la cartera entre dos fechas, con el reparto por clase.</summary>
     Task<PortfolioHistoryResponse> GetHistoryAsync(

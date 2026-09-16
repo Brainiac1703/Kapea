@@ -40,8 +40,10 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
             return [];
         }
 
+        // Todos los usuarios, pero sólo los vigentes: un activo que sólo aparece en
+        // movimientos anulados no necesita precio.
         var moved = await context.Transactions
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([TransactionQueryFilters.Owner])
             .Where(transaction => transaction.AssetId != null
                 && held.Contains(transaction.AssetId.Value)
                 && transaction.Type != TransactionType.Unknown)
