@@ -154,7 +154,7 @@ else
                         <div class="list-row">
                             <OriginBadge Origin="@movement.Origin" Movement="@movement" Compact="true" />
                             <span class="soft">@Format.Moment(movement.OccurredAt)</span>
-                            <span class="grow">@movement.Type · @(movement.AssetSymbol ?? movement.Currency)</span>
+                            <span class="grow">@TypeName(movement.Type) · @(movement.AssetSymbol ?? movement.Currency)</span>
                             <span>@Format.Money(movement.GrossAmount, movement.Currency)</span>
                         </div>
                     }
@@ -290,6 +290,13 @@ else
                 ChartLine.SeriesAt(0)),
             new ChartLine(Ui["Evolution_Contributed"], contributed, "series-other", Dashed: true),
         ];
+    }
+
+    private string TypeName(string type)
+    {
+        var name = Ui[$"TransactionType_{type}"];
+
+        return name.ResourceNotFound ? type : name.Value;
     }
 
     private string ClassName(string assetClass) => assetClass switch

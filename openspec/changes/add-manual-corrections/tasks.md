@@ -34,11 +34,11 @@
 - [x] 5.1 Añadir el formulario *Nuevo movimiento* con validación, y su uso para *Editar* y para *Corregir* con motivo en lugar de nota. Se verifica con pruebas del modelo del formulario y en el navegador registrando, editando y corrigiendo.
 - [x] 5.2 Añadir las acciones por origen y estado con confirmación y aviso de ejercicio. Se verifica en el navegador sobre datos locales.
 - [x] 5.3 Sustituir el valor interno de la columna *Procedencia* por texto e icono de API, fichero, a mano o ajuste, con nota, alta y edición en la descripción; marcar anulados; y añadir los filtros de procedencia y estado. Se verifica en el navegador filtrando cada uno.
-- [ ] 5.4 Mostrar el icono de procedencia en los últimos movimientos de *Inicio* y en cada transmisión y lote de *Fiscal*. Se verifica en el navegador con una compra manual consumida por una venta.
-- [ ] 5.5 Marcar coincidencias en la vista previa y añadir la sección de posibles duplicados en *Por revisar*. Se verifica en el navegador con un manual y un fichero que lo incluye.
+- [x] 5.4 Mostrar el icono de procedencia en los últimos movimientos de *Inicio* y en cada transmisión y lote de *Fiscal*. Se verifica en el navegador con una compra manual consumida por una venta.
+- [x] 5.5 Marcar coincidencias en la vista previa y añadir la sección de posibles duplicados en *Por revisar*. Se verifica en el navegador con un manual y un fichero que lo incluye.
 - [x] 5.6 Dar de alta todos los textos en español e inglés. Se verifica con la prueba de textos sin localizar en verde.
 
 ## 6. Cierre
 
 - [x] 6.1 Actualizar la guía de uso: registrar, editar y borrar a mano, corregir, anular y deshacer, coincidencias, y quitar el límite conocido. Se verifica leyendo la guía y comprobando los enlaces.
-- [ ] 6.2 Pasar la batería completa y probar en local dos casos reales: apuntar a mano una compra de XTB e importar después el fichero que la incluye, y corregir un movimiento de Kraken y releer el histórico. Se verifica con las pruebas en verde y las cifras en pantalla.
+- [x] 6.2 Pasar la batería completa y probar en local dos casos reales: apuntar a mano una compra de XTB e importar después el fichero que la incluye, y corregir un movimiento de Kraken y releer el histórico. Se verifica con las pruebas en verde y las cifras en pantalla.

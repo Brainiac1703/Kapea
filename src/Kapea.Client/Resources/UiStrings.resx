@@ -1442,7 +1442,7 @@
     <value>Apunte manual</value>
   </data>
   <data name="Import_ManualMatches" xml:space="preserve">
-    <value>{0} filas coinciden con movimientos que apuntaste a mano en esta cuenta. Si son los mismos, entrarán dos veces: borra el apunte manual o descarta la importación.</value>
+    <value>Filas que coinciden con movimientos que apuntaste a mano en esta cuenta: {0}. Si son los mismos, entrarán dos veces: borra el apunte manual o descarta la importación.</value>
   </data>
   <data name="Movement_AllOrigins" xml:space="preserve">
     <value>Todas las procedencias</value>

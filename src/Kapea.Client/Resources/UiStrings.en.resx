@@ -1442,7 +1442,7 @@
     <value>Manual entry</value>
   </data>
   <data name="Import_ManualMatches" xml:space="preserve">
-    <value>{0} rows match movements you entered by hand in this account. If they are the same, they will count twice: delete the manual entry or discard the import.</value>
+    <value>Rows matching movements you entered by hand in this account: {0}. If they are the same, they will count twice: delete the manual entry or discard the import.</value>
   </data>
   <data name="Movement_AllOrigins" xml:space="preserve">
     <value>All origins</value>
