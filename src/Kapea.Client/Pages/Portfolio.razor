@@ -69,6 +69,12 @@ else
 
     <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="32" Class="counts">
         <Amount Label="@Ui["Portfolio_Wealth"]" Value="@_portfolio.WealthInEuros" />
+        @* Lo puesto de tu bolsillo, al lado de lo que hay: es la comparación que
+           contesta a si se gana o se pierde dinero, y no estaba en ninguna pantalla. *@
+        @if (_portfolio.Contributed is { } contributed)
+        {
+            <Amount Label="@Ui["Portfolio_Contributed"]" Value="@contributed.NetInEuros" />
+        }
         <Amount Label="@Ui["Portfolio_TotalValue"]" Value="@_portfolio.TotalMarketValueInEuros" />
         <Amount Label="@Ui["Portfolio_TotalCost"]" Value="@_portfolio.TotalCostInEuros" />
         <Amount Label="@Ui["Portfolio_Realized"]" Value="@_portfolio.RealizedResultInEuros" />
@@ -76,6 +82,20 @@ else
         <Amount Label="@Ui["Portfolio_Accumulated"]"
                 Value="@(_portfolio.RealizedResultInEuros + _portfolio.UnrealisedResultInEuros)" />
     </FluentStack>
+
+    @if (_portfolio.Contributed is { } capital)
+    {
+        <FluentLabel Typo="Typography.Body" Class="intro">
+            @ContributedNote(capital)
+        </FluentLabel>
+
+        @if (capital.MissesAssetsFromOutside)
+        {
+            <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+                @Ui["Portfolio_ContributedShort"]
+            </FluentMessageBar>
+        }
+    }
 
     @if (_loadedAt is { } loaded)
     {
@@ -261,6 +281,29 @@ else
     /// Una clase que el servidor conozca y la pantalla no se enseña con su código en
     /// lugar de desaparecer: es feo, pero el dinero sigue estando a la vista.
     /// </remarks>
+    /// <summary>
+    /// Lo puesto, lo sacado y cómo ha ido, en una frase.
+    /// </summary>
+    /// <remarks>
+    /// Va en texto seguido y no en más cifras sueltas: junto al patrimonio ya hay seis,
+    /// y la séptima dejaría de leerse. Lo que importa es la comparación, no el desglose.
+    /// </remarks>
+    private string ContributedNote(ContributedCapitalResponse capital)
+    {
+        if (capital.Share is not { } share)
+        {
+            return Ui["Portfolio_ContributedNone"];
+        }
+
+        return string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            Ui["Portfolio_ContributedNote"].Value,
+            Format.Euros(capital.DepositedInEuros),
+            Format.Euros(capital.WithdrawnInEuros),
+            Format.SignedEuros(capital.ResultInEuros),
+            Format.Percent(share, string.Empty));
+    }
+
     /// <summary>
     /// Lo que le falta al cálculo, dicho en el idioma de quien lo lee.
     /// </summary>

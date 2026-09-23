@@ -42,6 +42,18 @@ else
                 <span class="stat-note">@Ui["Portfolio_TotalCost"] @Format.Euros(_portfolio.TotalCostInEuros)</span>
             </section>
 
+            @* Lo puesto de tu bolsillo frente a lo que hay: la pregunta de verdad. *@
+            @if (_portfolio.Contributed is { } contributed)
+            {
+                <section class="panel">
+                    <span class="panel-title">@Ui["Portfolio_Contributed"]</span>
+                    <span class="stat-value">@Format.Euros(contributed.NetInEuros)</span>
+                    <span>
+                        <Delta Amount="@contributed.ResultInEuros" Rate="@contributed.Share" />
+                    </span>
+                </section>
+            }
+
             <section class="panel">
                 <span class="panel-title">@Ui["Portfolio_Accumulated"]</span>
                 <span class="stat-value">@Format.SignedEuros(Accumulated)</span>

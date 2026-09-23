@@ -192,6 +192,28 @@ public sealed record InconsistencyResponse(
     DateTimeOffset OccurredAt,
     decimal MissingQuantity);
 
+/// <summary>
+/// El dinero que se ha puesto, comparado con lo que hay.
+/// </summary>
+/// <remarks>
+/// No es la rentabilidad: no pondera cuándo entró cada euro. Dice cuánto se puso y
+/// cuánto hay, que es la pregunta que se hace quien mira su cartera un martes
+/// cualquiera.
+/// </remarks>
+/// <param name="ResultInEuros">Lo que hay menos lo aportado neto.</param>
+/// <param name="Share">La misma diferencia sobre lo aportado. Nula si no se aportó nada.</param>
+/// <param name="MissesAssetsFromOutside">
+/// Ha entrado algún activo sin que su dinero pasara por la plataforma: lo aportado se
+/// queda corto y la comparación exagera la pérdida.
+/// </param>
+public sealed record ContributedCapitalResponse(
+    decimal DepositedInEuros,
+    decimal WithdrawnInEuros,
+    decimal NetInEuros,
+    decimal ResultInEuros,
+    decimal? Share,
+    bool MissesAssetsFromOutside);
+
 /// <summary>Cartera completa, con la advertencia visible cuando las cifras están incompletas.</summary>
 public sealed record PortfolioResponse(
     IReadOnlyList<PortfolioGroupResponse> Groups,
@@ -210,7 +232,8 @@ public sealed record PortfolioResponse(
     bool MissingPrices,
     bool MissingCash,
     ConcentrationResponse? Concentration = null,
-    IReadOnlyList<RiskWeightResponse>? Weights = null)
+    IReadOnlyList<RiskWeightResponse>? Weights = null,
+    ContributedCapitalResponse? Contributed = null)
 {
     /// <summary>Lo que pesa cada activo, para poder ver de un golpe si algo se ha disparado.</summary>
     public IReadOnlyList<RiskWeightResponse> Weights { get; init; } = Weights ?? [];

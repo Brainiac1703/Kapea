@@ -1618,4 +1618,16 @@
   <data name="Transactions_TypesChosen" xml:space="preserve">
     <value>{0} types</value>
   </data>
+  <data name="Portfolio_Contributed" xml:space="preserve">
+    <value>Contributed</value>
+  </data>
+  <data name="Portfolio_ContributedNote" xml:space="preserve">
+    <value>You have paid in {0} and taken out {1}. Against what you hold today: {2} ({3}).</value>
+  </data>
+  <data name="Portfolio_ContributedNone" xml:space="preserve">
+    <value>No deposit on record yet to compare against what you hold.</value>
+  </data>
+  <data name="Portfolio_ContributedShort" xml:space="preserve">
+    <value>An asset arrived without its money going through the platform, so the contributed figure falls short and the comparison overstates the loss. A transfer between your own accounts that Kapea never paired up also counts as new money.</value>
+  </data>
 </root>

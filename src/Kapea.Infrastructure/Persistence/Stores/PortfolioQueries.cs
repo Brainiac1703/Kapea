@@ -449,7 +449,8 @@ public sealed class PortfolioQueries(
             responsesByAsset[group.Key] = (symbol, asset?.IsVerified ?? false);
         }
 
-        var balances = CashBalanceCalculator.Calculate(PortfolioCalculationService.Value(transactions, transfers));
+        var valued = PortfolioCalculationService.Value(transactions, transfers);
+        var balances = CashBalanceCalculator.Calculate(valued);
         var cashTotal = CashBalanceCalculator.InEuros(balances, await RatesAsync(balances, cancellationToken).ConfigureAwait(false));
 
         var summary = PortfolioSummary.Build(
@@ -460,7 +461,8 @@ public sealed class PortfolioQueries(
 
             // Todo lo realizado, también lo de activos vendidos por completo: su pérdida
             // o su ganancia no puede desaparecer del acumulado por dejar de tenerlos.
-            realized.Aggregate(Money.Euros(0m), (total, result) => total + result.ResultInEuros));
+            realized.Aggregate(Money.Euros(0m), (total, result) => total + result.ResultInEuros),
+            ContributedCapitalCalculator.Calculate(valued));
 
         // Los niveles vienen de la última señal de entrada de cada activo: el sistema que
         // propuso entrar es el que dijo dónde salir, y repetirlos aquí sería inventarlos.
@@ -503,7 +505,23 @@ public sealed class PortfolioQueries(
             summary.Wealth.MissingPrices,
             summary.Wealth.MissingCash,
             Risk(summary, responsesByAsset),
-            Weights(summary, responsesByAsset));
+            Weights(summary, responsesByAsset),
+            Contributed(summary));
+    }
+
+    /// <summary>Lo puesto frente a lo que hay, en la forma que lee el cliente.</summary>
+    private static ContributedCapitalResponse Contributed(PortfolioSummary summary)
+    {
+        var wealth = summary.Wealth.TotalInEuros;
+        var contributed = summary.Contributed;
+
+        return new ContributedCapitalResponse(
+            contributed.DepositedInEuros.Amount,
+            contributed.WithdrawnInEuros.Amount,
+            contributed.NetInEuros.Amount,
+            contributed.ResultAgainst(wealth).Amount,
+            contributed.ShareAgainst(wealth),
+            contributed.MissesAssetsFromOutside);
     }
 
     /// <summary>

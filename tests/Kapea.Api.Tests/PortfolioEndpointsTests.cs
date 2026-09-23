@@ -327,6 +327,86 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task The_portfolio_says_how_much_money_was_put_in_and_how_it_compares()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con aportaciones", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(user, account!.Id, Domain.Transactions.TransactionType.Deposit, 1000m);
+        await SeedTransactionAsync(user, account.Id, Domain.Transactions.TransactionType.Withdrawal, 200m);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+        var contributed = portfolio!.Contributed!;
+
+        Assert.Equal(1000m, contributed.DepositedInEuros);
+        Assert.Equal(200m, contributed.WithdrawnInEuros);
+        Assert.Equal(800m, contributed.NetInEuros);
+
+        // Lo que queda en la cuenta es justo lo aportado: ni se gana ni se pierde.
+        Assert.Equal(0m, contributed.ResultInEuros);
+        Assert.Equal(0m, contributed.Share);
+        Assert.False(contributed.MissesAssetsFromOutside);
+    }
+
+    [Fact]
+    public async Task Moving_money_between_your_own_accounts_is_not_money_put_in()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+
+        var source = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Origen del traspaso", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+        var destination = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Bit2Me", "Destino del traspaso", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedInternalTransferAsync(user, source!.Id, destination!.Id, 500m);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        Assert.Equal(0m, portfolio!.Contributed!.NetInEuros);
+        Assert.Equal(0m, portfolio.Contributed.DepositedInEuros);
+        Assert.Equal(0m, portfolio.Contributed.WithdrawnInEuros);
+    }
+
+    /// <summary>Un traspaso ya confirmado entre dos cuentas del mismo usuario.</summary>
+    private async Task SeedInternalTransferAsync(Guid user, Guid source, Guid destination, decimal amount)
+    {
+        await using var context = factory.CreateContext(user);
+
+        var occurredAt = Domain.Transactions.Occurrence.FromOffset(
+            new DateTimeOffset(2025, 3, 10, 9, 0, 0, TimeSpan.Zero), "UTC");
+
+        var outgoing = Domain.Transactions.Transaction.Imported(
+            new UserId(user), source, Domain.Transactions.TransactionType.Withdrawal, null, Quantity.Zero,
+            null, Money.Euros(amount), Money.Euros(0m), occurredAt,
+            Domain.Transactions.TransactionSource.FromImport(
+                Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString()));
+
+        var incoming = Domain.Transactions.Transaction.Imported(
+            new UserId(user), destination, Domain.Transactions.TransactionType.Deposit, null, Quantity.Zero,
+            null, Money.Euros(amount), Money.Euros(0m), occurredAt,
+            Domain.Transactions.TransactionSource.FromImport(
+                Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString()));
+
+        context.Transactions.AddRange(outgoing, incoming);
+
+        var transfer = Domain.Transfers.InternalTransfer.Propose(
+            new UserId(user), outgoing.Id, incoming.Id, source, destination, Guid.Empty,
+            Quantity.Zero, Quantity.Zero, occurredAt.Instant);
+
+        transfer.Confirm(occurredAt.Instant);
+        context.InternalTransfers.Add(transfer);
+
+        await context.SaveChangesAsync();
+    }
+
+    [Fact]
     public async Task A_sale_without_enough_lots_is_reported_instead_of_being_silently_dropped()
     {
         var user = Guid.NewGuid();
@@ -1105,7 +1185,8 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     private async Task SeedTransactionAsync(
         Guid user,
         Guid accountId,
-        Domain.Transactions.TransactionType type = Domain.Transactions.TransactionType.Deposit)
+        Domain.Transactions.TransactionType type = Domain.Transactions.TransactionType.Deposit,
+        decimal amount = 100m)
     {
         await using var context = factory.CreateContext(user);
 
@@ -1116,7 +1197,7 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
             null,
             Quantity.Zero,
             null,
-            Money.Euros(100m),
+            Money.Euros(amount),
             Money.Euros(0m),
             Domain.Transactions.Occurrence.FromOffset(DateTimeOffset.UtcNow, "UTC"),
             Domain.Transactions.TransactionSource.FromImport(

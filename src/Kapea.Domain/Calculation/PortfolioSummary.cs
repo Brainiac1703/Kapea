@@ -84,7 +84,8 @@ public sealed record PortfolioSummary(
     Wealth Wealth,
     AccumulatedResult Result,
     IReadOnlyList<IncomeByClass> Income,
-    bool WeightsArePartial)
+    bool WeightsArePartial,
+    ContributedCapital Contributed)
 {
     public IEnumerable<PortfolioPosition> Positions => Groups.SelectMany(group => group.Positions);
 
@@ -101,7 +102,8 @@ public sealed record PortfolioSummary(
         CashTotal cash,
         CashBalances cashBalances,
         IEnumerable<IncomeByClass> income,
-        Money realizedSinceInception)
+        Money realizedSinceInception,
+        ContributedCapital? contributed = null)
     {
         ArgumentNullException.ThrowIfNull(assets);
         ArgumentNullException.ThrowIfNull(cash);
@@ -136,7 +138,8 @@ public sealed record PortfolioSummary(
                 !cash.IsComplete || !cashBalances.IsComplete),
             new AccumulatedResult(realizedSinceInception, unrealised),
             [.. income.OrderBy(entry => entry.Class)],
-            missingPrices);
+            missingPrices,
+            contributed ?? ContributedCapital.None);
     }
 
     private static PortfolioGroup Group(AssetClass assetClass, IReadOnlyList<PortfolioAsset> assets, Money total)
