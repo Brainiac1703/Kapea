@@ -156,13 +156,16 @@ public static class PortfolioHistory
         // Lo aportado y lo retirado se lleva aparte del valor: un ingreso seguido de una
         // compra sube la cartera sin que nadie haya ganado nada, y confundir las dos
         // cosas convierte el ahorro en rendimiento.
-        if (valued.Type is TransactionType.Deposit)
+        //
+        // Qué es aportar lo decide una sola definición, la misma que usa el resumen de
+        // la cartera: contar aquí también los traspasos entre cuentas propias y las
+        // entradas de activos daba dos cifras distintas del mismo dinero, y la de aquí
+        // era la equivocada.
+        if (ContributedCapitalCalculator.IsContribution(valued))
         {
-            contribution += valued.GrossAmountInEuros;
-        }
-        else if (valued.Type is TransactionType.Withdrawal)
-        {
-            contribution -= valued.GrossAmountInEuros;
+            contribution += valued.Type is TransactionType.Deposit
+                ? valued.GrossAmountInEuros
+                : -valued.GrossAmountInEuros;
         }
 
         if (valued.AssetId is not { } assetId)

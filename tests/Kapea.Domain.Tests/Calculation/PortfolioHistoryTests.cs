@@ -106,6 +106,40 @@ public class PortfolioHistoryTests
     }
 
     [Fact]
+    public void Money_moved_between_your_own_accounts_is_not_money_put_in()
+    {
+        // Sale de una cuenta y entra en otra: el mismo dinero de siempre. Contarlo como
+        // aportación convertiría un traspaso en ahorro nuevo y hundiría el rendimiento.
+        var transfer = Guid.NewGuid();
+
+        var days = Build(
+            [
+                Deposit(on: 2, amount: 500m),
+                Withdraw(on: 3, amount: 200m, transferId: transfer, transferDestination: Guid.NewGuid()),
+                Deposit(on: 3, amount: 200m, transferId: transfer),
+            ],
+            new Dictionary<Guid, IReadOnlyList<DailyPrice>>());
+
+        Assert.Equal(Money.Euros(500m), days[1].NetContributionInEuros);
+        Assert.Equal(Money.Euros(0m), days[2].NetContributionInEuros);
+    }
+
+    [Fact]
+    public void An_asset_arriving_from_outside_is_not_money_put_in()
+    {
+        // Cripto que llega de una cartera de fuera no es dinero del bolsillo. Contarla
+        // como aportación hundiría el rendimiento por algo que nunca se pagó.
+        //
+        // Tampoco crea posición, porque no se conoce su coste: de eso avisa el resumen
+        // de la cartera al decir que lo aportado se queda corto.
+        var days = Build(
+            [Valued(TransactionType.Deposit, Bitcoin, on: 2, quantity: 1m, gross: 0m)],
+            Prices(Bitcoin, 100m, 100m, 100m, 100m, 100m, 100m, 100m));
+
+        Assert.All(days, day => Assert.Equal(Money.Euros(0m), day.NetContributionInEuros));
+    }
+
+    [Fact]
     public void A_reward_adds_units_without_money_going_in()
     {
         var days = Build(
@@ -151,18 +185,21 @@ public class PortfolioHistoryTests
     private static ValuedTransaction Unknown(Guid assetId, int on, decimal quantity) =>
         Valued(TransactionType.Unknown, assetId, on, quantity, 0m);
 
-    private static ValuedTransaction Deposit(int on, decimal amount) =>
-        Valued(TransactionType.Deposit, null, on, 0m, amount);
+    private static ValuedTransaction Deposit(int on, decimal amount, Guid? transferId = null) =>
+        Valued(TransactionType.Deposit, null, on, 0m, amount, transferId);
 
-    private static ValuedTransaction Withdraw(int on, decimal amount) =>
-        Valued(TransactionType.Withdrawal, null, on, 0m, amount);
+    private static ValuedTransaction Withdraw(
+        int on, decimal amount, Guid? transferId = null, Guid? transferDestination = null) =>
+        Valued(TransactionType.Withdrawal, null, on, 0m, amount, transferId, transferDestination);
 
     private static ValuedTransaction Valued(
         TransactionType type,
         Guid? assetId,
         int on,
         decimal quantity,
-        decimal gross)
+        decimal gross,
+        Guid? transferId = null,
+        Guid? transferDestination = null)
     {
         var transaction = Transaction.Imported(
             Owner,
@@ -176,7 +213,10 @@ public class PortfolioHistoryTests
             Occurrence.FromOffset(new DateTimeOffset(Day(on).ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero), "UTC"),
             TransactionSource.FromImport(Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString()));
 
-        return ValuedTransaction.From(transaction);
+        return ValuedTransaction.From(
+            transaction,
+            internalTransferId: transferId,
+            transferDestinationAccountId: transferDestination);
     }
 }
 

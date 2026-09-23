@@ -1618,4 +1618,16 @@
   <data name="Transactions_TypesChosen" xml:space="preserve">
     <value>{0} tipos</value>
   </data>
+  <data name="Portfolio_Contributed" xml:space="preserve">
+    <value>Aportado</value>
+  </data>
+  <data name="Portfolio_ContributedNote" xml:space="preserve">
+    <value>Has ingresado {0} y retirado {1}. Frente a lo que tienes hoy: {2} ({3}).</value>
+  </data>
+  <data name="Portfolio_ContributedNone" xml:space="preserve">
+    <value>Todavía no consta ningún ingreso con el que comparar lo que tienes.</value>
+  </data>
+  <data name="Portfolio_ContributedShort" xml:space="preserve">
+    <value>Ha entrado algún activo sin que su dinero pasara por la plataforma, así que lo aportado se queda corto y la comparación exagera la pérdida. Un traspaso entre tus cuentas que Kapea no haya llegado a emparejar también cuenta como dinero nuevo.</value>
+  </data>
 </root>

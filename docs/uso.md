@@ -202,6 +202,23 @@ nivel de salida, con un aviso cuando el precio ya los ha tocado.
 Arriba se ven los totales. **Patrimonio** es el valor de las posiciones más el efectivo
 de todas las cuentas; **Valor total** es sólo el de las posiciones.
 
+**Aportado** es el dinero que has puesto de tu bolsillo: lo ingresado en las plataformas
+menos lo retirado de ellas. Debajo, una frase compara lo aportado con lo que tienes hoy,
+en euros y en porcentaje. Es la respuesta a «¿gano o pierdo dinero?», y no es lo mismo
+que el resultado acumulado, que mide las ganancias y las pérdidas de las operaciones.
+
+Qué cuenta como aportación:
+
+- Sólo el dinero. Una transferencia, una tarjeta o un pago móvil suman; un activo que
+  llega de una cartera de fuera, no, porque no se sabe si lo compraste, te lo regalaron
+  o te pagaron con él. Cuando existe alguno, Kapea avisa de que lo aportado se queda
+  corto y de que la comparación exagera la pérdida.
+- Mover dinero entre tus propias cuentas no aporta nada: ese dinero ya estaba dentro.
+  Kapea lo sabe cuando ha emparejado las dos patas del traspaso. Si nunca llegó a
+  emparejarlas, las contará como dinero nuevo, y conviene resolverlas en *Por revisar*.
+- No incluye lo que ocurriera antes de lo que hayas importado. Si tu histórico empieza
+  tarde, la cifra empieza ahí.
+
 Los avisos van antes que las cifras:
 
 - **Cifras incompletas** si queda algo por revisar.
