@@ -24,13 +24,22 @@
                   ValueChanged="OnAccountChanged"
                   Placeholder="@Ui["Transactions_AllAccounts"]" />
 
-    <FluentSelect TOption="string"
-                  Items="@_types"
-                  OptionValue="@(type => type)"
-                  OptionText="@(type => type)"
-                  Value="@_type"
-                  ValueChanged="OnTypeChanged"
-                  Placeholder="@Ui["Transactions_AllTypes"]" />
+    @* El tipo se ofrece con el mismo nombre con el que aparece en la tabla, y se pueden
+       marcar varios: mirar compras y ventas a la vez es lo normal. Va en un menú y no en
+       un desplegable de selección múltiple porque ese se queda siempre abierto y tapa el
+       resto de los filtros. *@
+    <FluentButton Id="types-filter" Appearance="Appearance.Outline" OnClick="@(() => _typesOpen = !_typesOpen)">
+        @TypesLabel()
+        <FluentIcon Value="@(new Icons.Regular.Size16.ChevronDown())" Slot="end" />
+    </FluentButton>
+    <FluentMenu Anchor="types-filter" @bind-Open="_typesOpen" VerticalThreshold="240">
+        @foreach (var type in _types)
+        {
+            <FluentMenuItem Role="MenuItemRole.MenuItemCheckbox"
+                            Checked="@_selectedTypes.Contains(type)"
+                            OnClick="@(() => ToggleTypeAsync(type))">@TypeName(type)</FluentMenuItem>
+        }
+    </FluentMenu>
 
     <FluentSelect TOption="int"
                   Items="@_years"
@@ -82,7 +91,7 @@ else
         <FluentDataGrid Items="@_page.Items.AsQueryable()"
                         TGridItem="TransactionResponse"
                         RowClass="@(movement => movement.IsVoided ? "voided" : string.Empty)"
-                        GridTemplateColumns="0.8fr 0.9fr 0.7fr 0.9fr 1fr 0.7fr 1.5fr 1.1fr 90px">
+                        GridTemplateColumns="0.8fr 0.9fr 0.7fr 0.9fr 1.2fr 0.7fr 1.4fr 0.9fr 90px">
             <TemplateColumn Title="@Ui["Common_Date"]">@context.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
             <TemplateColumn Title="@Ui["Common_Type"]">@TypeName(context.Type)</TemplateColumn>
             <PropertyColumn Property="@(t => t.AssetSymbol)" Title="@Ui["Common_Asset"]" />
@@ -95,6 +104,12 @@ else
                 @(context.GrossAmount == 0m && context.AssetSymbol is { Length: > 0 }
                     ? Ui["Transactions_Unvalued"].Value
                     : Format.Money(context.GrossAmount, context.Currency))
+                @* Una cifra que puso Kapea no puede parecerse a una que venía del
+                   extracto: se marca y se dice con qué precio salió. *@
+                @if (context.AmountIsEstimated)
+                {
+                    <span class="estimated" title="@EstimatedHint(context)">@Ui["Movement_Estimated"]</span>
+                }
             </TemplateColumn>
             <TemplateColumn Title="@Ui["Common_Fee"]" Align="Align.End">
                 @(context.Fee == 0m ? string.Empty : Format.Money(context.Fee, context.Currency))
@@ -171,7 +186,8 @@ else
     private Guid? _accountId;
     private string _origin = string.Empty;
     private string _state = string.Empty;
-    private string _type = string.Empty;
+    private IReadOnlyList<string> _selectedTypes = [];
+    private bool _typesOpen;
     private int? _year;
     private string _asset = string.Empty;
     private string _search = string.Empty;
@@ -201,7 +217,7 @@ else
             _page = await Api.SearchTransactionsAsync(
                 _accountId,
                 _asset,
-                _type,
+                _selectedTypes,
                 _year,
                 _search,
                 page,
@@ -226,9 +242,29 @@ else
         return GoAsync(1);
     }
 
-    private Task OnTypeChanged(string? value)
+    /// <summary>Con qué precio se estimó el importe, para el usuario que pasa el ratón.</summary>
+    private string EstimatedHint(TransactionResponse movement) =>
+        string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            Ui["Movement_EstimatedHint"].Value,
+            movement.OccurredAt.ToLocalTime().ToString("d", System.Globalization.CultureInfo.CurrentCulture));
+
+    /// <summary>Lo que dice el botón del filtro: todos, el tipo elegido, o cuántos hay.</summary>
+    private string TypesLabel() => _selectedTypes.Count switch
     {
-        _type = value ?? string.Empty;
+        0 => Ui["Transactions_AllTypes"],
+        1 => TypeName(_selectedTypes[0]),
+        _ => string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            Ui["Transactions_TypesChosen"].Value,
+            _selectedTypes.Count),
+    };
+
+    private Task ToggleTypeAsync(string type)
+    {
+        _selectedTypes = _selectedTypes.Contains(type)
+            ? [.. _selectedTypes.Where(chosen => chosen != type)]
+            : [.. _selectedTypes, type];
 
         return GoAsync(1);
     }

@@ -65,6 +65,41 @@ public class KrakenImportAdapterTests
     }
 
     [Fact]
+    public async Task Changing_one_crypto_for_another_becomes_a_sale_and_a_purchase()
+    {
+        // El libro apunta el cambio como dos apuntes con la misma referencia y ninguna
+        // pata en dinero. Leídos por separado eran dos traspasos sueltos: ni restaban
+        // del activo entregado ni creaban lote del recibido, y una venta posterior se
+        // quedaba sin las unidades recibidas.
+        var result = await ReadFullHistory();
+
+        var sold = result.Records.Single(record => record.NaturalId == "LGRSWAP-SPEND-0001");
+        var bought = result.Records.Single(record => record.NaturalId == "LGRSWAP-RECV-0001");
+
+        Assert.Equal(TransactionType.Sell, sold.Type);
+        Assert.Equal("BTC", sold.AssetSymbol);
+        Assert.Equal(0.00007640m, sold.Quantity);
+
+        Assert.Equal(TransactionType.Buy, bought.Type);
+        Assert.Equal("PAXG", bought.AssetSymbol);
+
+        // Kraken cobra la comisión en el propio activo: entra lo recibido menos ella.
+        // Sumando la cantidad bruta quedaban milésimas que nadie tenía, y un activo
+        // vendido entero seguía apareciendo abierto por ese residuo.
+        Assert.Equal(0.00161217m - 0.00000327m, bought.Quantity);
+        Assert.Equal(0m, bought.Fee);
+
+        // Una permuta no pasa por caja y el libro no la valora: el importe lo pone el
+        // motor con el precio del día, no el adaptador.
+        Assert.All([sold, bought], leg =>
+        {
+            Assert.False(leg.SettledInCash);
+            Assert.True(leg.NeedsValuation);
+            Assert.Equal(0m, leg.GrossAmount);
+        });
+    }
+
+    [Fact]
     public async Task A_paginated_history_is_walked_to_the_end()
     {
         var handler = new RecordedResponseHandler()

@@ -180,6 +180,53 @@ public class ManualMovementEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task Correcting_an_estimated_amount_leaves_a_figure_that_is_no_longer_estimated()
+    {
+        // Una cifra que puso Kapea con el precio de cierre se puede sustituir por la
+        // real. Lo que cuenta a partir de ahí ya no es una estimación.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var account = await CreateAccountAsync(client, "Kraken", "Con estimación");
+        var symbol = "EST" + Suffix();
+
+        await using (var context = factory.CreateContext(user))
+        {
+            var asset = Domain.Assets.Asset.Create(symbol, Domain.Assets.AssetClass.Crypto);
+            context.Assets.Add(asset);
+
+            context.Transactions.Add(Domain.Transactions.Transaction.Imported(
+                new UserId(user), account, Domain.Transactions.TransactionType.Buy, asset.Id, new Quantity(1m),
+                Money.Euros(10m), Money.Euros(10m), Money.Euros(0m), Domain.Transactions.Occurrence.FromOffset(Day, "UTC"),
+                Domain.Transactions.TransactionSource.FromImport(
+                    Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString()),
+                amountIsEstimated: true));
+
+            await context.SaveChangesAsync();
+        }
+
+        var estimated = Assert.Single((await SearchAsync(client, account)).Items);
+        Assert.True(estimated.AmountIsEstimated);
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/transactions/{estimated.Id}/correct",
+            new ManualMovementRequest(
+                account, "Buy", symbol, "Crypto", 1m, 12m, 12m, "EUR", 0m, Day, "Europe/Madrid", "el cambio fue a 12"));
+
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+
+        var adjustment = Assert.Single((await SearchAsync(client, account, "origin=ManualAdjustment")).Items);
+
+        Assert.False(adjustment.AmountIsEstimated);
+        Assert.Equal(12m, adjustment.GrossAmount);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+        var position = Assert.Single(
+            portfolio!.Groups.SelectMany(group => group.Positions), item => item.AssetSymbol == symbol);
+
+        Assert.Equal(12m, position.CostInEuros);
+    }
+
+    [Fact]
     public async Task A_manual_movement_already_in_the_file_is_flagged_in_the_preview_and_in_review()
     {
         var user = Guid.NewGuid();

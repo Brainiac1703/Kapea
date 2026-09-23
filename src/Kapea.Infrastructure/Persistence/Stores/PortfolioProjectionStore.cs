@@ -28,7 +28,13 @@ public sealed class PortfolioProjectionStore(KapeaDbContext context, ILogger<Por
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return lots.Concat(realized).Concat(income).ToHashSet();
+        var inconsistencies = await context.CalculationInconsistencies
+            .Select(inconsistency => inconsistency.AssetId)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return lots.Concat(realized).Concat(income).Concat(inconsistencies).ToHashSet();
     }
 
     public async Task ReplaceAsync(
@@ -51,23 +57,28 @@ public sealed class PortfolioProjectionStore(KapeaDbContext context, ILogger<Por
             await context.CapitalIncomes.Where(income => income.AssetId == assetId)
                 .ExecuteDeleteAsync(token).ConfigureAwait(false);
 
+            await context.CalculationInconsistencies.Where(inconsistency => inconsistency.AssetId == assetId)
+                .ExecuteDeleteAsync(token).ConfigureAwait(false);
+
             // ExecuteDelete borra en la base pero no descarta lo que el contexto ya tenía
             // en memoria. Sin soltarlo, añadir la proyección nueva choca con la vieja por
             // clave repetida, que es lo que pasa al recalcular justo después de importar.
             Forget<Lot>(assetId);
             Forget<RealizedResult>(assetId);
             Forget<CapitalIncome>(assetId);
+            Forget<CalculationInconsistency>(assetId);
 
             context.Lots.AddRange(result.Lots);
             context.RealizedResults.AddRange(result.RealizedResults);
             context.CapitalIncomes.AddRange(result.CapitalIncomes);
+            context.CalculationInconsistencies.AddRange(result.Inconsistencies);
 
             await context.SaveChangesAsync(token).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
-            "Proyección del activo {Activo} reemplazada: {Lotes} lotes, {Resultados} resultados, {Rendimientos} rendimientos.",
-            assetId, result.Lots.Count, result.RealizedResults.Count, result.CapitalIncomes.Count);
+            "Proyección del activo {Activo} reemplazada: {Lotes} lotes, {Resultados} resultados, {Rendimientos} rendimientos, {Incoherencias} incoherencias.",
+            assetId, result.Lots.Count, result.RealizedResults.Count, result.CapitalIncomes.Count, result.Inconsistencies.Count);
     }
 
     /// <summary>Suelta del contexto la proyección de un activo que ya se ha borrado.</summary>

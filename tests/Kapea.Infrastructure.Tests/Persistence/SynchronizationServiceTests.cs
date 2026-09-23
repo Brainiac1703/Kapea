@@ -203,6 +203,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
             new ImportRepository(context),
             new AssetCatalog(context, NullLogger<AssetCatalog>.Instance),
             new NoRates(),
+            new NoPrices(),
             user,
             time,
             NullLogger<ImportPipeline>.Instance);
@@ -345,6 +346,14 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         public Task<ExchangeRate?> ResolveAsync(
             Currency currency, DateOnly date, CancellationToken cancellationToken = default) =>
             Task.FromResult<ExchangeRate?>(null);
+    }
+
+    /// <summary>Sin precios de cierre: aquí no se importa nada que haya que valorar.</summary>
+    private sealed class NoPrices : Kapea.Application.Import.IClosingPrices
+    {
+        public Task<decimal?> FindAsync(
+            Domain.Assets.Asset asset, DateOnly day, CancellationToken cancellationToken = default) =>
+            Task.FromResult<decimal?>(null);
     }
 
     private sealed class CapturingLogger<T>(List<string> messages) : ILogger<T>

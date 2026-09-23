@@ -327,6 +327,88 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task A_sale_without_enough_lots_is_reported_instead_of_being_silently_dropped()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var symbol = "SHORT" + Random.Shared.Next(100000, 999999).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Sin lotes", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedShortSaleAsync(user, account!.Id, symbol);
+        await client.PostAsync("/api/portfolio/recalculate", null);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        var inconsistency = Assert.Single(portfolio!.Inconsistencies);
+
+        Assert.Equal(nameof(Domain.Calculation.InconsistencyKind.InsufficientLots), inconsistency.Kind);
+        Assert.Equal(symbol, inconsistency.AssetSymbol);
+        Assert.Equal(1m, inconsistency.MissingQuantity);
+        Assert.False(portfolio.IsComplete);
+    }
+
+    [Fact]
+    public async Task Recalculating_twice_does_not_pile_up_the_same_inconsistency()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var symbol = "TWICE" + Random.Shared.Next(100000, 999999).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Recalculada dos veces", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedShortSaleAsync(user, account!.Id, symbol);
+
+        await client.PostAsync("/api/portfolio/recalculate", null);
+        await client.PostAsync("/api/portfolio/recalculate", null);
+
+        var portfolio = await client.GetFromJsonAsync<PortfolioResponse>("/api/portfolio");
+
+        Assert.Single(portfolio!.Inconsistencies);
+    }
+
+    /// <summary>Una venta de dos unidades con una sola comprada: falta una.</summary>
+    private async Task SeedShortSaleAsync(Guid user, Guid accountId, string symbol)
+    {
+        await using var context = factory.CreateContext(user);
+
+        var asset = Domain.Assets.Asset.Create(symbol, Domain.Assets.AssetClass.Crypto);
+        context.Assets.Add(asset);
+
+        context.Transactions.Add(Domain.Transactions.Transaction.Imported(
+            new UserId(user),
+            accountId,
+            Domain.Transactions.TransactionType.Buy,
+            asset.Id,
+            new Quantity(1m),
+            Money.Euros(10m),
+            Money.Euros(10m),
+            Money.Euros(0m),
+            Domain.Transactions.Occurrence.FromOffset(new DateTimeOffset(2025, 1, 10, 9, 0, 0, TimeSpan.Zero), "UTC"),
+            Domain.Transactions.TransactionSource.FromImport(
+                Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString())));
+
+        context.Transactions.Add(Domain.Transactions.Transaction.Imported(
+            new UserId(user),
+            accountId,
+            Domain.Transactions.TransactionType.Sell,
+            asset.Id,
+            new Quantity(2m),
+            Money.Euros(20m),
+            Money.Euros(40m),
+            Money.Euros(0m),
+            Domain.Transactions.Occurrence.FromOffset(new DateTimeOffset(2025, 6, 10, 9, 0, 0, TimeSpan.Zero), "UTC"),
+            Domain.Transactions.TransactionSource.FromImport(
+                Guid.NewGuid(), Guid.NewGuid().ToString(), null, Guid.NewGuid().ToString())));
+
+        await context.SaveChangesAsync();
+    }
+
+    [Fact]
     public async Task The_evolution_covers_every_day_of_the_period_asked_for()
     {
         var client = factory.CreateClientFor(Guid.NewGuid());
@@ -886,6 +968,37 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
         // que solo ofreciera lo visible no llevaría a lo que no se ve.
         Assert.NotEmpty(page.Types);
         Assert.NotEmpty(page.Years);
+    }
+
+    [Fact]
+    public async Task Movements_can_be_filtered_by_several_types_at_once()
+    {
+        var (client, userId) = await factory.CreateSignedInClientAsync();
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Xtb", "XTB varios tipos", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedTransactionAsync(userId, account!.Id, Domain.Transactions.TransactionType.Deposit);
+        await SeedTransactionAsync(userId, account.Id, Domain.Transactions.TransactionType.Withdrawal);
+        await SeedTransactionAsync(userId, account.Id, Domain.Transactions.TransactionType.Dividend);
+
+        var page = await client.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account.Id}&type=Deposit&type=Withdrawal");
+
+        Assert.Equal(2, page!.Total);
+        Assert.All(page.Items, item => Assert.Contains(item.Type, new[] { "Deposit", "Withdrawal" }));
+
+        // Una sola aparición sigue valiendo: los enlaces de antes no se rompen.
+        var single = await client.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account.Id}&type=Dividend");
+
+        Assert.Equal("Dividend", Assert.Single(single!.Items).Type);
+
+        // Sin tipos, todos: un filtro vacío no puede vaciar la lista.
+        var everything = await client.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account.Id}");
+
+        Assert.Equal(3, everything!.Total);
     }
 
     [Fact]

@@ -452,10 +452,13 @@ public static class PortfolioEndpoints
 
         // Búsqueda paginada. Un histórico de cripto son miles de apuntes, y traerlos
         // todos para enseñar veinte deja la pantalla en blanco mientras llegan.
+        // El tipo llega repetido —type=Buy&type=Sell— y no como una lista separada por
+        // comas: así una sola aparición sigue valiendo y los enlaces de antes no se
+        // rompen.
         api.MapGet("/transactions/search", (
             Guid? accountId,
             string? asset,
-            string? type,
+            string[]? type,
             int? year,
             bool? requiresReview,
             string? search,
@@ -467,7 +470,7 @@ public static class PortfolioEndpoints
             CancellationToken token) =>
             queries.SearchTransactionsAsync(
                 new TransactionQuery(
-                    accountId, asset, type, year, requiresReview ?? false, search, page ?? 1, pageSize ?? 50,
+                    accountId, asset, type ?? [], year, requiresReview ?? false, search, page ?? 1, pageSize ?? 50,
                     origin, voided),
                 token));
 

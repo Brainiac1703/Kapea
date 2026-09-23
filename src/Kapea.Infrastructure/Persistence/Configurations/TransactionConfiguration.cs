@@ -22,6 +22,7 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         // Por omisión sí liquida en efectivo: es lo que hace la inmensa mayoría de los
         // movimientos, y así lo ya guardado no cambia de significado.
         builder.Property(transaction => transaction.SettledInCash).HasDefaultValue(true).IsRequired();
+        builder.Property(transaction => transaction.AmountIsEstimated).HasDefaultValue(false).IsRequired();
 
         builder.ComplexProperty(transaction => transaction.OccurredAt, occurred =>
         {

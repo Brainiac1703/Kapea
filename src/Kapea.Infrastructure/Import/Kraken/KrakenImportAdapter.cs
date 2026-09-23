@@ -142,7 +142,8 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
     }
 
     /// <summary>
-    /// Reconstruye las compras y ventas instantáneas a partir de sus dos apuntes.
+    /// Reconstruye a partir de sus dos apuntes lo que en el libro no se ve: las compras
+    /// y ventas instantáneas y las permutas de un activo por otro.
     /// </summary>
     /// <remarks>
     /// Comprar desde la aplicación de Kraken no genera una operación de mercado, así que
@@ -150,7 +151,12 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
     /// referencia: lo que sale y lo que entra. Leídos por separado parecen dos traspasos
     /// y no crean ninguna posición, que es como una compra desaparecía de la cartera.
     ///
-    /// El importe en euros sale de la pata en dinero, que es lo que costó de verdad.
+    /// Cuando una de las patas es dinero, el importe en euros sale de ahí, que es lo que
+    /// costó de verdad. Cuando ninguna lo es —cambiar una cripto por otra— el libro no
+    /// da ningún euro, así que las dos patas salen sin valorar y las valora el motor con
+    /// el precio de cierre del día. Antes caían en el mapeo por tipo y se importaban como
+    /// dos traspasos sueltos: ni restaban del activo entregado ni creaban lote del
+    /// recibido, y una venta posterior se quedaba sin las unidades que había recibido.
     /// </remarks>
     private static Dictionary<string, ImportRecord> InstantPurchases(IReadOnlyList<KrakenLedgerEntry> ledgers)
     {
@@ -165,7 +171,27 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
         foreach (var pair in pairs)
         {
             var money = pair.FirstOrDefault(entry => KrakenSymbols.IsFiat(entry.Asset));
-            var asset = pair.FirstOrDefault(entry => !KrakenSymbols.IsFiat(entry.Asset));
+            var assets = pair.Where(entry => !KrakenSymbols.IsFiat(entry.Asset)).ToList();
+
+            if (money is null && assets.Count == 2)
+            {
+                var outgoing = assets.Find(entry => entry.Amount < 0m);
+                var incoming = assets.Find(entry => entry.Amount > 0m);
+
+                // Dos patas en el mismo sentido no son una permuta. Se dejan como
+                // estaban, que es visible en revisión, en lugar de inventar un cambio.
+                if (outgoing is null || incoming is null)
+                {
+                    continue;
+                }
+
+                byLedgerId[outgoing.LedgerId] = SwapLeg(TransactionType.Sell, outgoing);
+                byLedgerId[incoming.LedgerId] = SwapLeg(TransactionType.Buy, incoming);
+
+                continue;
+            }
+
+            var asset = assets.Count == 1 ? assets[0] : null;
 
             // Sin las dos patas no se sabe qué costó: se deja como estaba y se ve en
             // revisión, en lugar de inventar un precio.
@@ -199,6 +225,44 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
 
         return byLedgerId;
     }
+
+    /// <summary>
+    /// Una de las dos patas de una permuta, sin valorar y sin pasar por caja.
+    /// </summary>
+    /// <remarks>
+    /// Conserva su propio identificador de apunte en lugar de inventar sufijos: el libro
+    /// ya da uno por pata, y es lo que hace que releer el histórico las reconozca en vez
+    /// de duplicarlas.
+    ///
+    /// La cantidad va neta de comisión porque Kraken la cobra en el propio activo: entra
+    /// lo recibido menos la comisión y sale lo entregado más ella. Sumando la cantidad
+    /// bruta quedaban unas milésimas que nadie tenía, y la posición de un activo vendido
+    /// por completo seguía apareciendo abierta por ese residuo. Por eso tampoco se
+    /// declara comisión: ya está dentro de la cantidad, y repetirla como importe la
+    /// contaría además en euros, que no es la moneda en la que se cobró.
+    /// </remarks>
+    private static ImportRecord SwapLeg(TransactionType type, KrakenLedgerEntry entry) =>
+        new(
+            NaturalId: entry.LedgerId,
+            RowNumber: null,
+            Type: type,
+            AssetSymbol: KrakenSymbols.ToCanonical(entry.Asset),
+            AssetClass: AssetClass.Crypto,
+            Quantity: type == TransactionType.Buy
+                ? Math.Abs(entry.Amount) - Math.Abs(entry.Fee)
+                : Math.Abs(entry.Amount) + Math.Abs(entry.Fee),
+            UnitPrice: null,
+            GrossAmount: 0m,
+            Currency: Currency.Euro,
+            Fee: 0m,
+            Withholding: null,
+            OccurredAt: entry.Time,
+            NaiveOccurredAt: null,
+            SourceTimeZoneId: PlatformTimeZoneId,
+            SplitRatio: null,
+            RawContent: entry.RawContent,
+            SettledInCash: false,
+            NeedsValuation: true);
 
     private static TransactionType MapLedgerType(KrakenLedgerEntry entry) => entry.Type.ToUpperInvariant() switch
     {

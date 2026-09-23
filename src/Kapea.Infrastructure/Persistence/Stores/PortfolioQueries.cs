@@ -195,10 +195,20 @@ public sealed class PortfolioQueries(
             .Where(transaction => !query.OnlyRequiringReview || transaction.Type == TransactionType.Unknown)
             .Where(transaction => query.Year == null || transaction.OccurredAt.Instant.Year == query.Year);
 
-        if (query.Type is { Length: > 0 } type
-            && Enum.TryParse<TransactionType>(type, ignoreCase: true, out var parsedType))
+        // Un tipo que no se reconoce se descarta en lugar de vaciar la lista: pedir
+        // «Buy» y una errata no puede esconder las compras.
+        var requestedTypes = (query.Types ?? [])
+            .Select(name => Enum.TryParse<TransactionType>(name, ignoreCase: true, out var parsed)
+                ? parsed
+                : (TransactionType?)null)
+            .Where(parsed => parsed is not null)
+            .Select(parsed => parsed!.Value)
+            .Distinct()
+            .ToList();
+
+        if (requestedTypes.Count > 0)
         {
-            filtered = filtered.Where(transaction => transaction.Type == parsedType);
+            filtered = filtered.Where(transaction => requestedTypes.Contains(transaction.Type));
         }
 
         if (query.Voided is { } voided)
@@ -368,7 +378,8 @@ public sealed class PortfolioQueries(
                     transaction.AdjustmentReason,
                     transaction.VoidedAt,
                     transaction.VoidReason,
-                    transaction.Source.ImportRunId is { } runId ? fileNames.GetValueOrDefault(runId) : null);
+                    transaction.Source.ImportRunId is { } runId ? fileNames.GetValueOrDefault(runId) : null,
+                    transaction.AmountIsEstimated);
 
     /// <summary>
     /// La cartera entera: posiciones agrupadas por clase, efectivo, patrimonio,
@@ -386,6 +397,7 @@ public sealed class PortfolioQueries(
         var transfers = await context.InternalTransfers.ToListAsync(cancellationToken).ConfigureAwait(false);
         var realized = await context.RealizedResults.ToListAsync(cancellationToken).ConfigureAwait(false);
         var incomes = await context.CapitalIncomes.ToListAsync(cancellationToken).ConfigureAwait(false);
+        var inconsistencies = await context.CalculationInconsistencies.ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var open = lots.Where(lot => !lot.IsExhausted).GroupBy(lot => lot.AssetId).ToList();
 
@@ -479,7 +491,15 @@ public sealed class PortfolioQueries(
                 entry.NetInEuros.Amount))],
             transactions.Count(transaction => transaction.RequiresReview),
             transfers.Count(transfer => transfer.Status == InternalTransferStatus.Proposed),
-            [],
+            [.. inconsistencies
+                .OrderByDescending(inconsistency => inconsistency.OccurredAt.Instant)
+                .Select(inconsistency => new InconsistencyResponse(
+                    inconsistency.Kind.ToString(),
+                    inconsistency.AssetId,
+                    assets.GetValueOrDefault(inconsistency.AssetId)?.CanonicalSymbol ?? string.Empty,
+                    inconsistency.TransactionId,
+                    inconsistency.OccurredAt.Instant,
+                    inconsistency.MissingQuantity.Value))],
             summary.Wealth.MissingPrices,
             summary.Wealth.MissingCash,
             Risk(summary, responsesByAsset),

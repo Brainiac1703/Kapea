@@ -1,0 +1,7 @@
+
+/* La lista de incoherencias va dentro del aviso, sin los márgenes que el navegador
+   le pone a una lista suelta. */
+.inconsistencies {
+    margin: 0.25rem 0 0;
+    padding-inline-start: 1.25rem;
+}

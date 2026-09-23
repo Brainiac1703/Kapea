@@ -89,8 +89,30 @@
         "amount": "314601.58000000",
         "fee": "0.00000000",
         "balance": "314601.58000000"
+      },
+      "LGRSWAP-SPEND-0001": {
+        "aclass": "currency",
+        "amount": "-0.00007640",
+        "asset": "XXBT",
+        "balance": "0.09992360",
+        "fee": "0.00000000",
+        "refid": "QSWAP-0001",
+        "time": 1764505265.28,
+        "type": "spend",
+        "subtype": ""
+      },
+      "LGRSWAP-RECV-0001": {
+        "aclass": "currency",
+        "amount": "0.00161217",
+        "asset": "PAXG",
+        "balance": "0.10161217",
+        "fee": "0.00000327",
+        "refid": "QSWAP-0001",
+        "time": 1764505265.28,
+        "type": "receive",
+        "subtype": ""
       }
     },
-    "count": 8
+    "count": 10
   }
 }

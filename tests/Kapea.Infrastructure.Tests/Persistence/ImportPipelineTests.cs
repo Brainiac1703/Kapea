@@ -291,7 +291,66 @@ public class ImportPipelineTests(SqlServerFixture fixture)
             pipeline => pipeline.StageAsync(Guid.NewGuid(), Read([Buy("TX-1")]))));
     }
 
+    [Fact]
+    public async Task A_movement_the_source_does_not_value_is_priced_at_the_close_of_its_day()
+    {
+        // El libro de Kraken no pone ningún euro a un cambio de una cripto por otra.
+        // Dejarlo a cero haría que la adquisición saliera gratis y la transmisión sin
+        // ingreso, y al vender después el resultado salía inflado por el importe entero.
+        var scenario = await NewScenarioAsync();
+        var run = await StageAsync(scenario, Read([Unvalued("SWAP-1")]));
+
+        await WithPipelineAsync(scenario, pipeline => pipeline.ConfirmAsync(run.Id), new FixedClosingPrice(2000m));
+
+        await using var context = fixture.CreateContext(scenario.Owner);
+        var transaction = Assert.Single(await context.Transactions.ToListAsync());
+
+        Assert.Equal(TransactionType.Buy, transaction.Type);
+        Assert.Equal(200m, transaction.GrossAmount.Amount);
+        Assert.Equal(2000m, transaction.UnitPrice!.Value.Amount);
+        Assert.True(transaction.AmountIsEstimated);
+    }
+
+    [Fact]
+    public async Task Without_a_closing_price_nothing_is_made_up_and_the_movement_waits_for_review()
+    {
+        var scenario = await NewScenarioAsync();
+        var run = await StageAsync(scenario, Read([Unvalued("SWAP-2")]));
+
+        await WithPipelineAsync(scenario, pipeline => pipeline.ConfirmAsync(run.Id));
+
+        await using var context = fixture.CreateContext(scenario.Owner);
+        var transaction = Assert.Single(await context.Transactions.ToListAsync());
+
+        Assert.True(transaction.RequiresReview);
+        Assert.False(transaction.AmountIsEstimated);
+        Assert.Equal(0m, transaction.GrossAmount.Amount);
+    }
+
+    [Fact]
+    public async Task A_movement_the_source_values_is_never_marked_as_estimated()
+    {
+        var scenario = await NewScenarioAsync();
+        var run = await StageAsync(scenario, Read([Buy("TX-VALUED")]));
+
+        await WithPipelineAsync(scenario, pipeline => pipeline.ConfirmAsync(run.Id), new FixedClosingPrice(9999m));
+
+        await using var context = fixture.CreateContext(scenario.Owner);
+        var transaction = Assert.Single(await context.Transactions.ToListAsync());
+
+        Assert.Equal(1000m, transaction.GrossAmount.Amount);
+        Assert.False(transaction.AmountIsEstimated);
+    }
+
     private static ImportReadResult Read(IReadOnlyList<ImportRecord> records) => new(records, []);
+
+    /// <summary>Una pata de permuta: cantidad real, ningún importe y la petición de valorarla.</summary>
+    private static ImportRecord Unvalued(string naturalId, string symbol = "PAXG") =>
+        new(
+            naturalId, null, TransactionType.Buy, symbol, AssetClass.Crypto, 0.1m, null, 0m,
+            Currency.Euro, 0m, null,
+            new DateTimeOffset(2024, 1, 10, 10, 0, 0, TimeSpan.Zero), null, "UTC", null,
+            $"raw:{naturalId}", SettledInCash: false, NeedsValuation: true);
 
     private static ImportRecord Buy(
         string naturalId,
@@ -314,7 +373,10 @@ public class ImportPipelineTests(SqlServerFixture fixture)
         return run!;
     }
 
-    private async Task WithPipelineAsync(Scenario scenario, Func<ImportPipeline, Task> work)
+    private async Task WithPipelineAsync(
+        Scenario scenario,
+        Func<ImportPipeline, Task> work,
+        IClosingPrices? closingPrices = null)
     {
         await using var context = fixture.CreateContext(scenario.Owner);
 
@@ -322,6 +384,7 @@ public class ImportPipelineTests(SqlServerFixture fixture)
             new ImportRepository(context),
             new AssetCatalog(context, NullLogger<AssetCatalog>.Instance),
             new NoRatesProvider(),
+            closingPrices ?? new NoClosingPrices(),
             new FixedUser(scenario.Owner),
             new FakeTimeProvider(Now),
             NullLogger<ImportPipeline>.Instance));
@@ -337,6 +400,22 @@ public class ImportPipelineTests(SqlServerFixture fixture)
         await context.SaveChangesAsync();
 
         return new Scenario(owner, account.Id);
+    }
+
+    /// <summary>Ningún precio de cierre disponible, que es lo normal en estas pruebas.</summary>
+    private sealed class NoClosingPrices : IClosingPrices
+    {
+        public Task<decimal?> FindAsync(
+            Domain.Assets.Asset asset, DateOnly day, CancellationToken cancellationToken = default) =>
+            Task.FromResult<decimal?>(null);
+    }
+
+    /// <summary>Un cierre fijo, para poder comprobar con qué se valora.</summary>
+    private sealed class FixedClosingPrice(decimal price) : IClosingPrices
+    {
+        public Task<decimal?> FindAsync(
+            Domain.Assets.Asset asset, DateOnly day, CancellationToken cancellationToken = default) =>
+            Task.FromResult<decimal?>(price);
     }
 
     /// <summary>Sin tipos ingestados: cualquier operación en divisa falla, que es lo que se quiere provocar.</summary>

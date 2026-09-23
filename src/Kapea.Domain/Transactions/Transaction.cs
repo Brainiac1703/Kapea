@@ -45,9 +45,11 @@ public sealed class Transaction
         TransactionSource source,
         string? adjustmentReason,
         ExchangeRate? appliedExchangeRate,
-        bool settledInCash = true)
+        bool settledInCash = true,
+        bool amountIsEstimated = false)
     {
         SettledInCash = settledInCash;
+        AmountIsEstimated = amountIsEstimated;
         Id = id;
         UserId = userId;
         AccountId = accountId;
@@ -149,6 +151,16 @@ public sealed class Transaction
     /// </remarks>
     public bool SettledInCash { get; private set; } = true;
 
+    /// <summary>
+    /// El importe no lo dio el origen: lo estimó Kapea con el precio de cierre del día.
+    /// </summary>
+    /// <remarks>
+    /// Se marca para que la cifra se pueda distinguir de una tomada del extracto y se
+    /// pueda corregir. No excluye el movimiento del cálculo: una permuta sin valorar
+    /// descuadraría la cartera entera, y una estimación visible es mejor que un hueco.
+    /// </remarks>
+    public bool AmountIsEstimated { get; private set; }
+
     /// <summary>Un movimiento sin clasificar no participa en el cálculo hasta que una persona lo resuelve.</summary>
     public bool RequiresReview => Type == TransactionType.Unknown;
 
@@ -169,7 +181,8 @@ public sealed class Transaction
         TransactionSource source,
         Money? withholdingTax = null,
         ExchangeRate? appliedExchangeRate = null,
-        bool settledInCash = true)
+        bool settledInCash = true,
+        bool amountIsEstimated = false)
     {
         EnsureConsistent(type, assetId, quantity, unitPrice, grossAmount, fee, withholdingTax);
         EnsureRateMatchesCurrency(grossAmount, appliedExchangeRate);
@@ -181,7 +194,7 @@ public sealed class Transaction
 
         return new Transaction(Guid.NewGuid(), userId, accountId, type, assetId, quantity, unitPrice, grossAmount,
             fee, withholdingTax, occurredAt, TransactionOrigin.Imported, source, adjustmentReason: null,
-            appliedExchangeRate, settledInCash);
+            appliedExchangeRate, settledInCash, amountIsEstimated);
     }
 
     /// <summary>Un movimiento apuntado a mano: el dato normal de una cuenta cuando no llega por otra vía.</summary>

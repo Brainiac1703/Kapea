@@ -69,11 +69,11 @@ public static class FifoCalculator
 
                 case TransactionType.Withdrawal when valued.IsInternalTransferOut:
                 case TransactionType.Transfer when valued.IsInternalTransferOut:
-                    Transfer(assetId, valued, lots, openLots, inconsistencies);
+                    Transfer(userId, assetId, valued, lots, openLots, inconsistencies);
                     break;
 
                 case TransactionType.Split:
-                    ApplySplit(assetId, valued, openLots, inconsistencies);
+                    ApplySplit(userId, assetId, valued, openLots, inconsistencies);
                     break;
 
                 case TransactionType.Dividend:
@@ -142,12 +142,12 @@ public static class FifoCalculator
         if (available < valued.Quantity)
         {
             inconsistencies.Add(new CalculationInconsistency(
+                userId,
                 InconsistencyKind.InsufficientLots,
                 assetId,
                 valued.Transaction.Id,
                 valued.OccurredAt,
-                valued.Quantity - available,
-                $"La transmisión de {valued.Quantity} solo encuentra {available} en lotes: falta importar alguna adquisición."));
+                valued.Quantity - available));
 
             return;
         }
@@ -198,6 +198,7 @@ public static class FifoCalculator
     }
 
     private static void Transfer(
+        UserId userId,
         Guid assetId,
         ValuedTransaction valued,
         List<Lot> lots,
@@ -212,12 +213,12 @@ public static class FifoCalculator
         if (available < valued.Quantity)
         {
             inconsistencies.Add(new CalculationInconsistency(
+                userId,
                 InconsistencyKind.InsufficientLotsForTransfer,
                 assetId,
                 valued.Transaction.Id,
                 valued.OccurredAt,
-                valued.Quantity - available,
-                $"El traspaso de {valued.Quantity} solo encuentra {available} en la cuenta de origen."));
+                valued.Quantity - available));
 
             return;
         }
@@ -261,6 +262,7 @@ public static class FifoCalculator
     }
 
     private static void ApplySplit(
+        UserId userId,
         Guid assetId,
         ValuedTransaction valued,
         List<Lot> openLots,
@@ -269,12 +271,12 @@ public static class FifoCalculator
         if (valued.SplitRatio is not { } ratio || ratio <= 0m)
         {
             inconsistencies.Add(new CalculationInconsistency(
+                userId,
                 InconsistencyKind.SplitWithoutRatio,
                 assetId,
                 valued.Transaction.Id,
                 valued.OccurredAt,
-                Quantity.Zero,
-                "El split no trae proporción; aplicarlo a ciegas alteraría las cantidades."));
+                Quantity.Zero));
 
             return;
         }
