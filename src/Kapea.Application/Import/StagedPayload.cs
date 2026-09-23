@@ -29,7 +29,8 @@ internal sealed record StagedPayload(
     DateTime? NaiveOccurredAt,
     string SourceTimeZoneId,
     decimal? SplitRatio,
-    bool SettledInCash = true)
+    bool SettledInCash = true,
+    bool NeedsValuation = false)
 {
     internal static string Serialize(ImportRecord record) =>
         JsonSerializer.Serialize(new StagedPayload(
@@ -48,7 +49,8 @@ internal sealed record StagedPayload(
             record.NaiveOccurredAt,
             record.SourceTimeZoneId,
             record.SplitRatio,
-            record.SettledInCash));
+            record.SettledInCash,
+            record.NeedsValuation));
 
     internal static ImportRecord Deserialize(string payload, string rawContent)
     {
@@ -72,7 +74,8 @@ internal sealed record StagedPayload(
             stored.SourceTimeZoneId,
             stored.SplitRatio,
             rawContent,
-            stored.SettledInCash);
+            stored.SettledInCash,
+            stored.NeedsValuation);
     }
 }
 

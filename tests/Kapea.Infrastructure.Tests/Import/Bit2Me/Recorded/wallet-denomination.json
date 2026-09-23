@@ -1,25 +1,25 @@
 {
-  "data": [
-    {
-      "id": "wd-0001",
-      "date": "2024-05-10T10:00:00.000Z",
-      "completedAt": "2024-05-10T10:00:00.000Z",
-      "concept": "",
-      "type": "withdrawal",
-      "subtype": "earn",
-      "status": "completed",
-      "origin": {
-        "currency": "B2M",
-        "amount": "1500.00000000"
-      },
-      "denomination": {
-        "amount": "1500.00000000",
-        "currency": "B2M"
-      }
-    }
-  ],
-  "pageInfo": {
-    "hasNextPage": false,
-    "endCursor": null
+ "data": [
+  {
+   "id": "wd-0001",
+   "date": "2024-05-10T10:00:00.000Z",
+   "completedAt": "2024-05-10T10:00:00.000Z",
+   "concept": "",
+   "type": "withdrawal",
+   "subtype": "",
+   "status": "completed",
+   "origin": {
+    "currency": "B2M",
+    "amount": "1500.00000000"
+   },
+   "denomination": {
+    "amount": "1500.00000000",
+    "currency": "B2M"
+   }
   }
+ ],
+ "pageInfo": {
+  "hasNextPage": false,
+  "endCursor": null
+ }
 }

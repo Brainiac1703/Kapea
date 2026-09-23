@@ -20,10 +20,47 @@ public enum InconsistencyKind
 /// un resultado a medias: una cifra fiscal incompleta que parece completa es peor que
 /// la ausencia de cifra.
 /// </summary>
-public sealed record CalculationInconsistency(
-    InconsistencyKind Kind,
-    Guid AssetId,
-    Guid TransactionId,
-    Occurrence OccurredAt,
-    Quantity MissingQuantity,
-    string Description);
+/// <remarks>
+/// Es una clase con constructor privado sin parámetros, como el resto de la proyección,
+/// porque EF Core no sabe enlazar tipos complejos a parámetros de constructor.
+///
+/// No lleva descripción: el texto que lee el usuario se compone donde se muestra, con
+/// sus recursos de idioma. Guardar aquí una frase la habría dejado sin traducir y
+/// congelada en el momento del cálculo.
+/// </remarks>
+public sealed class CalculationInconsistency
+{
+    private CalculationInconsistency()
+    {
+    }
+
+    public CalculationInconsistency(
+        UserId userId,
+        InconsistencyKind kind,
+        Guid assetId,
+        Guid transactionId,
+        Occurrence occurredAt,
+        Quantity missingQuantity)
+    {
+        UserId = userId;
+        Kind = kind;
+        AssetId = assetId;
+        TransactionId = transactionId;
+        OccurredAt = occurredAt;
+        MissingQuantity = missingQuantity;
+    }
+
+    public UserId UserId { get; private set; }
+
+    public InconsistencyKind Kind { get; private set; }
+
+    public Guid AssetId { get; private set; }
+
+    /// <summary>Movimiento que no se ha podido calcular.</summary>
+    public Guid TransactionId { get; private set; }
+
+    public Occurrence OccurredAt { get; private set; }
+
+    /// <summary>Lo que falta para poder calcularlo. Cero cuando lo que falta no es una cantidad.</summary>
+    public Quantity MissingQuantity { get; private set; }
+}

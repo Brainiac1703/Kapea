@@ -117,7 +117,8 @@ public sealed record TransactionResponse(
     string? AdjustmentReason = null,
     DateTimeOffset? VoidedAt = null,
     string? VoidReason = null,
-    string? ImportFileName = null)
+    string? ImportFileName = null,
+    bool AmountIsEstimated = false)
 {
     public bool IsVoided => VoidedAt is not null;
 }
@@ -173,6 +174,24 @@ public sealed record ConcentrationResponse(
     decimal Share,
     decimal Threshold);
 
+/// <summary>
+/// Dato que el cálculo no ha podido resolver, con lo necesario para decirlo en la
+/// pantalla.
+/// </summary>
+/// <remarks>
+/// Viaja como dato y no como frase hecha: el texto se compone donde se muestra, con
+/// los recursos de idioma. Una frase compuesta en el servidor llegaría sin traducir.
+/// </remarks>
+/// <param name="Kind">Clase de incoherencia, para elegir el texto.</param>
+/// <param name="MissingQuantity">Lo que falta; cero cuando lo que falta no es una cantidad.</param>
+public sealed record InconsistencyResponse(
+    string Kind,
+    Guid AssetId,
+    string AssetSymbol,
+    Guid TransactionId,
+    DateTimeOffset OccurredAt,
+    decimal MissingQuantity);
+
 /// <summary>Cartera completa, con la advertencia visible cuando las cifras están incompletas.</summary>
 public sealed record PortfolioResponse(
     IReadOnlyList<PortfolioGroupResponse> Groups,
@@ -187,7 +206,7 @@ public sealed record PortfolioResponse(
     IReadOnlyList<IncomeByClassResponse> Income,
     int UnclassifiedTransactionCount,
     int PendingTransferCount,
-    IReadOnlyList<string> Inconsistencies,
+    IReadOnlyList<InconsistencyResponse> Inconsistencies,
     bool MissingPrices,
     bool MissingCash,
     ConcentrationResponse? Concentration = null,

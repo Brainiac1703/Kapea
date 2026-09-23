@@ -64,7 +64,7 @@ public sealed class KapeaApiClient(HttpClient http)
     public async Task<TransactionPageResponse> SearchTransactionsAsync(
         Guid? accountId = null,
         string? asset = null,
-        string? type = null,
+        IReadOnlyCollection<string>? types = null,
         int? year = null,
         string? search = null,
         int page = 1,
@@ -95,7 +95,7 @@ public sealed class KapeaApiClient(HttpClient http)
             query.Add($"asset={Uri.EscapeDataString(asset)}");
         }
 
-        if (!string.IsNullOrWhiteSpace(type))
+        foreach (var type in types ?? [])
         {
             query.Add($"type={Uri.EscapeDataString(type)}");
         }

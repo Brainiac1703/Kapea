@@ -1594,4 +1594,28 @@
   <data name="Movement_AssetPlaceholder" xml:space="preserve">
     <value>Símbolo, por ejemplo BTC</value>
   </data>
+  <data name="Portfolio_Inconsistencies" xml:space="preserve">
+    <value>Hay movimientos que no se han podido calcular. Mientras tanto, estas cifras no están completas:</value>
+  </data>
+  <data name="Inconsistency_InsufficientLots" xml:space="preserve">
+    <value>A la venta de {0} del {1} le faltan {2} unidades: no se encuentran todas sus compras.</value>
+  </data>
+  <data name="Inconsistency_InsufficientLotsForTransfer" xml:space="preserve">
+    <value>Al traspaso de {0} del {1} le faltan {2} unidades en la cuenta de origen.</value>
+  </data>
+  <data name="Inconsistency_SplitWithoutRatio" xml:space="preserve">
+    <value>El split de {0} del {1} no trae proporción, así que no se ha aplicado.</value>
+  </data>
+  <data name="Inconsistency_Unknown" xml:space="preserve">
+    <value>El movimiento de {0} del {1} no se ha podido calcular.</value>
+  </data>
+  <data name="Movement_Estimated" xml:space="preserve">
+    <value>est.</value>
+  </data>
+  <data name="Movement_EstimatedHint" xml:space="preserve">
+    <value>Importe estimado por Kapea con el precio de cierre del {0}. Puedes corregirlo.</value>
+  </data>
+  <data name="Transactions_TypesChosen" xml:space="preserve">
+    <value>{0} tipos</value>
+  </data>
 </root>

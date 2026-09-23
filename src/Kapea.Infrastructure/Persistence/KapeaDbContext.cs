@@ -42,6 +42,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<CapitalIncome> CapitalIncomes => Set<CapitalIncome>();
 
+    public DbSet<CalculationInconsistency> CalculationInconsistencies => Set<CalculationInconsistency>();
+
     public DbSet<Domain.Credentials.BrokerCredential> BrokerCredentials => Set<Domain.Credentials.BrokerCredential>();
 
     public DbSet<Domain.Import.ImportRun> ImportRuns => Set<Domain.Import.ImportRun>();
@@ -110,6 +112,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
             .HasQueryFilter(idea => idea.UserId == CurrentUserId);
         modelBuilder.Entity<RealizedResult>().HasQueryFilter(result => result.UserId == CurrentUserId);
         modelBuilder.Entity<CapitalIncome>().HasQueryFilter(income => income.UserId == CurrentUserId);
+        modelBuilder.Entity<CalculationInconsistency>()
+            .HasQueryFilter(inconsistency => inconsistency.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Credentials.BrokerCredential>().HasQueryFilter(credential => credential.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Import.ImportRun>().HasQueryFilter(run => run.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Transfers.InternalTransfer>().HasQueryFilter(transfer => transfer.UserId == CurrentUserId);

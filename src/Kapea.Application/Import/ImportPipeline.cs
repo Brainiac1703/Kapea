@@ -26,6 +26,7 @@ public sealed class ImportPipeline(
     IImportRepository repository,
     IAssetCatalog assetCatalog,
     IExchangeRateProvider exchangeRates,
+    IClosingPrices closingPrices,
     ICurrentUser currentUser,
     TimeProvider timeProvider,
     ILogger<ImportPipeline> logger)
@@ -268,22 +269,24 @@ public sealed class ImportPipeline(
         var record = StagedPayload.Deserialize(staged.Payload, staged.RawContent);
         var occurredAt = record.ToOccurrence();
 
-        var assetId = record.AssetSymbol is { Length: > 0 } symbol
-            ? (await assetCatalog
+        var asset = record.AssetSymbol is { Length: > 0 } symbol
+            ? await assetCatalog
                 .ResolveAsync(symbol, record.AssetClass ?? Domain.Assets.AssetClass.Crypto, cancellationToken)
-                .ConfigureAwait(false)).Id
-            : (Guid?)null;
+                .ConfigureAwait(false)
+            : null;
 
         var rate = await ResolveRateAsync(record, occurredAt, cancellationToken).ConfigureAwait(false);
+        var (type, grossAmount, unitPrice, estimated) =
+            await ValueAsync(record, asset, occurredAt, cancellationToken).ConfigureAwait(false);
 
         return Transaction.Imported(
             run.UserId,
             run.AccountId,
-            record.Type,
-            assetId,
+            type,
+            asset?.Id,
             new Quantity(record.Quantity),
-            record.UnitPrice is { } price ? new Money(price, record.Currency) : null,
-            new Money(record.GrossAmount, record.Currency),
+            unitPrice is { } price ? new Money(price, record.Currency) : null,
+            new Money(grossAmount, record.Currency),
             new Money(record.Fee, record.Currency),
             occurredAt,
             TransactionSource.FromImport(
@@ -296,7 +299,46 @@ public sealed class ImportPipeline(
                 run.ProfileVersion),
             record.Withholding is { } withholding ? new Money(withholding, record.Currency) : null,
             rate,
-            record.SettledInCash);
+            record.SettledInCash,
+            estimated);
+    }
+
+    /// <summary>
+    /// Pone el importe del movimiento, estimándolo cuando el origen no lo da.
+    /// </summary>
+    /// <remarks>
+    /// El origen puede entregar un movimiento real sin ningún importe: el libro de
+    /// Kraken no valora en euros un cambio de una cripto por otra. Dejarlo a cero
+    /// mentiría —la adquisición saldría gratis y la transmisión sin ingreso—, así que
+    /// se toma el cierre de ese día y el movimiento queda marcado como estimado.
+    ///
+    /// Sin precio no se inventa nada: el movimiento entra sin clasificar, que es como
+    /// el resto del importador admite que le falta un dato, y se ve en revisión.
+    /// </remarks>
+    private async Task<(TransactionType Type, decimal GrossAmount, decimal? UnitPrice, bool Estimated)> ValueAsync(
+        ImportRecord record,
+        Domain.Assets.Asset? asset,
+        Occurrence occurredAt,
+        CancellationToken cancellationToken)
+    {
+        if (!record.NeedsValuation || asset is null || record.Quantity == 0m)
+        {
+            return (record.Type, record.GrossAmount, record.UnitPrice, false);
+        }
+
+        var day = DateOnly.FromDateTime(occurredAt.InSourceTimeZone.Date);
+        var close = await closingPrices.FindAsync(asset, day, cancellationToken).ConfigureAwait(false);
+
+        if (close is not { } price)
+        {
+            logger.LogWarning(
+                "Movimiento de {Activo} del {Dia} sin valorar: entra sin clasificar para que se revise.",
+                asset.CanonicalSymbol, day);
+
+            return (TransactionType.Unknown, record.GrossAmount, record.UnitPrice, false);
+        }
+
+        return (record.Type, price * record.Quantity, price, true);
     }
 
     /// <summary>

@@ -32,6 +32,19 @@ else
         </FluentMessageBar>
     }
 
+    @if (_portfolio.Inconsistencies.Count > 0)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error" AllowDismiss="false">
+            <div>@Ui["Portfolio_Inconsistencies"]</div>
+            <ul class="inconsistencies">
+                @foreach (var inconsistency in _portfolio.Inconsistencies)
+                {
+                    <li>@Text(inconsistency)</li>
+                }
+            </ul>
+        </FluentMessageBar>
+    }
+
     @if (_portfolio.MissingPrices)
     {
         <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
@@ -248,6 +261,29 @@ else
     /// Una clase que el servidor conozca y la pantalla no se enseña con su código en
     /// lugar de desaparecer: es feo, pero el dinero sigue estando a la vista.
     /// </remarks>
+    /// <summary>
+    /// Lo que le falta al cálculo, dicho en el idioma de quien lo lee.
+    /// </summary>
+    /// <remarks>
+    /// El texto se compone aquí y no en el servidor: el motor manda el dato —qué clase
+    /// de incoherencia, qué activo, qué día y cuánto falta— y la frase sale de los
+    /// recursos, como cualquier otra que ve el usuario.
+    /// </remarks>
+    private string Text(InconsistencyResponse inconsistency)
+    {
+        var asset = inconsistency.AssetSymbol;
+        var day = Format.Moment(inconsistency.OccurredAt);
+        var missing = Format.Quantity(inconsistency.MissingQuantity);
+
+        return inconsistency.Kind switch
+        {
+            "InsufficientLots" => Ui["Inconsistency_InsufficientLots", asset, day, missing],
+            "InsufficientLotsForTransfer" => Ui["Inconsistency_InsufficientLotsForTransfer", asset, day, missing],
+            "SplitWithoutRatio" => Ui["Inconsistency_SplitWithoutRatio", asset, day],
+            _ => Ui["Inconsistency_Unknown", asset, day],
+        };
+    }
+
     private string ClassName(string assetClass) => assetClass switch
     {
         "Equity" => Ui["Portfolio_ClassEquity"],

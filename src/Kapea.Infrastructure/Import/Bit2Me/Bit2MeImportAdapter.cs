@@ -57,6 +57,8 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             () => client.GetWalletTransactionsAsync(credential, cancellationToken),
             warnings).ConfigureAwait(false);
 
+        var withoutEffect = 0;
+
         foreach (var transaction in wallet.Where(transaction => transaction.IsCompleted))
         {
             if (transaction.Date < from || transaction.Date > to)
@@ -64,16 +66,26 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
                 continue;
             }
 
+            if (IsMoveBetweenPockets(transaction))
+            {
+                withoutEffect++;
+
+                continue;
+            }
+
             records.AddRange(FromWalletTransaction(transaction));
         }
 
-        records.AddRange(await ReadEarnAsync(credential, from, to, warnings, cancellationToken).ConfigureAwait(false));
+        var earn = await ReadEarnAsync(credential, from, to, warnings, cancellationToken).ConfigureAwait(false);
+
+        records.AddRange(earn.Records);
+        withoutEffect += earn.WithoutEffect;
 
         logger.LogInformation(
-            "Bit2Me: {Registros} registros normalizados, {Rechazados} rechazados, {Avisos} productos omitidos.",
-            records.Count, rejected.Count, warnings.Count);
+            "Bit2Me: {Registros} registros normalizados, {Rechazados} rechazados, {SinEfecto} sin efecto, {Avisos} productos omitidos.",
+            records.Count, rejected.Count, withoutEffect, warnings.Count);
 
-        return new ImportReadResult(records, rejected) { Warnings = warnings };
+        return new ImportReadResult(records, rejected, withoutEffect) { Warnings = warnings };
     }
 
     /// <summary>
@@ -97,7 +109,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
         }
     }
 
-    private async Task<IReadOnlyList<ImportRecord>> ReadEarnAsync(
+    private async Task<(IReadOnlyList<ImportRecord> Records, int WithoutEffect)> ReadEarnAsync(
         ApiCredential credential,
         DateTimeOffset from,
         DateTimeOffset to,
@@ -110,6 +122,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             warnings).ConfigureAwait(false);
 
         var records = new List<ImportRecord>();
+        var withoutEffect = 0;
 
         foreach (var earnWallet in wallets)
         {
@@ -118,12 +131,17 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
                 () => client.GetEarnMovementsAsync(credential, earnWallet.WalletId, cancellationToken),
                 warnings).ConfigureAwait(false);
 
-            records.AddRange(movements
+            var inRange = movements
                 .Where(movement => movement.CreatedAt >= from && movement.CreatedAt <= to)
-                .Select(FromEarnMovement));
+                .ToList();
+
+            // La recompensa sí entra: es renta y tributa. Lo que se descarta es meter y
+            // sacar del producto, que es la otra cara de lo que ya apunta el monedero.
+            withoutEffect += inRange.Count(IsMoveBetweenPockets);
+            records.AddRange(inRange.Where(movement => !IsMoveBetweenPockets(movement)).Select(FromEarnMovement));
         }
 
-        return records;
+        return (records, withoutEffect);
     }
 
     private static ImportRecord? FromTrade(Bit2MeTrade trade, List<RejectedRecord> rejected)
@@ -180,14 +198,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
 
     private static IReadOnlyList<ImportRecord> FromWalletTransaction(Bit2MeWalletTransaction transaction)
     {
-        var candidates = transaction.Operations
-            .Select(name => name.ToUpperInvariant())
-            .ToList();
-
-        if (candidates.Count == 0)
-        {
-            candidates.Add(transaction.Operation.ToUpperInvariant());
-        }
+        var candidates = Operations(transaction);
 
         // Bit2Me valora el movimiento en «denomination», pero no siempre en euros: a
         // veces viene en la propia moneda del activo. Tomarlo sin mirar la divisa
@@ -349,6 +360,43 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             SplitRatio: null,
             RawContent: movement.RawContent);
     }
+
+    private static List<string> Operations(Bit2MeWalletTransaction transaction)
+    {
+        var candidates = transaction.Operations
+            .Select(name => name.ToUpperInvariant())
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            candidates.Add(transaction.Operation.ToUpperInvariant());
+        }
+
+        return candidates;
+    }
+
+    /// <summary>
+    /// Mover algo entre los bolsillos de la propia cuenta —al monedero, a Earn, a
+    /// trading— no es un movimiento.
+    /// </summary>
+    /// <remarks>
+    /// No se compra, no se vende y no cambia lo que se tiene. Importarlo llenaba la lista
+    /// de apuntes que no significan nada y, peor, lo hacía por duplicado: Bit2Me expone el
+    /// mismo paso en dos sitios, el monedero y los movimientos de Earn, cada uno con su
+    /// identificador, así que la deduplicación no los reconocía como el mismo y el usuario
+    /// veía dos movimientos iguales a la misma hora.
+    ///
+    /// Se descartan las dos caras por lo que son. Emparejarlas exigiría adivinar que dos
+    /// identificadores distintos son el mismo hecho, por importe y por instante, que es la
+    /// clase de coincidencia que un día junta dos movimientos que no eran el mismo.
+    /// </remarks>
+    private static bool IsMoveBetweenPockets(Bit2MeWalletTransaction transaction) =>
+        Operations(transaction).Exists(operation =>
+            operation is "DEPOSIT-EARN" or "WITHDRAWAL-EARN" or "DEPOSIT-TRADING" or "WITHDRAWAL-TRADING");
+
+    /// <summary>La otra cara del mismo paso, tal y como la cuenta el producto de rendimiento.</summary>
+    private static bool IsMoveBetweenPockets(Bit2MeEarnMovement movement) =>
+        movement.Type.ToUpperInvariant() is "DEPOSIT" or "WITHDRAWAL";
 
     private static TransactionType MapOperation(string operation) => operation switch
     {

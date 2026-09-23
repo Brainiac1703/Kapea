@@ -1,0 +1,10 @@
+
+/* La marca de estimada acompaña al importe sin competir con él: quien mira la columna
+   ve la cifra, y el matiz de dónde salió queda en segundo plano. Va en la misma línea
+   porque la fila del listado no crece y una segunda línea se quedaba recortada. */
+.estimated {
+    margin-inline-start: 0.35rem;
+    font-size: 0.75rem;
+    font-style: italic;
+    opacity: 0.75;
+}

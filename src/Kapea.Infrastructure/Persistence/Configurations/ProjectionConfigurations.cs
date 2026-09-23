@@ -303,3 +303,29 @@ internal sealed class DailyRateConfiguration : IEntityTypeConfiguration<Domain.E
             .IsRequired();
     }
 }
+
+/// <summary>
+/// Incoherencia detectada al calcular. La clave es el movimiento y la clase de
+/// incoherencia: un mismo movimiento no puede fallar dos veces por lo mismo, y así el
+/// recálculo la reemplaza en lugar de acumular repetidos.
+/// </summary>
+internal sealed class CalculationInconsistencyConfiguration : IEntityTypeConfiguration<CalculationInconsistency>
+{
+    public void Configure(EntityTypeBuilder<CalculationInconsistency> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable("CalculationInconsistencies");
+        builder.HasKey(inconsistency => new { inconsistency.TransactionId, inconsistency.Kind });
+
+        builder.Property(inconsistency => inconsistency.UserId).IsRequired();
+
+        builder.ComplexProperty(inconsistency => inconsistency.OccurredAt, occurred =>
+        {
+            occurred.Property(value => value.Instant).HasColumnName("OccurredAt").IsRequired();
+            occurred.Property(value => value.SourceTimeZoneId).HasColumnName("OccurredAtTimeZoneId").HasMaxLength(64).IsRequired();
+        });
+
+        builder.HasIndex(inconsistency => new { inconsistency.UserId, inconsistency.AssetId });
+    }
+}

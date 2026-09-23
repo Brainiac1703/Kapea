@@ -4,10 +4,11 @@ namespace Kapea.Application.Portfolio;
 
 /// <summary>Qué movimientos se piden.</summary>
 /// <param name="Search">Busca en el activo y en el contenido original de la fila.</param>
+/// <param name="Types">Tipos pedidos; vacío significa todos, no ninguno.</param>
 public sealed record TransactionQuery(
     Guid? AccountId = null,
     string? AssetSymbol = null,
-    string? Type = null,
+    IReadOnlyList<string>? Types = null,
     int? Year = null,
     bool OnlyRequiringReview = false,
     string? Search = null,
