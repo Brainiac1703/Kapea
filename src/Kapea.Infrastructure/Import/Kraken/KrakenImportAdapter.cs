@@ -55,9 +55,18 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
         // Las compras instantáneas no salen por TradesHistory: llegan al libro como un
         // par de apuntes, lo que se gasta y lo que se recibe, enlazados por referencia.
         var instant = InstantPurchases(ledgers);
+        var pocketMoves = MovesBetweenPockets(ledgers);
+        var withoutEffect = 0;
 
         foreach (var entry in ledgers)
         {
+            if (pocketMoves.Contains(entry.LedgerId))
+            {
+                withoutEffect++;
+
+                continue;
+            }
+
             if (LedgerTypesCoveredByTrades.Contains(entry.Type))
             {
                 // El apunte de una compraventa ya llega por TradesHistory con su precio;
@@ -82,10 +91,10 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
         }
 
         logger.LogInformation(
-            "Kraken: {Operaciones} operaciones y {Apuntes} apuntes normalizados, {Rechazados} rechazados.",
-            trades.Count, records.Count - trades.Count + rejected.Count, rejected.Count);
+            "Kraken: {Operaciones} operaciones y {Apuntes} apuntes normalizados, {Rechazados} rechazados, {SinEfecto} sin efecto.",
+            trades.Count, records.Count - trades.Count + rejected.Count, rejected.Count, withoutEffect);
 
-        return new ImportReadResult(records, rejected);
+        return new ImportReadResult(records, rejected, withoutEffect);
     }
 
     private static ImportRecord FromTrade(KrakenTrade trade, string baseAsset, string quoteAsset)
@@ -263,6 +272,46 @@ public sealed class KrakenImportAdapter(KrakenApiClient client, ILogger<KrakenIm
             RawContent: entry.RawContent,
             SettledInCash: false,
             NeedsValuation: true);
+
+    /// <summary>
+    /// Apuntes de mover un activo a Earn y de recuperarlo, que no son movimientos.
+    /// </summary>
+    /// <remarks>
+    /// Kraken guarda lo que está en Earn como una variante del mismo activo —SOL.F frente
+    /// a SOL—, así que el paso queda apuntado como un traspaso que sale de uno y entra en
+    /// el otro. Canónicamente son el mismo activo: la cantidad total no cambia y lo único
+    /// que se importaba eran dos líneas iguales que parecían un traspaso duplicado.
+    ///
+    /// Se reconocen por la forma —misma referencia, mismo activo canónico, una entrada y
+    /// una salida que se anulan— y no por el nombre del subtipo, que la plataforma ha ido
+    /// cambiando y no hay motivo para perseguir.
+    /// </remarks>
+    private static HashSet<string> MovesBetweenPockets(IReadOnlyList<KrakenLedgerEntry> ledgers)
+    {
+        var moves = new HashSet<string>(StringComparer.Ordinal);
+
+        var pairs = ledgers
+            .Where(entry => entry.Type.Equals("transfer", StringComparison.OrdinalIgnoreCase))
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.ReferenceId))
+            .GroupBy(entry => entry.ReferenceId, StringComparer.Ordinal);
+
+        foreach (var pair in pairs)
+        {
+            var sides = pair.ToList();
+
+            if (sides.Count != 2
+                || !KrakenSymbols.ToCanonical(sides[0].Asset).Equals(KrakenSymbols.ToCanonical(sides[1].Asset), StringComparison.Ordinal)
+                || sides[0].Amount + sides[1].Amount != 0m)
+            {
+                continue;
+            }
+
+            moves.Add(sides[0].LedgerId);
+            moves.Add(sides[1].LedgerId);
+        }
+
+        return moves;
+    }
 
     private static TransactionType MapLedgerType(KrakenLedgerEntry entry) => entry.Type.ToUpperInvariant() switch
     {

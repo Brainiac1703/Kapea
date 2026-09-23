@@ -111,8 +111,41 @@
         "time": 1764505265.28,
         "type": "receive",
         "subtype": ""
+      },
+      "LGREARN-OUT-0001": {
+        "refid": "QEARN-0001",
+        "time": 1704797500.0,
+        "type": "transfer",
+        "subtype": "autoallocation",
+        "aclass": "currency",
+        "asset": "SOL",
+        "amount": "-1.5000000000",
+        "fee": "0.0000",
+        "balance": "0.0000"
+      },
+      "LGREARN-IN-0001": {
+        "refid": "QEARN-0001",
+        "time": 1704797500.0,
+        "type": "transfer",
+        "subtype": "autoallocation",
+        "aclass": "currency",
+        "asset": "SOL.F",
+        "amount": "1.5000000000",
+        "fee": "0.0000",
+        "balance": "1.5000"
+      },
+      "LGRMOVE-OUT-0001": {
+        "refid": "QMOVE-0001",
+        "time": 1704797600.0,
+        "type": "transfer",
+        "subtype": "",
+        "aclass": "currency",
+        "asset": "XXBT",
+        "amount": "-0.0100000000",
+        "fee": "0.0000",
+        "balance": "0.0000"
       }
     },
-    "count": 10
+    "count": 13
   }
 }

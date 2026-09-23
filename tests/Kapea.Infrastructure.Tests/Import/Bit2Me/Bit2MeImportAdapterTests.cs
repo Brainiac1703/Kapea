@@ -134,19 +134,19 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
-    public async Task Earn_rewards_and_contributions_are_told_apart()
+    public async Task Earn_rewards_come_in_and_contributions_do_not()
     {
         var result = await ReadFullHistory();
 
         var reward = result.Records.Single(record => record.NaturalId == "em-0001");
-        var contribution = result.Records.Single(record => record.NaturalId == "em-0002");
 
         Assert.Equal(TransactionType.Reward, reward.Type);
         Assert.Equal("ETH", reward.AssetSymbol);
         Assert.Equal(0.0042m, reward.Quantity);
 
-        // Aportar a un producto de ahorro no es comprar: es mover el activo de sitio.
-        Assert.Equal(TransactionType.Transfer, contribution.Type);
+        // La recompensa es renta y tributa. Aportar al producto no: es mover el activo
+        // de bolsillo dentro de la misma cuenta, y además llega repetido por el monedero.
+        Assert.DoesNotContain(result.Records, record => record.NaturalId == "em-0002");
     }
 
     [Fact]
@@ -274,6 +274,9 @@ public class Bit2MeImportAdapterTests
         // Bit2Me valora el movimiento en «denomination», y no siempre en euros: a veces
         // viene en la propia moneda del activo. Tomarlo sin mirar la divisa convertía una
         // cantidad de cripto en un importe, y la cifra que se veía era disparatada.
+        //
+        // El apunte es una retirada de verdad y no un paso a Earn, que ya no se importa:
+        // lo que se comprueba aquí es la divisa de la valoración, no el subtipo.
         var handler = new RecordedResponseHandler()
             .RespondWithFile(Recorded("empty-trades.json"))
             .RespondWithFile(Recorded("wallet-denomination.json"))
@@ -290,12 +293,13 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
-    public async Task Moving_funds_to_and_from_Earn_is_a_transfer_and_not_a_withdrawal()
+    public async Task Moving_funds_to_and_from_Earn_is_not_imported_at_all()
     {
-        // Bit2Me reparte el significado entre dos campos: una retirada hacia Earn llega
-        // como type «withdrawal» y subtype «earn», y no es sacar dinero de la cuenta sino
-        // moverlo a otro producto del mismo usuario. Leyendo solo uno de los dos, estos
-        // movimientos entraban sin clasificar.
+        // Meter dinero en Earn o recuperarlo no es una compra, ni una venta, ni un
+        // traspaso entre cuentas: se mueve entre bolsillos del mismo usuario y no cambia
+        // lo que tiene. Importarlo llenaba la lista de apuntes que no significan nada, y
+        // encima por duplicado, porque el mismo paso llega también por los movimientos
+        // del producto de rendimiento con otro identificador.
         var handler = new RecordedResponseHandler()
             .RespondWithFile(Recorded("empty-trades.json"))
             .RespondWithFile(Recorded("wallet-earn.json"))
@@ -306,9 +310,11 @@ public class Bit2MeImportAdapterTests
 
         var byId = result.Records.ToDictionary(record => record.NaturalId!);
 
+        Assert.DoesNotContain("we-0001", byId.Keys);
+        Assert.DoesNotContain("we-0002", byId.Keys);
 
-        Assert.Equal(TransactionType.Transfer, byId["we-0001"].Type);
-        Assert.Equal(TransactionType.Transfer, byId["we-0002"].Type);
+        // No desaparecen en silencio: el usuario ve cuántos se descartaron.
+        Assert.Equal(2, result.NonFinancialRecordCount);
 
         // Sin subtipo siguen siendo lo que dicen ser: dinero que entra o sale de verdad.
         Assert.Equal(TransactionType.Withdrawal, byId["we-0003"].Type);

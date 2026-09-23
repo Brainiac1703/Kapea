@@ -26,6 +26,32 @@ Un apunte de salida o de entrada cuya pareja no aparece NO DEBE convertirse en p
 - **WHEN** aparece un apunte de salida o de entrada cuya referencia no tiene el otro lado
 - **THEN** el sistema lo importa como movimiento suelto pendiente de revisión, sin inventar la pata que falta
 
+### Requirement: Mover a un producto de rendimiento no es un movimiento
+
+Meter un activo en un producto de rendimiento de la propia plataforma —Earn, staking— o recuperarlo de él NO DEBE importarse como movimiento: no es una adquisición, ni una transmisión, ni un traspaso entre cuentas, y no cambia lo que el usuario tiene. El sistema DEBE contarlo entre los registros descartados por no tener efecto financiero, de modo que el usuario vea cuántos fueron en lugar de que desaparezcan en silencio.
+
+Los rendimientos cobrados de ese producto SÍ DEBEN importarse: son renta, y tributan.
+
+#### Scenario: El mismo paso expuesto en dos fuentes
+
+- **WHEN** una plataforma expone el mismo paso a rendimiento en dos sitios distintos, cada uno con su propio identificador
+- **THEN** no se importa ninguna de las dos caras, y el movimiento no aparece duplicado en la lista
+
+#### Scenario: Paso automático entre el activo y su versión en rendimiento
+
+- **WHEN** la plataforma apunta el paso como dos anotaciones del mismo activo que se anulan entre sí
+- **THEN** no se importa ninguna de las dos
+
+#### Scenario: La recompensa sí entra
+
+- **WHEN** el producto de rendimiento paga una recompensa
+- **THEN** se importa como rendimiento, con sus unidades, como cualquier otra renta
+
+#### Scenario: El usuario ve lo descartado
+
+- **WHEN** termina una importación que ha descartado pasos a rendimiento
+- **THEN** el recuento de registros sin efecto financiero los incluye
+
 ### Requirement: Valoración estimada cuando el origen no valora
 
 Un movimiento que el origen no valora en euros, y que el sistema no puede dejar sin valorar sin falsear el cálculo, DEBE valorarse con el precio de cierre de su activo en la fecha del movimiento tomado del histórico de precios. El importe así obtenido DEBE quedar marcado como estimado. Si no hay precio para esa fecha, el sistema NO DEBE inventar una cifra: el movimiento queda pendiente de revisión.

@@ -100,6 +100,34 @@ public class KrakenImportAdapterTests
     }
 
     [Fact]
+    public async Task Moving_an_asset_into_earn_is_not_a_movement()
+    {
+        // Kraken guarda lo que está en Earn como una variante del mismo activo, así que
+        // el paso queda apuntado como un traspaso que sale de SOL y entra en SOL.F.
+        // Importarlo dejaba dos líneas iguales que parecían un traspaso duplicado, y el
+        // usuario no había traspasado nada: lo había metido en Earn.
+        var result = await ReadFullHistory();
+
+        Assert.DoesNotContain(result.Records, record => record.NaturalId == "LGREARN-OUT-0001");
+        Assert.DoesNotContain(result.Records, record => record.NaturalId == "LGREARN-IN-0001");
+        Assert.Equal(2, result.NonFinancialRecordCount);
+    }
+
+    [Fact]
+    public async Task A_transfer_that_really_leaves_the_account_still_comes_in()
+    {
+        // Lo que se descarta es el paso entre bolsillos, no cualquier traspaso: uno que
+        // sale y no vuelve sigue siendo un movimiento y tiene que poder verse.
+        var result = await ReadFullHistory();
+
+        var transfer = result.Records.Single(record => record.NaturalId == "LGRMOVE-OUT-0001");
+
+        Assert.Equal(TransactionType.Transfer, transfer.Type);
+        Assert.Equal("BTC", transfer.AssetSymbol);
+        Assert.Equal(0.01m, transfer.Quantity);
+    }
+
+    [Fact]
     public async Task A_paginated_history_is_walked_to_the_end()
     {
         var handler = new RecordedResponseHandler()

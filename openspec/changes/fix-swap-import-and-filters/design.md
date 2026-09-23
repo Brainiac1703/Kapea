@@ -59,6 +59,20 @@ Una tabla de proyección más, reemplazada por activo en cada recálculo igual q
 
 *Alternativa descartada:* recalcular el FIFO en cada consulta de cartera para obtener las incoherencias al vuelo. Duplicaría el cálculo entero en la petición más frecuente de la aplicación, para un dato que casi siempre está vacío.
 
+### Lo ya importado se borra en su propia migración
+
+Los pasos a Earn ya guardados se borran con las mismas salvaguardas que las patas de
+permuta —importados, sin tocar por el usuario y sin nada calculado colgando— pero en una
+migración aparte.
+
+La razón es práctica y no de estilo: la migración de las permutas ya está aplicada en la
+base de desarrollo, y editar una migración ya aplicada deja el historial diciendo una
+cosa y la base otra. Una migración por propósito también se lee mejor cuando haya que
+entender, dentro de un año, por qué desaparecieron noventa y dos movimientos.
+
+Aquí no hace falta releer nada después: a diferencia de las permutas, estos movimientos
+no tienen que volver en otra forma. Simplemente dejan de existir.
+
 ### Las permutas mal importadas se borran y se vuelven a leer
 
 Una migración localiza las patas afectadas —movimientos de tipo `Transfer` cuyo contenido original es un `spend` o un `receive` de Kraken y cuya referencia tiene la otra pata— y las borra. La siguiente relectura completa del histórico las reimporta ya como permutas y valoradas.
@@ -66,6 +80,31 @@ Una migración localiza las patas afectadas —movimientos de tipo `Transfer` cu
 Es más seguro que reconstruirlas en SQL: la conversión necesita el precio del día, que una migración no puede pedir, y el camino de importación nuevo va a ejecutarse de todas formas. Borrarlas es seguro porque hoy no participan en nada: no crean lote, no consumen lote y no afectan a la caja.
 
 Lo que esto obliga a vigilar: la migración no puede borrar un movimiento que el usuario haya anulado, corregido o emparejado a mano con uno manual. Esos se dejan como están y se cuentan en el registro de la migración.
+
+### Los pasos a Earn se descartan al leer, no al calcular
+
+Meter un activo en Earn y recuperarlo no llega a ser movimiento: el adaptador lo cuenta
+como registro sin efecto financiero y no lo entrega. Ni el motor de importación ni el
+cálculo tienen que saber que Earn existe.
+
+Lo que obliga a descartar las dos caras, y no a emparejarlas, es de dónde salen: Bit2Me
+expone el mismo paso en dos sitios —las transacciones del monedero y los movimientos de
+Earn—, cada uno con su propio identificador. Emparejarlos exigiría adivinar que dos
+identificadores distintos son el mismo hecho, por importe y por instante, que es
+precisamente la clase de coincidencia que un día junta dos movimientos que no eran el
+mismo. Descartando ambas caras por lo que son, el duplicado no puede aparecer.
+
+En Kraken el paso son dos anotaciones del mismo activo canónico bajo una misma
+referencia, una que entra y otra que sale, y se reconocen por ahí y no por el nombre del
+subtipo: la plataforma ha usado varios a lo largo del tiempo y no hay motivo para
+perseguirlos.
+
+*Alternativa descartada:* importarlos y esconderlos con un filtro. Deja la lista llena de
+apuntes que no significan nada y obliga a explicar en la pantalla algo que sobra en el
+dato.
+
+*Lo que esto no da:* cuánto hay dentro de Earn. Kapea no modela bolsillos dentro de una
+cuenta, y añadirlos es otro trabajo; queda apuntado, no entra aquí.
 
 ### El filtro por tipo pasa a ser una lista
 

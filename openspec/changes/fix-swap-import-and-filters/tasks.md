@@ -29,8 +29,15 @@
 - [x] 5.2 Pasar la colección desde `KapeaApiClient` y convertir el desplegable de tipos en selección múltiple con los nombres traducidos por las claves que ya usa la tabla, y verificar en el navegador que el filtro aparece en castellano y admite varios tipos
 - [x] 5.3 Verificar que la llamada con un solo tipo sigue funcionando, para no romper enlaces ni pruebas existentes
 
-## 6. Cierre
+## 6. Pasos a Earn
 
-- [x] 6.1 Ejecutar la compilación y toda la batería de pruebas y verificar que pasan
-- [x] 6.2 Comprobar en el navegador la cartera, la lista de movimientos y el detalle fiscal del ejercicio afectado, y verificar que las cifras de PAXG cuadran con lo que el usuario vendió
-- [ ] 6.3 Desplegar, aplicar la migración en producción, releer allí el histórico de Kraken y verificar que la cartera de producción refleja lo mismo que la de desarrollo
+- [x] 6.1 Descartar en el adaptador de Bit2Me las dos caras del paso a Earn —la transacción de monedero con subtipo de rendimiento y el movimiento de Earn de entrada o salida—, contándolas como registros sin efecto financiero, y verificar con una prueba de unidad que no se emiten y que las recompensas sí
+- [x] 6.2 Descartar en el adaptador de Kraken los apuntes de traspaso que son dos anotaciones del mismo activo canónico bajo una misma referencia, una que entra y otra que sale, y verificar con una prueba de unidad que no se emiten y que un traspaso de verdad sigue entrando
+- [x] 6.3 Escribir la migración que borra los pasos a rendimiento ya importados, con las mismas salvaguardas que la de las permutas, y verificar en la base de desarrollo que borra exactamente los 92 movimientos afectados y ninguno más
+- [x] 6.4 Releer el histórico en desarrollo y verificar que no vuelve ninguno, que la lista se queda sin traspasos y que las 2.129 recompensas de Earn siguen intactas
+
+## 7. Cierre
+
+- [x] 7.1 Ejecutar la compilación y toda la batería de pruebas y verificar que pasan
+- [x] 7.2 Comprobar en el navegador la cartera, la lista de movimientos y el detalle fiscal del ejercicio afectado, y verificar que las cifras de PAXG cuadran con lo que el usuario vendió
+- [ ] 7.3 Desplegar, aplicar la migración en producción, releer allí el histórico de Kraken y verificar que la cartera de producción refleja lo mismo que la de desarrollo
