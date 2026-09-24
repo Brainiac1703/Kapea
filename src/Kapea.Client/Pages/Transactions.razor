@@ -101,9 +101,14 @@ else
             <TemplateColumn Title="@Ui["Common_Amount"]" Align="Align.End">
                 @* Un movimiento sin valorar se dice, no se enseña como cero: cero es una
                    cifra y esto es la ausencia de una. *@
-                @(context.GrossAmount == 0m && context.AssetSymbol is { Length: > 0 }
-                    ? Ui["Transactions_Unvalued"].Value
-                    : Format.Money(context.GrossAmount, context.Currency))
+                @* El signo dice hacia dónde va el dinero y el color sólo lo refuerza, para
+                   que se lea igual sin distinguir colores. Lo que no pasa por caja se
+                   queda sin los dos: fingir una dirección que no tiene es peor. *@
+                <span class="@Colour(context.Direction)">
+                    @(context.GrossAmount == 0m && context.AssetSymbol is { Length: > 0 }
+                        ? Ui["Transactions_Unvalued"].Value
+                        : Amount(context))
+                </span>
                 @* Una cifra que puso Kapea no puede parecerse a una que venía del
                    extracto: se marca y se dice con qué precio salió. *@
                 @if (context.AmountIsEstimated)
@@ -112,7 +117,11 @@ else
                 }
             </TemplateColumn>
             <TemplateColumn Title="@Ui["Common_Fee"]" Align="Align.End">
-                @(context.Fee == 0m ? string.Empty : Format.Money(context.Fee, context.Currency))
+                @* Una comisión siempre resta, así que siempre lleva su signo. *@
+                @if (context.Fee != 0m)
+                {
+                    <span class="loss">@Format.SignedMoney(-context.Fee, context.Currency)</span>
+                }
             </TemplateColumn>
             <TemplateColumn Title="@Ui["Common_Origin"]">
                 <OriginBadge Origin="@context.Origin" Movement="@context" />
@@ -241,6 +250,22 @@ else
 
         return GoAsync(1);
     }
+
+    /// <summary>El color que le toca al importe según sume, reste o ninguna de las dos.</summary>
+    private static string Colour(string direction) => direction switch
+    {
+        "Gain" => "gain",
+        "Loss" => "loss",
+        _ => string.Empty,
+    };
+
+    /// <summary>El importe con su signo cuando el movimiento suma o resta.</summary>
+    private static string Amount(TransactionResponse movement) => movement.Direction switch
+    {
+        "Gain" => Format.SignedMoney(movement.GrossAmount, movement.Currency),
+        "Loss" => Format.SignedMoney(-movement.GrossAmount, movement.Currency),
+        _ => Format.Money(movement.GrossAmount, movement.Currency),
+    };
 
     /// <summary>Con qué precio se estimó el importe, para el usuario que pasa el ratón.</summary>
     private string EstimatedHint(TransactionResponse movement) =>

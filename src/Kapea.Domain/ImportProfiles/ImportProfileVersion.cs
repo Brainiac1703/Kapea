@@ -74,6 +74,16 @@ public sealed class ImportProfileVersion
     public bool AmountIsNetOfFee { get; private set; }
 
     /// <summary>
+    /// Hoja del libro que este perfil reconoce. Vacía si vale cualquiera.
+    /// </summary>
+    /// <remarks>
+    /// Sirve para desempatar cuando dos hojas del mismo fichero tienen cabeceras
+    /// parecidas, y para dejar dicho en el dato —y no en el código— de dónde sale cada
+    /// cosa. Un CSV no tiene hojas, así que ahí no se declara.
+    /// </remarks>
+    public string? Sheet { get; private set; }
+
+    /// <summary>
     /// Monedas que son dinero y no activos.
     /// </summary>
     /// <remarks>
@@ -131,7 +141,8 @@ public sealed class ImportProfileVersion
         string? fixedAssetClass = null,
         bool amountIsAlwaysPositive = false,
         IEnumerable<string>? fiatCurrencies = null,
-        bool amountIsNetOfFee = false)
+        bool amountIsNetOfFee = false,
+        string? sheet = null)
     {
         ArgumentNullException.ThrowIfNull(recognizedHeaders);
         ArgumentNullException.ThrowIfNull(columns);
@@ -148,6 +159,7 @@ public sealed class ImportProfileVersion
             FixedAssetClass = string.IsNullOrWhiteSpace(fixedAssetClass) ? null : fixedAssetClass.Trim(),
             AmountIsAlwaysPositive = amountIsAlwaysPositive,
             AmountIsNetOfFee = amountIsNetOfFee,
+            Sheet = string.IsNullOrWhiteSpace(sheet) ? null : sheet.Trim(),
         };
 
         version._recognizedHeaders.AddRange(recognizedHeaders.Where(header => !string.IsNullOrWhiteSpace(header)).Select(header => header.Trim()));

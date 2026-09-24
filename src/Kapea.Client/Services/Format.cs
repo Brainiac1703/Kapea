@@ -29,6 +29,14 @@ public static class Format
     public static string Euros(decimal? amount, string whenMissing) =>
         amount is { } value ? Euros(value) : whenMissing;
 
+    /// <summary>Un importe con su signo delante, en su divisa.</summary>
+    /// <remarks>
+    /// El signo va siempre, también en lo que suma: es lo que permite leer la dirección
+    /// del dinero sin depender del color.
+    /// </remarks>
+    public static string SignedMoney(decimal amount, string currency) =>
+        (amount > 0m ? "+" : string.Empty) + Money(amount, currency);
+
     public static string Money(decimal amount, string currency) =>
         string.Create(CultureInfo.CurrentCulture, $"{amount:N2} {currency}");
 

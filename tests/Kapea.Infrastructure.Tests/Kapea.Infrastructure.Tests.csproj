@@ -34,4 +34,7 @@
     <None Include="**\Recorded\**\*" Exclude="bin\**;obj\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" />
+  </ItemGroup>
 </Project>

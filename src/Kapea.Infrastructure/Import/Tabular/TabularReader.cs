@@ -7,7 +7,21 @@ using CsvHelper.Configuration;
 namespace Kapea.Infrastructure.Import.Tabular;
 
 /// <summary>Contenido tabular de un fichero subido: cabeceras y filas, ya como texto.</summary>
-public sealed record TabularContent(IReadOnlyList<string> Headers, IReadOnlyList<TabularRow> Rows);
+/// <param name="Sheet">Hoja de la que sale. Vacío en un fichero que no tiene hojas.</param>
+public sealed record TabularContent(
+    IReadOnlyList<string> Headers,
+    IReadOnlyList<TabularRow> Rows,
+    string Sheet = "");
+
+/// <summary>
+/// Una hoja tal cual está en el fichero, sin decidir todavía dónde empieza su tabla.
+/// </summary>
+/// <remarks>
+/// El lector entrega filas y no interpreta: un informe puede traer sus metadatos
+/// delante, y cuál es la fila de cabeceras lo sabe quien conoce los perfiles, no quien
+/// abre el fichero.
+/// </remarks>
+public sealed record TabularSheet(string Name, IReadOnlyList<TabularRow> Rows);
 
 /// <summary>Fila del fichero con su número real, que se conserva porque entra en la huella de deduplicación.</summary>
 public sealed record TabularRow(int Number, IReadOnlyList<string> Cells)
@@ -42,6 +56,42 @@ public static class TabularReader
         };
     }
 
+    /// <summary>
+    /// Todas las hojas del fichero con sus filas en crudo, para buscar en ellas.
+    /// </summary>
+    /// <remarks>
+    /// Un CSV no tiene hojas y devuelve una sola, sin nombre. Así quien busca la tabla
+    /// no necesita saber de qué formato venía.
+    /// </remarks>
+    public static IReadOnlyList<TabularSheet> ReadSheets(Stream content, string fileName, char? delimiter = null)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+
+        return Extension(fileName) switch
+        {
+            ".xlsx" or ".xlsm" => ExcelSheets(content),
+            ".csv" or ".txt" => [new TabularSheet(string.Empty, AllCsvRows(content, delimiter))],
+            var extension => throw new UnsupportedImportFileException(extension),
+        };
+    }
+
+    private static IReadOnlyList<TabularSheet> ExcelSheets(Stream content)
+    {
+        using var workbook = new XLWorkbook(content);
+
+        return
+        [
+            .. workbook.Worksheets.Select(sheet => new TabularSheet(
+                sheet.Name,
+                sheet.RangeUsed() is not { } used
+                    ? []
+                    : [.. used.RowsUsed().Select(row => new TabularRow(
+                        row.RowNumber(),
+                        [.. row.Cells(1, row.LastCellUsed()?.Address.ColumnNumber ?? 1)
+                            .Select(cell => cell.GetFormattedString())]))])),
+        ];
+    }
+
     private static string Extension(string fileName) =>
         Path.GetExtension(fileName ?? string.Empty).ToLowerInvariant();
 
@@ -70,6 +120,20 @@ public static class TabularReader
 
     private static TabularContent ReadCsv(Stream content, char? declared)
     {
+        var rows = AllCsvRows(content, declared);
+
+        if (rows.Count == 0)
+        {
+            return new TabularContent([], []);
+        }
+
+        return new TabularContent(
+            rows[0].Cells,
+            [.. rows.Skip(1).Where(row => !row.Cells.All(string.IsNullOrWhiteSpace))]);
+    }
+
+    private static List<TabularRow> AllCsvRows(Stream content, char? declared)
+    {
         // Un extracto europeo suele venir con punto y coma, porque la coma ya está
         // ocupada como separador decimal. Se deduce solo cuando nadie lo ha declarado:
         // la misma cuenta puede exportar de las dos formas.
@@ -94,30 +158,18 @@ public static class TabularReader
         };
 
         using var csv = new CsvReader(new StringReader(text), configuration);
-        var headers = new List<string>();
         var rows = new List<TabularRow>();
         var number = 0;
 
         while (csv.Read())
         {
             number++;
-            var cells = Enumerable.Range(0, csv.Parser.Count).Select(index => csv.GetField(index) ?? string.Empty).ToList();
-
-            if (number == 1)
-            {
-                headers = cells;
-                continue;
-            }
-
-            if (cells.All(string.IsNullOrWhiteSpace))
-            {
-                continue;
-            }
-
-            rows.Add(new TabularRow(number, cells));
+            rows.Add(new TabularRow(
+                number,
+                [.. Enumerable.Range(0, csv.Parser.Count).Select(index => csv.GetField(index) ?? string.Empty)]));
         }
 
-        return new TabularContent(headers, rows);
+        return rows;
     }
 }
 

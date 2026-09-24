@@ -1051,6 +1051,30 @@ public class PortfolioEndpointsTests(KapeaApiFactory factory)
     }
 
     [Fact]
+    public async Task Each_movement_says_whether_it_adds_money_or_takes_it_away()
+    {
+        // Una compra y una venta se leían igual en la lista, y son lo contrario.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var symbol = "DIR" + Random.Shared.Next(100000, 999999).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        var account = await (await client.PostAsJsonAsync(
+                "/api/accounts", new CreateAccountRequest("Kraken", "Con dirección", "EUR")))
+            .Content.ReadFromJsonAsync<AccountResponse>();
+
+        await SeedShortSaleAsync(user, account!.Id, symbol);
+
+        var page = await client.GetFromJsonAsync<TransactionPageResponse>(
+            $"/api/transactions/search?accountId={account.Id}");
+
+        var purchase = page!.Items.Single(item => item.Type == "Buy");
+        var sale = page.Items.Single(item => item.Type == "Sell");
+
+        Assert.Equal("Loss", purchase.Direction);
+        Assert.Equal("Gain", sale.Direction);
+    }
+
+    [Fact]
     public async Task Movements_can_be_filtered_by_several_types_at_once()
     {
         var (client, userId) = await factory.CreateSignedInClientAsync();

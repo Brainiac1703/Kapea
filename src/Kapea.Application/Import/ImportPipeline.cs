@@ -295,8 +295,10 @@ public sealed class ImportPipeline(
                 record.RowNumber,
                 staged.Fingerprint,
                 staged.RawContent,
-                run.ProfileId,
-                run.ProfileVersion),
+                // El perfil del registro manda sobre el de la ejecución: una subida
+                // puede haber leído dos hojas con dos perfiles distintos.
+                record.ProfileId ?? run.ProfileId,
+                record.ProfileVersion ?? run.ProfileVersion),
             record.Withholding is { } withholding ? new Money(withholding, record.Currency) : null,
             rate,
             record.SettledInCash,

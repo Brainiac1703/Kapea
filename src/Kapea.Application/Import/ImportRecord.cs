@@ -16,6 +16,12 @@ namespace Kapea.Application.Import;
 /// <param name="NaiveOccurredAt">Fecha sin zona, cuando el origen no la aporta. Se interpreta en SourceTimeZoneId.</param>
 /// <param name="SplitRatio">Proporción del split. Solo en registros de tipo Split.</param>
 /// <param name="RawContent">Contenido original íntegro: la fila o el fragmento de respuesta del que salió.</param>
+/// <param name="Sheet">Hoja del libro de la que sale. Nula si el origen no tiene hojas.</param>
+/// <param name="ProfileId">
+/// Perfil con el que se leyó. Viaja con el registro porque una misma subida puede leer
+/// dos hojas con dos perfiles distintos, y cada movimiento tiene que saber cuál fue el
+/// suyo.
+/// </param>
 /// <param name="NeedsValuation">
 /// El origen no valora el movimiento y el motor debe hacerlo con el precio de cierre
 /// de su activo en la fecha. Lo pide el adaptador, que sabe cuándo el importe que trae
@@ -39,7 +45,10 @@ public sealed record ImportRecord(
     decimal? SplitRatio,
     string RawContent,
     bool SettledInCash = true,
-    bool NeedsValuation = false)
+    bool NeedsValuation = false,
+    string? Sheet = null,
+    Guid? ProfileId = null,
+    int? ProfileVersion = null)
 {
     /// <summary>Resuelve el instante del registro, venga con zona o sin ella.</summary>
     public Occurrence ToOccurrence() => OccurredAt is { } instant
