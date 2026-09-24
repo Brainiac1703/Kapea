@@ -65,7 +65,8 @@ public sealed record InterpretedRowResponse(
     decimal GrossAmount,
     string Currency,
     decimal Fee,
-    string Outcome);
+    string Outcome,
+    string? Sheet = null);
 
 /// <summary>Registro rechazado con su contenido original y el motivo, para poder corregirlo.</summary>
 public sealed record RejectedRecordResponse(Guid Id, int? RowNumber, string? NaturalId, string RawContent, string Reason);
@@ -118,7 +119,8 @@ public sealed record TransactionResponse(
     DateTimeOffset? VoidedAt = null,
     string? VoidReason = null,
     string? ImportFileName = null,
-    bool AmountIsEstimated = false)
+    bool AmountIsEstimated = false,
+    string Direction = "Neutral")
 {
     public bool IsVoided => VoidedAt is not null;
 }

@@ -1630,4 +1630,13 @@
   <data name="Portfolio_ContributedShort" xml:space="preserve">
     <value>An asset arrived without its money going through the platform, so the contributed figure falls short and the comparison overstates the loss. A transfer between your own accounts that Kapea never paired up also counts as new money.</value>
   </data>
+  <data name="Import_Sheet" xml:space="preserve">
+    <value>Sheet</value>
+  </data>
+  <data name="Profiles_Sheet" xml:space="preserve">
+    <value>Sheet</value>
+  </data>
+  <data name="Profiles_SheetHelp" xml:space="preserve">
+    <value>Name of the workbook sheet this profile reads. Leave it blank if any sheet will do, or if the file has no sheets.</value>
+  </data>
 </root>

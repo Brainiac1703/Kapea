@@ -57,6 +57,19 @@ public enum ImportField
     DestinationAmount = 18,
 
     DestinationCurrency = 19,
+
+    /// <summary>
+    /// Lo que costó la apertura, cuando el informe lo trae ya calculado.
+    /// </summary>
+    /// <remarks>
+    /// Un informe que opera en varias divisas suele dar el precio en la del mercado y el
+    /// total ya convertido a la de la cuenta. Multiplicar cantidad por precio daría una
+    /// cifra en la divisa equivocada, así que cuando el total viene, manda él.
+    /// </remarks>
+    OpenAmount = 20,
+
+    /// <summary>Lo que se obtuvo al cerrar, cuando el informe lo trae ya calculado.</summary>
+    CloseAmount = 21,
 }
 
 /// <summary>

@@ -147,6 +147,19 @@ pulsarlo se enseña exactamente qué se envía: las cabeceras y como mucho tres 
 que vuelve es qué columna es cuál, nunca un importe. Revisa la propuesta antes de
 guardar; si Kapea tiene dudas, señala los puntos concretos.
 
+Un libro de Excel con **varias hojas** se importa de una vez: Kapea busca en todas y lee
+las que reconoce, cada una con su perfil. La vista previa dice de qué hoja sale cada
+fila. Las hojas que ningún perfil reconoce se dejan sin leer y se avisa de cuáles son.
+
+Tampoco importa que el informe traiga sus datos administrativos delante —número de
+cuenta, periodo, títulos—: la tabla se busca donde esté. Y la fila de totales con la que
+algunos informes se despiden no entra como movimiento, porque no trae ni fecha ni
+identificador.
+
+Cuando la misma operación aparece en dos hojas —en una con su cantidad y su precio, en
+otra sólo como un importe— se importa una sola vez, por la que más dice. La otra se
+cuenta entre los registros sin efecto financiero, junto a los totales.
+
 ### Historial
 
 Cada importación con su fecha, su origen, lo que entró, lo duplicado y lo rechazado.

@@ -30,51 +30,97 @@ public sealed class FileImporter(
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        // Primero se lee dejando que el delimitador se deduzca, porque hasta conocer el
-        // perfil no se sabe cuál declara. Las cabeceras salen igual con cualquiera de
-        // los dos separadores habituales.
-        var probe = TabularReader.Read(content, fileName);
-        var match = ProfileMatching.Match(profiles, platform, probe.Headers);
+        // Primero se leen las hojas en crudo, dejando que el delimitador se deduzca:
+        // hasta conocer el perfil no se sabe cuál declara, y las cabeceras salen igual
+        // con cualquiera de los dos separadores habituales.
+        var sheets = TabularReader.ReadSheets(content, fileName);
+        var matched = SheetMatching.Match(sheets, profiles, platform);
 
-        if (!match.Found)
+        if (matched.Count == 0)
         {
             throw new UnknownFileFormatException(
-                platform, probe.Headers, [.. profiles.Select(profile => profile.Name)]);
+                platform,
+                [.. sheets.SelectMany(sheet => sheet.Rows.Take(1)).SelectMany(row => row.Cells)],
+                [.. profiles.Select(profile => profile.Name)]);
         }
 
-        var profile = match.Profile!;
-        var version = profile.Current;
+        var records = new List<ImportRecord>();
+        var rejected = new List<RejectedRecord>();
+        var withoutEffect = 0;
+        var warnings = new List<string>();
 
-        if (match.Ambiguous)
+        foreach (var sheet in matched)
         {
-            logger.LogInformation(
-                "Varios perfiles reconocían el fichero; se ha usado '{Perfil}' por ser el más específico.",
-                profile.Name);
-        }
+            var profile = sheet.Profile;
+            var version = profile.Current;
 
-        // Segunda lectura con el delimitador que declara el perfil: la primera solo
-        // servía para saber cuál era.
-        content.Position = 0;
-        var tabular = TabularReader.Read(content, fileName, version.Delimiter);
+            // Segunda lectura con el delimitador que declara el perfil: la primera solo
+            // servía para saber cuál era.
+            content.Position = 0;
+            var reread = TabularReader.ReadSheets(content, fileName, version.Delimiter)
+                .First(candidate => candidate.Name == sheet.Sheet);
 
-        logger.LogInformation(
-            "Fichero leído con el perfil '{Perfil}' versión {Version}: {Filas} filas.",
-            profile.Name, version.Number, tabular.Rows.Count);
+            var read = new ProfileFileImportAdapter()
+                .Read(profile, version, sheet.Content(reread), cancellationToken);
 
-        var read = new ProfileFileImportAdapter().Read(profile, version, tabular, cancellationToken);
-
-        if (match.Ambiguous)
-        {
-            read = read with
+            // Cada registro se lleva con qué perfil y de qué hoja salió: la ejecución es
+            // una sola, pero sus movimientos no tienen por qué venir del mismo sitio.
+            records.AddRange(read.Records.Select(record => record with
             {
-                Warnings =
-                [
-                    .. read.Warnings,
-                    $"Varios perfiles reconocían este fichero. Se ha usado '{profile.Name}'.",
-                ],
-            };
+                Sheet = string.IsNullOrEmpty(sheet.Sheet) ? null : sheet.Sheet,
+                ProfileId = profile.Id,
+                ProfileVersion = version.Number,
+            }));
+
+            rejected.AddRange(read.Rejected);
+            withoutEffect += read.NonFinancialRecordCount;
+            warnings.AddRange(read.Warnings);
+
+            if (sheet.Match.Ambiguous)
+            {
+                logger.LogInformation(
+                    "Varios perfiles reconocían la hoja '{Hoja}'; se ha usado '{Perfil}' por ser el más específico.",
+                    sheet.Sheet, profile.Name);
+
+                warnings.Add(Ambiguity(sheet, profile.Name));
+            }
+
+            logger.LogInformation(
+                "Hoja '{Hoja}' leída con el perfil '{Perfil}' versión {Version}: {Filas} filas.",
+                sheet.Sheet, profile.Name, version.Number, read.Records.Count);
         }
 
-        return new FileImportResult(read, profile.Id, version.Number, profile.Name, match.Ambiguous);
+        var ignored = sheets.Count - matched.Count;
+
+        if (ignored > 0)
+        {
+            // Una hoja que nadie reconoce no es un error: un informe trae resúmenes que
+            // no son movimientos. Pero se dice, porque callarlo es indistinguible de
+            // haberla perdido.
+            warnings.Add(Ignored(sheets, matched));
+        }
+
+        var main = matched[0];
+
+        return new FileImportResult(
+            new ImportReadResult(records, rejected, withoutEffect) { Warnings = warnings },
+            main.Profile.Id,
+            main.Profile.Current.Number,
+            main.Profile.Name,
+            matched.Any(sheet => sheet.Match.Ambiguous));
+    }
+
+    private static string Ambiguity(MatchedSheet sheet, string profileName) =>
+        string.IsNullOrEmpty(sheet.Sheet)
+            ? $"Varios perfiles reconocían este fichero. Se ha usado '{profileName}'."
+            : $"Varios perfiles reconocían la hoja '{sheet.Sheet}'. Se ha usado '{profileName}'.";
+
+    private static string Ignored(IReadOnlyList<TabularSheet> sheets, IReadOnlyList<MatchedSheet> matched)
+    {
+        var names = sheets
+            .Where(sheet => !matched.Any(read => read.Sheet == sheet.Name))
+            .Select(sheet => $"'{sheet.Name}'");
+
+        return $"No se ha leído {string.Join(", ", names)}: ningún perfil reconoce sus columnas.";
     }
 }

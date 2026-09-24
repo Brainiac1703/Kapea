@@ -40,7 +40,8 @@ public static class ImportProfileRules
             rules.FixedAssetClass,
             rules.AmountIsAlwaysPositive,
             fiatCurrencies: null,
-            amountIsNetOfFee: rules.AmountIsNetOfFee);
+            amountIsNetOfFee: rules.AmountIsNetOfFee,
+            sheet: rules.Sheet);
     }
 
     public static ImportProfileResponse ToResponse(ImportProfile profile)
@@ -76,7 +77,8 @@ public static class ImportProfileRules
             version.NonFinancialConcepts,
             version.Columns.ToDictionary(entry => entry.Key.ToString(), entry => entry.Value),
             version.Concepts.ToDictionary(entry => entry.Key, entry => entry.Value.ToString()),
-            version.AmountIsNetOfFee);
+            version.AmountIsNetOfFee,
+            version.Sheet);
     }
 
     /// <summary>Los campos a los que se puede apuntar una columna, con su nombre en pantalla.</summary>

@@ -84,6 +84,11 @@
 
     <FluentTextField @bind-Value="Content.FixedAssetClass" Label="@Ui["Profiles_AssetClass"]" />
 
+    @* Un libro con varias hojas se importa de una vez, y esto dice cuál lee este perfil.
+       En blanco vale cualquiera, que es lo que necesita un CSV. *@
+    <FluentTextField @bind-Value="Content.Sheet" Label="@Ui["Profiles_Sheet"]" />
+    <FluentLabel Typo="Typography.Body">@Ui["Profiles_SheetHelp"]</FluentLabel>
+
     <FluentCheckbox @bind-Value="Content.AmountIsAlwaysPositive" Label="@Ui["Profiles_AmountPositive"]" />
     <FluentCheckbox @bind-Value="Content.AmountIsNetOfFee" Label="@Ui["Profiles_AmountNetOfFee"]" />
     <FluentLabel Typo="Typography.Body">@Ui["Profiles_AmountPositiveHelp"]</FluentLabel>

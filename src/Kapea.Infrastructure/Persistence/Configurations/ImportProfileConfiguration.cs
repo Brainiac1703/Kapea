@@ -59,6 +59,7 @@ internal sealed class ImportProfileConfiguration : IEntityTypeConfiguration<Impo
         builder.Property(version => version.FixedAssetClass).HasMaxLength(24);
         builder.Property(version => version.AmountIsAlwaysPositive).IsRequired();
         builder.Property(version => version.AmountIsNetOfFee).HasDefaultValue(false).IsRequired();
+        builder.Property(version => version.Sheet).HasMaxLength(128);
 
         // Las reglas van como JSON en una columna y no en tablas aparte. Se leen y se
         // escriben siempre enteras, nunca se consultan por dentro, y repartirlas en

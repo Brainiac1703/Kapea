@@ -379,7 +379,12 @@ public sealed class PortfolioQueries(
                     transaction.VoidedAt,
                     transaction.VoidReason,
                     transaction.Source.ImportRunId is { } runId ? fileNames.GetValueOrDefault(runId) : null,
-                    transaction.AmountIsEstimated);
+                    transaction.AmountIsEstimated,
+
+                    // Qué suma y qué resta lo decide el dominio: la pantalla sólo lo
+                    // pinta. Y no es el efecto en caja, que sólo mira los euros: una
+                    // recompensa cobrada en cripto no mueve un euro y sin embargo suma.
+                    MovementDirections.Of(transaction).ToString());
 
     /// <summary>
     /// La cartera entera: posiciones agrupadas por clase, efectivo, patrimonio,
@@ -980,7 +985,8 @@ public sealed class PortfolioQueries(
             record.GrossAmount,
             record.Currency.Code,
             record.Fee,
-            staged.Outcome.ToString());
+            staged.Outcome.ToString(),
+            record.Sheet);
     }
 
     /// <summary>

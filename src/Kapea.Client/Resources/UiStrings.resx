@@ -1630,4 +1630,13 @@
   <data name="Portfolio_ContributedShort" xml:space="preserve">
     <value>Ha entrado algún activo sin que su dinero pasara por la plataforma, así que lo aportado se queda corto y la comparación exagera la pérdida. Un traspaso entre tus cuentas que Kapea no haya llegado a emparejar también cuenta como dinero nuevo.</value>
   </data>
+  <data name="Import_Sheet" xml:space="preserve">
+    <value>Hoja</value>
+  </data>
+  <data name="Profiles_Sheet" xml:space="preserve">
+    <value>Hoja</value>
+  </data>
+  <data name="Profiles_SheetHelp" xml:space="preserve">
+    <value>Nombre de la hoja del libro que lee este perfil. Déjalo en blanco si vale cualquiera o si el fichero no tiene hojas.</value>
+  </data>
 </root>

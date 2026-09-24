@@ -33,7 +33,8 @@ public sealed record ImportProfileVersionResponse(
     IReadOnlyList<string> NonFinancialConcepts,
     IReadOnlyDictionary<string, string> Columns,
     IReadOnlyDictionary<string, string> Concepts,
-    bool AmountIsNetOfFee = false);
+    bool AmountIsNetOfFee = false,
+    string? Sheet = null);
 
 /// <summary>Las reglas que se envían al crear un perfil o al corregirlo.</summary>
 public sealed record ImportProfileRulesRequest(
@@ -50,7 +51,8 @@ public sealed record ImportProfileRulesRequest(
     IReadOnlyList<string> NonFinancialConcepts,
     IReadOnlyDictionary<string, string> Columns,
     IReadOnlyDictionary<string, string> Concepts,
-    bool AmountIsNetOfFee = false);
+    bool AmountIsNetOfFee = false,
+    string? Sheet = null);
 
 public sealed record CreateImportProfileRequest(string Platform, string Name, ImportProfileRulesRequest Rules);
 

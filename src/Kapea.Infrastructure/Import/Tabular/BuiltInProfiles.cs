@@ -56,15 +56,120 @@ public static class BuiltInProfiles
         ["Free funds interest"] = TransactionType.Interest,
         ["Interés de fondos libres"] = TransactionType.Interest,
         ["Split"] = TransactionType.Split,
+
+        // La retención sobre el interés llega en su propia fila, con otro identificador
+        // y sin más nexo que el periodo escrito en el comentario. Entra como gasto: el
+        // dinero cuadra exacto y no se inventa el emparejamiento con su rendimiento.
+        ["Free-funds Interest Tax"] = TransactionType.Fee,
+        ["Free funds interest tax"] = TransactionType.Fee,
+        ["SEC fee"] = TransactionType.Fee,
+        ["Sec fee"] = TransactionType.Fee,
     };
+
+    /// <summary>
+    /// Lo que la hoja de efectivo cuenta y otra hoja ya aporta mejor.
+    /// </summary>
+    /// <remarks>
+    /// Una compra o una venta aparecen en las dos hojas: en la de posiciones con su
+    /// cantidad y su precio, y aquí sólo como un importe. Importar las dos contaría el
+    /// dinero dos veces, y sin cantidad no hay lote ni FIFO, así que la que se queda es
+    /// la otra.
+    /// </remarks>
+    private static readonly string[] CoveredByPositions =
+    [
+        "Stock purchase",
+        "Stock sell",
+        "Compra de acciones",
+        "Venta de acciones",
+    ];
 
     public static IReadOnlyList<ImportProfile> All(DateTimeOffset createdAt) =>
     [
         CashOperations(createdAt),
         ClosedPositions(createdAt),
         OpenPositions(createdAt),
+        ReportCashOperations(createdAt),
+        ReportClosedPositions(createdAt),
         Bit2MeSummary(createdAt),
     ];
+
+    /// <summary>
+    /// La hoja de efectivo del informe que XTB descarga hoy.
+    /// </summary>
+    /// <remarks>
+    /// Va aparte del perfil de siempre y no como una versión suya porque los dos
+    /// formatos conviven: un perfil reconoce un fichero sólo si están todas las
+    /// cabeceras que declara, así que cambiárselas dejaría ilegibles las exportaciones
+    /// anteriores que el usuario aún conserve.
+    /// </remarks>
+    private static ImportProfile ReportCashOperations(DateTimeOffset createdAt) =>
+        ImportProfile.Create(
+            PlatformCode.Xtb,
+            "XTB · Informe · Operaciones de efectivo",
+            number => ImportProfileVersion.Create(
+                number,
+                createdAt,
+                delimiter: ';',
+                DecimalConvention.Invariant,
+                TimeZone,
+                ["Type", "Time", "Amount", "ID", "Ticker", "Comment"],
+                new Dictionary<ImportField, string>
+                {
+                    [ImportField.NaturalId] = "ID",
+                    [ImportField.Concept] = "Type",
+                    [ImportField.Date] = "Time",
+                    [ImportField.AssetSymbol] = "Ticker",
+                    [ImportField.GrossAmount] = "Amount",
+                },
+                DateFormats,
+                CashConcepts,
+                CoveredByPositions,
+                fixedCurrency: "EUR",
+                RowShape.SingleMovement,
+                AmountSource.Column,
+                fixedAssetClass: "Equity",
+                amountIsAlwaysPositive: true,
+                sheet: "Cash Operations"),
+            builtIn: true);
+
+    /// <summary>Las posiciones ya cerradas del mismo informe, con su cantidad y sus precios.</summary>
+    private static ImportProfile ReportClosedPositions(DateTimeOffset createdAt) =>
+        ImportProfile.Create(
+            PlatformCode.Xtb,
+            "XTB · Informe · Posiciones cerradas",
+            number => ImportProfileVersion.Create(
+                number,
+                createdAt,
+                delimiter: ';',
+                DecimalConvention.Invariant,
+                TimeZone,
+                ["Position ID", "Ticker", "Volume", "Open Price", "Open Time (UTC)", "Close Price", "Close Time (UTC)"],
+                new Dictionary<ImportField, string>
+                {
+                    [ImportField.NaturalId] = "Position ID",
+                    [ImportField.AssetSymbol] = "Ticker",
+                    [ImportField.Quantity] = "Volume",
+                    [ImportField.OpenDate] = "Open Time (UTC)",
+                    [ImportField.OpenPrice] = "Open Price",
+                    [ImportField.CloseDate] = "Close Time (UTC)",
+                    [ImportField.ClosePrice] = "Close Price",
+                    [ImportField.Fee] = "Commission",
+
+                    // XTB cotiza en la divisa del mercado y da aparte el total ya pasado
+                    // a euros con el cambio que aplicó. Multiplicando cantidad por precio
+                    // salían dólares contados como euros.
+                    [ImportField.OpenAmount] = "Purchase Value",
+                    [ImportField.CloseAmount] = "Sale Value",
+                },
+                DateFormats,
+                concepts: null,
+                nonFinancialConcepts: null,
+                fixedCurrency: "EUR",
+                RowShape.OpenAndClosePosition,
+                AmountSource.QuantityTimesPrice,
+                fixedAssetClass: "Equity",
+                sheet: "Closed Positions"),
+            builtIn: true);
 
     /// <summary>
     /// Resumen anual de movimientos que exporta Bit2Me desde su web.

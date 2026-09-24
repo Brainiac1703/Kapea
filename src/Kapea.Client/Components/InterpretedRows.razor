@@ -8,8 +8,11 @@
 
     <FluentDataGrid Items="@Rows.AsQueryable()"
                     TGridItem="InterpretedRowResponse"
-                    GridTemplateColumns="auto 1.2fr 1fr 1fr 1fr 1fr 1fr auto">
+                    GridTemplateColumns="auto 1.1fr 1.2fr 1fr 1fr 1fr 1fr 1fr auto">
         <TemplateColumn Title="@Ui["Common_Row"]">@context.RowNumber</TemplateColumn>
+        @* De qué hoja sale la fila: un libro con varias pestañas se importa de una vez, y
+           sin decirlo no se sabría de dónde ha salido cada cosa. *@
+        <TemplateColumn Title="@Ui["Import_Sheet"]">@context.Sheet</TemplateColumn>
         <TemplateColumn Title="@Ui["Common_Date"]">@context.OccurredAt.ToLocalTime().ToString("d")</TemplateColumn>
         <PropertyColumn Property="@(row => row.Type)" Title="@Ui["Common_Type"]" />
         <PropertyColumn Property="@(row => row.AssetSymbol)" Title="@Ui["Common_Asset"]" />

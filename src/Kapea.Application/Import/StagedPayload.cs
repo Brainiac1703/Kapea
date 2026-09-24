@@ -30,7 +30,10 @@ internal sealed record StagedPayload(
     string SourceTimeZoneId,
     decimal? SplitRatio,
     bool SettledInCash = true,
-    bool NeedsValuation = false)
+    bool NeedsValuation = false,
+    string? Sheet = null,
+    Guid? ProfileId = null,
+    int? ProfileVersion = null)
 {
     internal static string Serialize(ImportRecord record) =>
         JsonSerializer.Serialize(new StagedPayload(
@@ -50,7 +53,10 @@ internal sealed record StagedPayload(
             record.SourceTimeZoneId,
             record.SplitRatio,
             record.SettledInCash,
-            record.NeedsValuation));
+            record.NeedsValuation,
+            record.Sheet,
+            record.ProfileId,
+            record.ProfileVersion));
 
     internal static ImportRecord Deserialize(string payload, string rawContent)
     {
@@ -75,7 +81,10 @@ internal sealed record StagedPayload(
             stored.SplitRatio,
             rawContent,
             stored.SettledInCash,
-            stored.NeedsValuation);
+            stored.NeedsValuation,
+            stored.Sheet,
+            stored.ProfileId,
+            stored.ProfileVersion);
     }
 }
 

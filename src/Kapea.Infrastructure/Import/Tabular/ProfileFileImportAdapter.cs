@@ -63,6 +63,15 @@ public sealed class ProfileFileImportAdapter
                 continue;
             }
 
+            // La fila de totales con la que un informe se despide no es un movimiento:
+            // no trae fecha ni identificador, sólo la suma de lo de arriba. Se reconoce
+            // por eso y no por su texto, que cambia con el idioma del informe.
+            if (IsSummary(row, columns))
+            {
+                nonFinancial++;
+                continue;
+            }
+
             try
             {
                 records.AddRange(version.RowShape switch
@@ -89,6 +98,19 @@ public sealed class ProfileFileImportAdapter
 
         return new ImportReadResult(records, rejected, nonFinancial, warnings);
     }
+
+    /// <summary>
+    /// La fila resume el informe en lugar de contar un movimiento.
+    /// </summary>
+    /// <remarks>
+    /// Sin fecha no hay movimiento posible, y sin identificador tampoco hay nada que
+    /// deduplicar: juntas las dos ausencias, lo que queda es un total. Se comprueban las
+    /// dos y no sólo la fecha porque hay extractos legítimos que no traen identificador.
+    /// </remarks>
+    private static bool IsSummary(TabularRow row, IReadOnlyDictionary<ImportField, int> columns) =>
+        string.IsNullOrWhiteSpace(Cell(row, columns, ImportField.Date))
+        && string.IsNullOrWhiteSpace(Cell(row, columns, ImportField.OpenDate))
+        && string.IsNullOrWhiteSpace(Cell(row, columns, ImportField.NaturalId));
 
     /// <summary>
     /// Empareja los campos del perfil con las posiciones reales del fichero.
@@ -301,7 +323,13 @@ public sealed class ProfileFileImportAdapter
         var fee = Math.Abs(values.OptionalDecimal(Cell(row, columns, ImportField.Fee)) ?? 0m);
         var reference = Cell(row, columns, ImportField.NaturalId);
 
-        yield return Leg(TransactionType.Buy, openedAt, openPrice, "open", fee);
+        yield return Leg(
+            TransactionType.Buy,
+            openedAt,
+            openPrice,
+            values.OptionalDecimal(Cell(row, columns, ImportField.OpenAmount)),
+            "open",
+            fee);
 
         if (version.RowShape == RowShape.OpenPosition)
         {
@@ -312,10 +340,17 @@ public sealed class ProfileFileImportAdapter
             TransactionType.Sell,
             values.Date(Cell(row, columns, ImportField.CloseDate)),
             values.Decimal(Cell(row, columns, ImportField.ClosePrice), "precio de cierre"),
+            values.OptionalDecimal(Cell(row, columns, ImportField.CloseAmount)),
             "close",
             legFee: 0m);
 
-        ImportRecord Leg(TransactionType type, DateTime moment, decimal price, string leg, decimal legFee) =>
+        ImportRecord Leg(
+            TransactionType type,
+            DateTime moment,
+            decimal price,
+            decimal? total,
+            string leg,
+            decimal legFee) =>
             new(
                 // Cada pata necesita su propio identificador: con el mismo, la segunda
                 // se descartaría como duplicado de la primera.
@@ -325,8 +360,12 @@ public sealed class ProfileFileImportAdapter
                 AssetSymbol: symbol.Trim().ToUpperInvariant(),
                 AssetClass: AssetClassOf(version),
                 Quantity: quantity,
-                UnitPrice: price,
-                GrossAmount: quantity * price,
+
+                // Con el total del informe, el precio se deduce de él: el que trae la
+                // fila puede estar en la divisa del mercado, y mezclarlos dejaría un
+                // precio unitario que no cuadra con su propio importe.
+                UnitPrice: total is { } given && quantity != 0m ? Math.Abs(given) / quantity : price,
+                GrossAmount: total is { } amount ? Math.Abs(amount) : quantity * price,
                 Currency: currency,
                 Fee: legFee,
                 Withholding: null,
