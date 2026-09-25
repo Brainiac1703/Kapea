@@ -8,6 +8,7 @@ public class NavigationSectionsTests
     [InlineData("portfolio", NavigationSection.Portfolio)]
     [InlineData("evolution", NavigationSection.Portfolio)]
     [InlineData("transactions", NavigationSection.Portfolio)]
+    [InlineData("watchlist", NavigationSection.Strategy)]
     [InlineData("strategies", NavigationSection.Strategy)]
     [InlineData("signals", NavigationSection.Strategy)]
     [InlineData("ideas", NavigationSection.Strategy)]

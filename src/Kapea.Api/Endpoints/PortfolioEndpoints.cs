@@ -542,6 +542,45 @@ public static class PortfolioEndpoints
                 result.Reclassified, result.StillUnknown, result.NotSupported));
         });
 
+        // Lo que el usuario vigila: lo que tiene y lo que quiere seguir antes de tenerlo.
+        var watchlist = api.MapGroup("/watchlist");
+
+        watchlist.MapGet("/", (
+            Kapea.Application.Watchlist.WatchlistService service,
+            CancellationToken token) => service.ListAsync(token));
+
+        watchlist.MapPost("/", async (
+            WatchAssetRequest request,
+            Kapea.Application.Watchlist.WatchlistService service,
+            CancellationToken token) =>
+        {
+            if (!Enum.TryParse<Domain.Assets.AssetClass>(request.AssetClass, ignoreCase: true, out var assetClass))
+            {
+                return Results.Problem(
+                    $"La clase de activo '{request.AssetClass}' no existe.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            return Results.Ok(await service.AddAsync(request.Symbol, assetClass, token));
+        });
+
+        watchlist.MapDelete("/{assetId:guid}", async (
+            Guid assetId,
+            Kapea.Application.Watchlist.WatchlistService service,
+            CancellationToken token) =>
+        {
+            try
+            {
+                await service.RemoveAsync(assetId, token);
+
+                return Results.NoContent();
+            }
+            catch (Kapea.Application.Watchlist.HeldAssetException exception)
+            {
+                return Results.Problem(exception.Message, statusCode: StatusCodes.Status409Conflict);
+            }
+        });
+
         api.MapPost("/portfolio/recalculate", async (
             PortfolioCalculationService calculation, IPortfolioQueries queries, CancellationToken token) =>
         {

@@ -28,6 +28,9 @@
         <FluentNavGroup Title="@Ui["Nav_Group_Strategy"]"
                         Icon="@(new Icons.Regular.Size20.Beaker())"
                         @bind-Expanded="_strategyExpanded">
+            <FluentNavLink Href="watchlist" Icon="@(new Icons.Regular.Size20.Eye())">
+                @Ui["Nav_Watchlist"]
+            </FluentNavLink>
             <FluentNavLink Href="strategies" Icon="@(new Icons.Regular.Size20.Beaker())">
                 @Ui["Nav_Strategies"]
             </FluentNavLink>

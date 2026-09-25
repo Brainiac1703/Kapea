@@ -28,6 +28,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<Asset> Assets => Set<Asset>();
 
+    public DbSet<WatchedAsset> WatchedAssets => Set<WatchedAsset>();
+
     public DbSet<Platform> Platforms => Set<Platform>();
 
     public DbSet<Domain.ImportProfiles.ImportProfile> ImportProfiles => Set<Domain.ImportProfiles.ImportProfile>();
@@ -100,6 +102,7 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
             .HasQueryFilter(TransactionQueryFilters.Owner, transaction => transaction.UserId == CurrentUserId)
             .HasQueryFilter(TransactionQueryFilters.InForce, transaction => transaction.VoidedAt == null);
         modelBuilder.Entity<Lot>().HasQueryFilter(lot => lot.UserId == CurrentUserId);
+        modelBuilder.Entity<WatchedAsset>().HasQueryFilter(watched => watched.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Strategies.Strategy>()
             .HasQueryFilter(strategy => strategy.UserId == CurrentUserId);
         modelBuilder.Entity<Domain.Strategies.EmittedSignal>()

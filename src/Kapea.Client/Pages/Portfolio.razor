@@ -142,12 +142,12 @@ else
                 }
             </TemplateColumn>
             <TemplateColumn Title="@Ui["Common_Quantity"]" Align="Align.End">@Format.Quantity(context.Quantity)</TemplateColumn>
-            <TemplateColumn Title="@Ui["Portfolio_AverageCost"]" Align="Align.End">@Euros(context.AverageCostInEuros)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Portfolio_AverageCost"]" Align="Align.End">@Format.Price(context.AverageCostInEuros, Ui["Portfolio_NoPrice"])</TemplateColumn>
 
             @* El instante acompaña al precio: un precio sin fecha no se puede contrastar
                con nada, y uno de hace tres días se lee como el de ahora. *@
             <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]" Align="Align.End">
-                @Euros(context.MarketPriceInEuros)
+                @Format.Price(context.MarketPriceInEuros, Ui["Portfolio_NoPrice"])
                 @if (context.PriceAsOf is { } asOf)
                 {
                     <div class="moment">@Ui["Portfolio_PriceAsOf"] @Format.Moment(asOf)</div>

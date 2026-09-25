@@ -29,6 +29,8 @@ public sealed class AssetCatalog(KapeaDbContext context, ILogger<AssetCatalog> l
 
         if (existing is not null)
         {
+            await WatchAsync(existing.Id, cancellationToken).ConfigureAwait(false);
+
             return existing;
         }
 
@@ -40,6 +42,8 @@ public sealed class AssetCatalog(KapeaDbContext context, ILogger<AssetCatalog> l
 
         if (pending is not null)
         {
+            await WatchAsync(pending.Id, cancellationToken).ConfigureAwait(false);
+
             return pending;
         }
 
@@ -49,6 +53,33 @@ public sealed class AssetCatalog(KapeaDbContext context, ILogger<AssetCatalog> l
         logger.LogInformation(
             "Símbolo '{Simbolo}' desconocido: se crea como activo sin verificar, pendiente de revisión.", canonical);
 
+        await WatchAsync(created.Id, cancellationToken).ConfigureAwait(false);
+
         return created;
+    }
+
+    /// <summary>
+    /// Deja el activo en la lista de lo que el usuario vigila.
+    /// </summary>
+    /// <remarks>
+    /// Tener posición ya cuenta como seguirlo, así que esto no hace falta para verlo
+    /// mientras se tenga. Se añade para lo de después: al vender entero, el activo sigue
+    /// en la lista, que es donde el usuario quiere encontrarlo para decidir si vuelve.
+    /// </remarks>
+    private async Task WatchAsync(Guid assetId, CancellationToken cancellationToken)
+    {
+        var alreadyWatched = await context.WatchedAssets
+            .AnyAsync(watched => watched.AssetId == assetId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (alreadyWatched
+            || context.ChangeTracker.Entries<WatchedAsset>().Any(entry => entry.Entity.AssetId == assetId))
+        {
+            return;
+        }
+
+        await context.WatchedAssets
+            .AddAsync(WatchedAsset.Of(context.CurrentUserId, assetId, DateTimeOffset.UtcNow), cancellationToken)
+            .ConfigureAwait(false);
     }
 }

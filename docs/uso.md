@@ -360,6 +360,31 @@ cuenta, y el resultado del ejercicio saldría mal.
 Los rendimientos cobrados, como dividendos o intereses, con su retención, están en
 *Posiciones*, al final.
 
+## Seguimiento
+
+Lo que vigilas: lo que tienes en cartera y lo que quieres seguir **antes** de tenerlo.
+Tus sistemas se evalúan sobre esta lista, así que es aquí donde decides de qué quieres
+recibir señales.
+
+- **Lo que compras entra solo.** No hay que añadir nada: la primera importación de un
+  activo lo pone en la lista.
+- **Vender del todo no lo saca.** Sigues viendo su precio y sus señales, por si quieres
+  volver a entrar.
+- **Lo que tienes no se puede dejar de seguir.** Dejaría una posición de tu cartera sin
+  precio, sin señales y sin evolución.
+- **Al añadir un activo**, Kapea comprueba si algún proveedor da precios y te lo dice. Si
+  no los hay se añade igualmente, porque puede cubrirse más adelante, pero mientras tanto
+  no tendrá precio ni señales.
+- **Anotar una idea** sobre un activo lo pone en seguimiento: sin precios no habría forma
+  de comprobar si acertó.
+
+La lista distingue lo que tienes (**En cartera**, con su posición) de lo que sólo vigilas.
+Un activo sin precio lo dice, en lugar de aparecer con un cero.
+
+El histórico de precios se descarga para todo lo que sigas, con la profundidad que pidan
+tus sistemas: si uno necesita doscientos días de ventana, un activo recién añadido recibe
+suficiente para poder evaluarse desde el primer momento.
+
 ## Estrategia
 
 Kapea no recomienda comprar ni vender. Aplica siempre igual las reglas que tú escribes

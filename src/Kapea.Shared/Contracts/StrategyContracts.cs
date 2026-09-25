@@ -64,7 +64,22 @@ public sealed record SignalResponse(
     string Reason,
     decimal? TargetInEuros,
     decimal? StopLossInEuros,
-    int DaysOld);
+    int DaysOld,
+    bool IsHeld = false,
+    decimal? HeldQuantity = null)
+{
+    /// <summary>
+    /// Hay algo que hacer con esta señal.
+    /// </summary>
+    /// <remarks>
+    /// Una salida sobre un activo que no se tiene no es accionable: no hay nada que
+    /// vender. Presentarla como si lo fuera manda a mirar una operación imposible.
+    /// </remarks>
+    public bool IsActionable => IsHeld || !Direction.Equals("Exit", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Una entrada en algo que ya se tiene amplía la posición, no la abre.</summary>
+    public bool IsTopUp => IsHeld && Direction.Equals("Entry", StringComparison.OrdinalIgnoreCase);
+}
 
 /// <summary>Una operación simulada.</summary>
 public sealed record SimulatedTradeResponse(
@@ -191,7 +206,12 @@ public sealed record CreateIdeaRequest(
     decimal? Target,
     decimal? StopLoss,
     string? Url,
-    string? Note);
+    string? Note,
+
+    // Hace falta para poder seguir un activo que todavía no está en el catálogo: sin
+    // clase no se sabe a qué proveedor pedirle precios. Cuando el activo ya existe, se
+    // usa la suya y esto sobra.
+    string? AssetClass = null);
 
 /// <summary>Un texto pegado, para sacar ideas de él. El texto no se guarda.</summary>
 public sealed record ExtractIdeasRequest(string Text);

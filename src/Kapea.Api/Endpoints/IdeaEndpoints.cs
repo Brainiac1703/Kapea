@@ -99,6 +99,7 @@ internal static class IdeaEndpoints
             CreateIdeaRequest request,
             KapeaDbContext context,
             ICurrentUser user,
+            Kapea.Application.Watchlist.WatchlistService watchlist,
             CancellationToken token) =>
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -109,6 +110,21 @@ internal static class IdeaEndpoints
                 .Where(asset => asset.CanonicalSymbol == request.Symbol.ToUpperInvariant())
                 .Select(asset => (Guid?)asset.Id)
                 .FirstOrDefaultAsync(token);
+
+            // Una idea sobre algo que no se vigila no sirve para nada: sin precios no hay
+            // forma de comprobar si acertó, y el seguimiento del resultado es justo lo
+            // que esta pantalla promete. Así que registrarla lo pone en seguimiento.
+            if (assetId is { } existing)
+            {
+                await watchlist.AddAsync(
+                    request.Symbol,
+                    (await context.Assets.SingleAsync(asset => asset.Id == existing, token)).Class,
+                    token);
+            }
+            else if (Enum.TryParse<Domain.Assets.AssetClass>(request.AssetClass, ignoreCase: true, out var assetClass))
+            {
+                assetId = (await watchlist.AddAsync(request.Symbol, assetClass, token)).Asset.AssetId;
+            }
 
             var idea = ExternalIdea.Create(
                 user.Id,

@@ -25,7 +25,8 @@ else
 {
     <FluentDataGrid Items="@_signals.AsQueryable()"
                     TGridItem="SignalResponse"
-                    GridTemplateColumns="1fr 1fr 0.8fr 1fr 1fr 3fr">
+                    RowClass="@(signal => signal.IsActionable ? string.Empty : "not-actionable")"
+                    GridTemplateColumns="1fr 1fr 1fr 1fr 1fr 3fr">
         <TemplateColumn Title="@Ui["Common_Date"]">
             @Format.Day(context.Date)
             <div class="moment">
@@ -41,11 +42,25 @@ else
             </FluentAnchor>
         </TemplateColumn>
         <TemplateColumn Title="@Ui["Signals_Direction"]">
+            @* Una señal se lee distinto según se tenga el activo: vender lo que no se
+               tiene no es nada, y comprar lo que ya se tiene es ampliar. *@
             <span class="@(context.Direction == "Entry" ? "gain" : "loss")">
                 @(context.Direction == "Entry" ? Ui["Signals_Entry"] : Ui["Signals_Exit"])
             </span>
+            @if (!context.IsActionable)
+            {
+                <div class="moment">@Ui["Signals_NotHeld"]</div>
+            }
+            else if (context.IsTopUp)
+            {
+                <div class="moment">@Ui["Signals_TopUp"]</div>
+            }
+            else if (context.IsHeld && context.HeldQuantity is { } quantity)
+            {
+                <div class="moment">@Format.Quantity(quantity)</div>
+            }
         </TemplateColumn>
-        <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]">@Format.Euros(context.PriceInEuros)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Portfolio_MarketPrice"]">@Format.Price(context.PriceInEuros)</TemplateColumn>
         <TemplateColumn Title="@Ui["Strategies_Target"]">
             @Format.Euros(context.TargetInEuros, Ui["Strategies_NoLevel"])
             <div class="moment">
