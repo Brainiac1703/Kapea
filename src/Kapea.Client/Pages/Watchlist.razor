@@ -7,19 +7,66 @@
 <FluentLabel Typo="Typography.PageTitle">@Ui["Watchlist_Heading"]</FluentLabel>
 <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Watchlist_Intro"]</FluentLabel>
 
-@* Añadir es lo primero que se hace aquí, así que va arriba y no escondido en un
-   diálogo: lo que ya se tiene aparece solo, lo demás hay que escribirlo. *@
+@* Buscar es lo primero que se hace aquí, así que va arriba: lo que ya se tiene aparece
+   solo, y lo demás se busca por nombre sin tener que saberse el símbolo. *@
 <FluentToolbar>
-    <FluentTextField @bind-Value="_symbol" Placeholder="@Ui["Watchlist_Symbol"]" />
-    <FluentSelect TOption="string"
-                  Items="@Classes"
-                  OptionValue="@(entry => entry)"
-                  OptionText="@(entry => ClassName(entry))"
-                  @bind-Value="_class" />
-    <FluentButton IconStart="@(new Icons.Regular.Size16.Add())" Disabled="@_working" OnClick="AddAsync">
-        @Ui["Watchlist_Add"]
+    <FluentSearch @bind-Value="_text"
+                  @bind-Value:after="SearchAsync"
+                  Placeholder="@Ui["Watchlist_Search"]"
+                  Style="width: 320px" />
+    <FluentButton IconStart="@(new Icons.Regular.Size16.Search())" Disabled="@_working" OnClick="SearchAsync">
+        @Ui["Watchlist_DoSearch"]
     </FluentButton>
 </FluentToolbar>
+
+@if (_results is not null)
+{
+    @if (_results.Results.Count == 0)
+    {
+        @* Sin resultados no se deja al usuario sin salida: puede seguirlo por símbolo,
+           que es como se hacía antes de que hubiera búsqueda. *@
+        <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+            @Ui["Watchlist_NoResults"]
+        </FluentMessageBar>
+
+        <FluentToolbar>
+            <FluentSelect TOption="string"
+                          Items="@Classes"
+                          OptionValue="@(entry => entry)"
+                          OptionText="@(entry => ClassName(entry))"
+                          @bind-Value="_class" />
+            <FluentButton IconStart="@(new Icons.Regular.Size16.Add())" Disabled="@_working" OnClick="AddAsync">
+                @Ui["Watchlist_AddBySymbol"]
+            </FluentButton>
+        </FluentToolbar>
+    }
+    else
+    {
+        @if (!_results.IsComplete)
+        {
+            <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="false">
+                @Ui["Watchlist_PartialSearch"]
+            </FluentMessageBar>
+        }
+
+        <FluentDataGrid Items="@_results.Results.AsQueryable()"
+                        TGridItem="AssetSearchResultResponse"
+                        GridTemplateColumns="1fr 2fr 1fr 1.2fr 110px">
+            <PropertyColumn Property="@(result => result.Symbol)" Title="@Ui["Common_Asset"]" />
+            <PropertyColumn Property="@(result => result.Name)" Title="@Ui["Watchlist_Name"]" />
+            <TemplateColumn Title="@Ui["Common_Type"]">@ClassName(context.AssetClass)</TemplateColumn>
+            <TemplateColumn Title="@Ui["Watchlist_Market"]">
+                @* El mercado es lo que distingue dos cosas con el mismo símbolo. *@
+                @(context.Market ?? context.Provider)
+            </TemplateColumn>
+            <TemplateColumn Align="Align.End">
+                <FluentButton Appearance="Appearance.Accent" Disabled="@_working" OnClick="@(() => FollowAsync(context))">
+                    @Ui["Watchlist_Add"]
+                </FluentButton>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+}
 
 @if (_notice is { Length: > 0 })
 {
@@ -91,6 +138,8 @@ else
     private static readonly string[] Classes = ["Crypto", "Equity"];
 
     private IReadOnlyList<WatchedAssetResponse>? _assets;
+    private AssetSearchResponse? _results;
+    private string _text = string.Empty;
     private string _symbol = string.Empty;
     private string _class = "Crypto";
     private string _notice = string.Empty;
@@ -111,6 +160,59 @@ else
         }
     }
 
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_text))
+        {
+            _results = null;
+
+            return;
+        }
+
+        _working = true;
+        _notice = string.Empty;
+
+        try
+        {
+            _results = await Api.SearchAssetsAsync(_text.Trim());
+            _symbol = _text.Trim();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    private async Task FollowAsync(AssetSearchResultResponse result)
+    {
+        _working = true;
+        _notice = string.Empty;
+
+        try
+        {
+            var added = await Api.FollowAssetAsync(new FollowAssetRequest(
+                result.Symbol, result.Name, result.AssetClass, result.ProviderId, result.Provider, result.Market));
+
+            _notice = Notice(added);
+            _results = null;
+            _text = string.Empty;
+
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
     private async Task AddAsync()
     {
         if (string.IsNullOrWhiteSpace(_symbol))
@@ -127,6 +229,8 @@ else
 
             _notice = Notice(added);
             _symbol = string.Empty;
+            _results = null;
+            _text = string.Empty;
 
             await ReloadAsync();
         }

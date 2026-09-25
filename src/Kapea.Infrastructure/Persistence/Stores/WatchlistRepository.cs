@@ -62,16 +62,52 @@ public sealed class WatchlistRepository(KapeaDbContext context, IMarketPriceProv
     public async Task<Asset> AddToCatalogueAsync(
         string symbol,
         AssetClass assetClass,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? displayName = null,
+        string? providerId = null)
     {
         // Lo añade el usuario a mano, así que es lo que él dice que es: entra verificado.
         // Lo que no se sabe todavía es si algún proveedor lo cubre, y eso se comprueba
         // aparte y se le dice.
-        var asset = Asset.Create(symbol, assetClass);
+        var asset = Asset.Create(symbol, assetClass, displayName, isin: null, providerId);
 
         await context.Assets.AddAsync(asset, cancellationToken).ConfigureAwait(false);
 
         return asset;
+    }
+
+    /// <summary>
+    /// Busca en el catálogo el activo al que corresponde un resultado.
+    /// </summary>
+    /// <remarks>
+    /// Primero por el identificador del proveedor, que es lo más fiable. Después
+    /// traduciendo cada activo al símbolo del proveedor con la misma función que se usa
+    /// para pedir precios: es lo que hace que elegir «NOW» encuentre el «NOW.US» que
+    /// entró importando XTB, en lugar de partir su historial en dos.
+    /// </remarks>
+    public async Task<Asset?> FindByProviderAsync(
+        AssetSearchResult result,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        var candidates = await context.Assets
+            .Where(asset => asset.Class == result.Class)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var known = candidates.Find(asset => asset.ProviderId == result.ProviderId);
+
+        if (known is not null)
+        {
+            return known;
+        }
+
+        return candidates.Find(asset =>
+            asset.CanonicalSymbol.Equals(result.Symbol, StringComparison.OrdinalIgnoreCase)
+            || (result.Class == AssetClass.Equity
+                && MarketData.YahooSymbols.ToYahoo(asset.CanonicalSymbol)
+                    .Equals(result.Symbol, StringComparison.OrdinalIgnoreCase)));
     }
 
     public Task<bool> IsWatchedAsync(Guid assetId, CancellationToken cancellationToken = default) =>

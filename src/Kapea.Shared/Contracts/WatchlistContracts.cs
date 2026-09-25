@@ -34,3 +34,29 @@ public sealed record WatchAssetResponse(
     WatchedAssetResponse Asset,
     bool AlreadyWatched,
     bool HasPrices);
+
+/// <summary>Un activo encontrado al buscar, con lo necesario para reconocerlo y elegirlo.</summary>
+public sealed record AssetSearchResultResponse(
+    string Symbol,
+    string Name,
+    string AssetClass,
+    string ProviderId,
+    string Provider,
+    string? Market);
+
+/// <summary>
+/// Lo que devuelve una búsqueda.
+/// </summary>
+/// <param name="IsComplete">Falso si algún proveedor no respondió: pueden faltar resultados.</param>
+public sealed record AssetSearchResponse(
+    IReadOnlyList<AssetSearchResultResponse> Results,
+    bool IsComplete);
+
+/// <summary>Seguir un activo elegido de una búsqueda.</summary>
+public sealed record FollowAssetRequest(
+    string Symbol,
+    string Name,
+    string AssetClass,
+    string ProviderId,
+    string Provider,
+    string? Market);

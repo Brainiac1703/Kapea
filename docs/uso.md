@@ -366,6 +366,15 @@ Lo que vigilas: lo que tienes en cartera y lo que quieres seguir **antes** de te
 Tus sistemas se evalúan sobre esta lista, así que es aquí donde decides de qué quieres
 recibir señales.
 
+- **Se busca por nombre o por símbolo.** Escribes «cardano» o «ServiceNow» y Kapea
+  pregunta a la vez a sus proveedores, enseñando de cada resultado qué es y dónde cotiza,
+  que es lo que distingue dos cosas con el mismo símbolo. Si la búsqueda no encuentra
+  nada, puedes seguirlo por su símbolo indicando de qué tipo es.
+- **Al elegir un resultado**, Kapea guarda con qué identificador lo conoce ese proveedor.
+  Eso es lo que permite seguir una criptomoneda poco conocida, y lo que evita que dos
+  monedas con el mismo símbolo se confundan. Si el activo ya estaba en tu catálogo —por
+  ejemplo porque lo importaste de un bróker que lo nombra distinto— se reconoce y no se
+  duplica.
 - **Lo que compras entra solo.** No hay que añadir nada: la primera importación de un
   activo lo pone en la lista.
 - **Vender del todo no lo saca.** Sigues viendo su precio y sus señales, por si quieres

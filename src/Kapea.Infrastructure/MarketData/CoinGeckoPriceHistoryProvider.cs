@@ -36,7 +36,7 @@ public sealed class CoinGeckoPriceHistoryProvider(
         ArgumentNullException.ThrowIfNull(request);
 
         if (request.Class != AssetClass.Crypto
-            || !CoinGeckoMarketPriceProvider.CoinIds.TryGetValue(request.CanonicalSymbol, out var coinId))
+            || !TryResolve(request, out var coinId))
         {
             return [];
         }
@@ -119,5 +119,25 @@ public sealed class CoinGeckoPriceHistoryProvider(
             .Select(entry => new DailyPrice(request.AssetId, entry.Key, entry.Value, "CoinGecko")));
 
         return prices;
+    }
+
+    /// <summary>
+    /// El identificador de CoinGecko para este activo.
+    /// </summary>
+    /// <remarks>
+    /// El que trae el activo manda: lo eligió el usuario viendo el nombre completo. La
+    /// lista escrita a mano queda de respaldo para lo que entró importando movimientos,
+    /// que no tiene identificador.
+    /// </remarks>
+    private static bool TryResolve(PriceHistoryRequest request, out string coinId)
+    {
+        if (request.ProviderId is { Length: > 0 } known)
+        {
+            coinId = known;
+
+            return true;
+        }
+
+        return CoinGeckoMarketPriceProvider.CoinIds.TryGetValue(request.CanonicalSymbol, out coinId!);
     }
 }

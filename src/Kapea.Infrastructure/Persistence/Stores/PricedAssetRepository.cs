@@ -89,7 +89,7 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
         var assets = await context.Assets
             .IgnoreQueryFilters()
             .Where(asset => held.Contains(asset.Id))
-            .Select(asset => new { asset.Id, asset.CanonicalSymbol, asset.Class })
+            .Select(asset => new { asset.Id, asset.CanonicalSymbol, asset.Class, asset.ProviderId })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -108,7 +108,8 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
                     // eso se sigue, para ver cómo evoluciona y decidir si se vuelve.
                     open.Contains(asset.Id) || watched.Contains(asset.Id) || !moved.ContainsKey(asset.Id)
                         ? null
-                        : DateOnly.FromDateTime(moved[asset.Id].Last.UtcDateTime)))
+                        : DateOnly.FromDateTime(moved[asset.Id].Last.UtcDateTime),
+                    asset.ProviderId))
                 .OrderBy(asset => asset.CanonicalSymbol, StringComparer.Ordinal),
         ];
     }

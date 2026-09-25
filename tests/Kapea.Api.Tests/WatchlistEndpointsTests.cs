@@ -142,6 +142,61 @@ public class WatchlistEndpointsTests(KapeaApiFactory factory)
         Assert.Contains(await ListAsync(client), watched => watched.Symbol == symbol);
     }
 
+    [Fact]
+    public async Task Following_a_search_result_reuses_the_asset_already_in_the_catalogue()
+    {
+        // Yahoo llama NOW a lo que XTB llama NOW.US. Crear un activo por cada nombre
+        // partiría en dos su historial y su cola de lotes, que es lo que el catálogo
+        // existe para evitar.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var symbol = "SRC" + Suffix();
+
+        Guid existing;
+
+        await using (var context = factory.CreateContext(user))
+        {
+            var asset = Domain.Assets.Asset.Create($"{symbol}.US", Domain.Assets.AssetClass.Equity);
+            context.Assets.Add(asset);
+            await context.SaveChangesAsync();
+            existing = asset.Id;
+        }
+
+        var response = await client.PostAsJsonAsync("/api/watchlist/follow", new FollowAssetRequest(
+            symbol, "Lo que sea", "Equity", symbol, "Yahoo Finance", "NasdaqGS"));
+
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+
+        var followed = (await response.Content.ReadFromJsonAsync<WatchAssetResponse>())!;
+
+        Assert.Equal(existing, followed.Asset.AssetId);
+        Assert.Equal($"{symbol}.US", followed.Asset.Symbol);
+
+        // Y aprende con qué identificador pedirle precios a partir de ahora.
+        await using var check = factory.CreateContext(user);
+        Assert.Equal(symbol, check.Assets.Single(asset => asset.Id == existing).ProviderId);
+    }
+
+    [Fact]
+    public async Task Following_something_new_keeps_the_identifier_its_provider_uses()
+    {
+        // Es lo que permite que una moneda fuera de la lista escrita a mano tenga
+        // precios: el identificador viene con lo que el usuario eligió.
+        var client = factory.CreateClientFor(Guid.NewGuid());
+        var symbol = "NEW" + Suffix();
+
+        var response = await client.PostAsJsonAsync("/api/watchlist/follow", new FollowAssetRequest(
+            symbol, "Moneda nueva", "Crypto", "moneda-nueva", "CoinGecko", null));
+
+        var followed = (await response.Content.ReadFromJsonAsync<WatchAssetResponse>())!;
+
+        Assert.Equal(symbol, followed.Asset.Symbol);
+        Assert.Equal("Moneda nueva", followed.Asset.DisplayName);
+
+        await using var context = factory.CreateContext(Guid.NewGuid());
+        Assert.Equal("moneda-nueva", context.Assets.Single(asset => asset.CanonicalSymbol == symbol).ProviderId);
+    }
+
     private static async Task<IReadOnlyList<WatchedAssetResponse>> ListAsync(HttpClient client) =>
         (await client.GetFromJsonAsync<List<WatchedAssetResponse>>("/api/watchlist"))!;
 

@@ -549,6 +549,43 @@ public static class PortfolioEndpoints
             Kapea.Application.Watchlist.WatchlistService service,
             CancellationToken token) => service.ListAsync(token));
 
+        // Buscar por nombre o por símbolo, sin decir antes de qué tipo es.
+        watchlist.MapGet("/search", async (
+            string text,
+            Kapea.Application.Watchlist.AssetSearchService search,
+            CancellationToken token) =>
+        {
+            var found = await search.SearchAsync(text, token);
+
+            return new AssetSearchResponse(
+                [.. found.Results.Select(result => new AssetSearchResultResponse(
+                    result.Symbol,
+                    result.Name,
+                    result.Class.ToString(),
+                    result.ProviderId,
+                    result.Provider,
+                    result.Market))],
+                found.IsComplete);
+        });
+
+        watchlist.MapPost("/follow", async (
+            FollowAssetRequest request,
+            Kapea.Application.Watchlist.WatchlistService service,
+            CancellationToken token) =>
+        {
+            if (!Enum.TryParse<Domain.Assets.AssetClass>(request.AssetClass, ignoreCase: true, out var assetClass))
+            {
+                return Results.Problem(
+                    $"La clase de activo '{request.AssetClass}' no existe.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            return Results.Ok(await service.AddAsync(
+                new Kapea.Application.Abstractions.AssetSearchResult(
+                    request.Symbol, request.Name, assetClass, request.ProviderId, request.Provider, request.Market),
+                token));
+        });
+
         watchlist.MapPost("/", async (
             WatchAssetRequest request,
             Kapea.Application.Watchlist.WatchlistService service,
