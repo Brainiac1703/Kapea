@@ -77,9 +77,13 @@ public interface IPortfolioQueries
         CancellationToken cancellationToken = default);
 
     /// <summary>Evolución de un activo con sus indicadores, o nada si no está en cartera.</summary>
+    /// <param name="from">
+    /// Desde cuándo. Sin valor, desde la primera cotización guardada de ese activo: no
+    /// hay que saber de antemano desde cuándo hay para poder pedirlo todo.
+    /// </param>
     Task<AssetHistoryResponse?> GetAssetHistoryAsync(
         Guid assetId,
-        DateOnly from,
+        DateOnly? from,
         DateOnly to,
         int indicatorWindowDays,
         CancellationToken cancellationToken = default);

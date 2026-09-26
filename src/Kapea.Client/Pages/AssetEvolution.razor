@@ -9,6 +9,17 @@
 </FluentLabel>
 
 <FluentToolbar>
+    <FluentLabel Typo="Typography.Body">@Ui["Evolution_Period"]</FluentLabel>
+    @foreach (var period in Periods)
+    {
+        <FluentButton Appearance="@(period.Days == _days ? Appearance.Accent : Appearance.Neutral)"
+                      OnClick="@(() => ChangePeriodAsync(period.Days))">
+            @Ui[period.Label]
+        </FluentButton>
+    }
+</FluentToolbar>
+
+<FluentToolbar>
     <FluentLabel Typo="Typography.Body">@Ui["Asset_Window"]</FluentLabel>
     @foreach (var window in Windows)
     {
@@ -39,6 +50,20 @@ else
 @code {
     private static readonly int[] Windows = [7, 20, 50];
 
+    /// <summary>
+    /// Los periodos que se ofrecen. «Todo» no es un número de días porque cuánto hay
+    /// depende del activo: uno tiene veinte años de cotizaciones y otro tres meses.
+    /// </summary>
+    private static readonly (string Label, int? Days)[] Periods =
+    [
+        ("Evolution_Period_Quarter", 90),
+        ("Evolution_Period_Year", 365),
+        ("Evolution_Period_FiveYears", 1825),
+        ("Evolution_Period_All", null),
+    ];
+
+    private int? _days = 365;
+
     private AssetHistoryResponse? _history;
     private int _window = 20;
 
@@ -54,11 +79,19 @@ else
         await ReloadAsync();
     }
 
+    private async Task ChangePeriodAsync(int? days)
+    {
+        _days = days;
+
+        await ReloadAsync();
+    }
+
     private async Task ReloadAsync()
     {
         try
         {
-            _history = await Api.GetAssetHistoryAsync(AssetId, days: 365, window: _window);
+            _history = await Api.GetAssetHistoryAsync(
+                AssetId, days: _days, window: _window, all: _days is null);
         }
         catch (KapeaApiException exception)
         {
