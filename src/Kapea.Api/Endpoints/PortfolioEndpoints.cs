@@ -434,14 +434,17 @@ public static class PortfolioEndpoints
             DateOnly? from,
             DateOnly? to,
             int? window,
+            bool? all,
             IPortfolioQueries queries,
             TimeProvider time,
             CancellationToken token) =>
         {
             var (desde, hasta) = Range(from, to, time);
 
+            // Pedirlo todo no es pedir un número grande de días: cuánto hay depende del
+            // activo, así que lo resuelve quien conoce su serie.
             return await queries.GetAssetHistoryAsync(
-                assetId, desde, hasta, window ?? DefaultIndicatorWindow, token) is { } history
+                assetId, all == true ? null : desde, hasta, window ?? DefaultIndicatorWindow, token) is { } history
                 ? Results.Ok(history)
                 : Results.NotFound();
         });

@@ -83,13 +83,23 @@ public static class PortfolioHistory
     }
 
     /// <summary>
-    /// La serie de un solo activo, sacada de la de la cartera.
+    /// La serie de un solo activo: su cotización, y lo que se tenía de él.
     /// </summary>
     /// <remarks>
-    /// Se filtra en lugar de recalcular para que la cifra de un activo y la del total
-    /// salgan siempre del mismo sitio: dos caminos distintos acaban divergiendo.
+    /// Son dos cosas distintas y por eso vienen de dos sitios. Las unidades y el valor
+    /// salen de la posición, y se filtran de la serie de la cartera para que la cifra de
+    /// un activo y la del total salgan del mismo sitio: dos caminos acaban divergiendo.
+    ///
+    /// La cotización no depende de tener el activo. Sacarla de la posición —como se hacía
+    /// antes— dejaba sin precio los días sin posición, y sin serie entera lo que sólo se
+    /// vigila. Eso vaciaba la gráfica de casi todo lo que el usuario sigue, que es
+    /// justamente donde hace falta para decidir si entrar.
     /// </remarks>
-    public static IReadOnlyList<AssetHistoryDay> ForAsset(IEnumerable<PortfolioDay> days, Guid assetId)
+    /// <param name="quotes">Cotización por día, exista posición o no. Un día que falte no tiene precio.</param>
+    public static IReadOnlyList<AssetHistoryDay> ForAsset(
+        IEnumerable<PortfolioDay> days,
+        Guid assetId,
+        IReadOnlyDictionary<DateOnly, Money>? quotes = null)
     {
         ArgumentNullException.ThrowIfNull(days);
 
@@ -99,10 +109,15 @@ public static class PortfolioHistory
             {
                 var held = day.Assets.FirstOrDefault(asset => asset.AssetId == assetId);
 
+                // La posición manda sobre la cotización cuando la hay: es la que entra en
+                // el valor de la cartera, y la serie tiene que decir lo mismo que el total.
+                var quote = held?.PriceInEuros
+                    ?? (quotes is not null && quotes.TryGetValue(day.Date, out var price) ? price : null);
+
                 return new AssetHistoryDay(
                     day.Date,
                     held?.Quantity ?? Quantity.Zero,
-                    held?.PriceInEuros,
+                    quote,
                     held?.ValueInEuros);
             }),
         ];

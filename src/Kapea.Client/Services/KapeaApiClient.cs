@@ -377,14 +377,25 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<PortfolioHistoryResponse>(response, cancellationToken);
     }
 
+    /// <param name="days">Cuántos días atrás. Sin valor y sin <paramref name="all"/>, el que decida el servidor.</param>
+    /// <param name="all">Toda la historia que haya de ese activo, que depende de cuál sea.</param>
     public async Task<AssetHistoryResponse> GetAssetHistoryAsync(
         Guid assetId,
         int? days = null,
         int? window = null,
+        bool all = false,
         CancellationToken cancellationToken = default)
     {
-        var path = Range($"api/portfolio/history/{assetId}", days);
-        var query = window is { } size ? $"{path}{(path.Contains('?', StringComparison.Ordinal) ? "&" : "?")}window={size}" : path;
+        var path = Range($"api/portfolio/history/{assetId}", all ? null : days);
+        var query = path;
+
+        foreach (var parameter in new[] { window is { } size ? $"window={size}" : null, all ? "all=true" : null })
+        {
+            if (parameter is not null)
+            {
+                query += (query.Contains('?', StringComparison.Ordinal) ? "&" : "?") + parameter;
+            }
+        }
 
         var response = await http.GetAsync(query, cancellationToken);
 

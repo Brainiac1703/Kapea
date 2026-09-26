@@ -249,6 +249,68 @@ public class AssetAndClassHistoryTests
     }
 
     [Fact]
+    public void The_quote_is_there_on_days_without_a_position()
+    {
+        // Es lo que dejaba la gráfica vacía: el precio salía de la posición, así que
+        // desaparecía con ella. La cotización no depende de tener el activo.
+        var series = PortfolioHistory.ForAsset(Days(), Bitcoin, Quotes((1, 55m), (2, 60m), (3, 65m)));
+
+        Assert.Equal(Money.Euros(55m), series[0].PriceInEuros);
+        Assert.Equal(Quantity.Zero, series[0].Quantity);
+        Assert.Null(series[0].ValueInEuros);
+    }
+
+    [Fact]
+    public void An_asset_never_held_has_a_series_of_quotes()
+    {
+        var never = Guid.NewGuid();
+
+        var series = PortfolioHistory.ForAsset(Days(), never, Quotes((1, 10m), (2, 11m), (3, 12m)));
+
+        Assert.Equal(3, series.Count);
+        Assert.All(series, day => Assert.NotNull(day.PriceInEuros));
+        Assert.All(series, day => Assert.Equal(Quantity.Zero, day.Quantity));
+        Assert.All(series, day => Assert.Null(day.ValueInEuros));
+    }
+
+    [Fact]
+    public void A_day_without_a_quote_stays_without_a_price()
+    {
+        // Un festivo de una acción no se rellena con el día anterior: la media saldría
+        // de un relleno y no de lo que hizo el mercado.
+        var series = PortfolioHistory.ForAsset(Days(), Bitcoin, Quotes((1, 55m), (3, 65m)));
+
+        Assert.Equal(Money.Euros(55m), series[0].PriceInEuros);
+        Assert.Equal(Money.Euros(60m), series[1].PriceInEuros);
+
+        // El tercer día tiene posición pero ni la posición ni la cotización traen precio.
+        Assert.Equal(Money.Euros(65m), series[2].PriceInEuros);
+    }
+
+    [Fact]
+    public void The_position_price_wins_over_the_quote()
+    {
+        // La serie de un activo tiene que decir lo mismo que el total de la cartera, y
+        // el total se calcula con el precio de la posición.
+        var series = PortfolioHistory.ForAsset(Days(), Bitcoin, Quotes((2, 999m)));
+
+        Assert.Equal(Money.Euros(60m), series[1].PriceInEuros);
+    }
+
+    [Fact]
+    public void Without_quotes_the_series_is_what_it_always_was()
+    {
+        var conQuotes = PortfolioHistory.ForAsset(Days(), Bitcoin, quotes: null);
+        var sinQuotes = PortfolioHistory.ForAsset(Days(), Bitcoin);
+
+        Assert.Equal(sinQuotes, conQuotes);
+        Assert.Null(sinQuotes[0].PriceInEuros);
+    }
+
+    private static Dictionary<DateOnly, Money> Quotes(params (int Day, decimal Price)[] quotes) =>
+        quotes.ToDictionary(quote => new DateOnly(2026, 3, quote.Day), quote => Money.Euros(quote.Price));
+
+    [Fact]
     public void Each_class_adds_up_on_its_own()
     {
         var byClass = PortfolioHistory.ByClass(Days(), new Dictionary<Guid, AssetClass>

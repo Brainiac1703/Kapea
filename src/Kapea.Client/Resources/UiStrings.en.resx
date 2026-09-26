@@ -853,6 +853,9 @@
   <data name="Evolution_Period_Year" xml:space="preserve">
     <value>1 year</value>
   </data>
+  <data name="Evolution_Period_FiveYears" xml:space="preserve">
+    <value>5 years</value>
+  </data>
   <data name="Evolution_Period_All" xml:space="preserve">
     <value>All</value>
   </data>
