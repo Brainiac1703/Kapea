@@ -144,6 +144,19 @@ internal static class StrategyEndpoints
             var symbols = await context.Assets
                 .ToDictionaryAsync(asset => asset.Id, asset => asset.CanonicalSymbol, token);
 
+            // La situación del activo viaja con la señal y no la averigua la pantalla:
+            // si la consultara por su cuenta, la lista de señales y la cartera podrían
+            // contar cosas distintas del mismo activo en el mismo instante.
+            var lots = await context.Lots
+                .Select(lot => new { lot.AssetId, lot.RemainingQuantity })
+                .ToListAsync(token);
+
+            var held = lots
+                .GroupBy(lot => lot.AssetId)
+                .ToDictionary(group => group.Key, group => group.Sum(lot => lot.RemainingQuantity.Value))
+                .Where(entry => entry.Value > 0m)
+                .ToDictionary(entry => entry.Key, entry => entry.Value);
+
             return signals
                 .Select(signal => new SignalResponse(
                     signal.Id,
@@ -158,7 +171,9 @@ internal static class StrategyEndpoints
                     signal.Reason,
                     signal.Target?.Amount,
                     signal.StopLoss?.Amount,
-                    today.DayNumber - signal.Date.DayNumber))
+                    today.DayNumber - signal.Date.DayNumber,
+                    held.ContainsKey(signal.AssetId),
+                    held.TryGetValue(signal.AssetId, out var quantity) ? quantity : null))
                 .ToList();
         });
 

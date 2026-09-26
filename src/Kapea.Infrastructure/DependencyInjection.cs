@@ -82,6 +82,8 @@ public static class DependencyInjection
         services.AddScoped<IManualMovementRepository, ManualMovementRepository>();
         services.AddScoped<ManualMovementService>();
         services.AddScoped<IClosingPrices, ClosingPrices>();
+        services.AddScoped<Kapea.Application.Watchlist.IWatchlistRepository, WatchlistRepository>();
+        services.AddScoped<Kapea.Application.Watchlist.WatchlistService>();
         services.AddScoped<ImportPipeline>();
         services.AddScoped<BrokerCredentialService>();
         services.AddScoped<SynchronizationService>();

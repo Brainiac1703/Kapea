@@ -1639,4 +1639,67 @@
   <data name="Profiles_SheetHelp" xml:space="preserve">
     <value>Nombre de la hoja del libro que lee este perfil. Déjalo en blanco si vale cualquiera o si el fichero no tiene hojas.</value>
   </data>
+  <data name="Watchlist_Title" xml:space="preserve">
+    <value>Seguimiento</value>
+  </data>
+  <data name="Watchlist_Heading" xml:space="preserve">
+    <value>Seguimiento</value>
+  </data>
+  <data name="Watchlist_Intro" xml:space="preserve">
+    <value>Lo que vigilas: lo que tienes en cartera y lo que quieres seguir antes de tenerlo. Tus sistemas se evalúan sobre esta lista.</value>
+  </data>
+  <data name="Watchlist_Symbol" xml:space="preserve">
+    <value>Símbolo</value>
+  </data>
+  <data name="Watchlist_Add" xml:space="preserve">
+    <value>Seguir</value>
+  </data>
+  <data name="Watchlist_Empty" xml:space="preserve">
+    <value>Todavía no sigues ningún activo. Lo que compres aparecerá aquí solo.</value>
+  </data>
+  <data name="Watchlist_Name" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Watchlist_Situation" xml:space="preserve">
+    <value>Situación</value>
+  </data>
+  <data name="Watchlist_Held" xml:space="preserve">
+    <value>En cartera</value>
+  </data>
+  <data name="Watchlist_OnlyWatched" xml:space="preserve">
+    <value>Sólo vigilado</value>
+  </data>
+  <data name="Watchlist_Price" xml:space="preserve">
+    <value>Precio</value>
+  </data>
+  <data name="Watchlist_NoPrice" xml:space="preserve">
+    <value>Sin precio</value>
+  </data>
+  <data name="Watchlist_Position" xml:space="preserve">
+    <value>Posición</value>
+  </data>
+  <data name="Watchlist_Drop" xml:space="preserve">
+    <value>Dejar de seguir</value>
+  </data>
+  <data name="Watchlist_CannotDrop" xml:space="preserve">
+    <value>Está en tu cartera: se sigue mientras lo tengas.</value>
+  </data>
+  <data name="Watchlist_Already" xml:space="preserve">
+    <value>Ese activo ya estaba en tu lista.</value>
+  </data>
+  <data name="Watchlist_WithoutPrices" xml:space="preserve">
+    <value>Añadido, pero ningún proveedor da precios de este activo todavía. Mientras siga así no tendrá precio ni señales.</value>
+  </data>
+  <data name="Watchlist_PriceOf" xml:space="preserve">
+    <value>Precio del {0}</value>
+  </data>
+  <data name="Nav_Watchlist" xml:space="preserve">
+    <value>Seguimiento</value>
+  </data>
+  <data name="Signals_NotHeld" xml:space="preserve">
+    <value>No lo tienes: nada que vender</value>
+  </data>
+  <data name="Signals_TopUp" xml:space="preserve">
+    <value>Ya lo tienes: sería ampliar</value>
+  </data>
 </root>

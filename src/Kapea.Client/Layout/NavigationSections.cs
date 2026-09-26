@@ -34,7 +34,7 @@ public static class NavigationSections
         return first switch
         {
             "portfolio" or "evolution" or "transactions" => NavigationSection.Portfolio,
-            "strategies" or "signals" or "ideas" or "journal" => NavigationSection.Strategy,
+            "watchlist" or "strategies" or "signals" or "ideas" or "journal" => NavigationSection.Strategy,
             "import" or "imports" or "review" => NavigationSection.Import,
             "platforms" or "accounts" or "credentials" or "profiles" => NavigationSection.Settings,
             _ => NavigationSection.None,

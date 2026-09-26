@@ -31,7 +31,7 @@ public sealed record PricedSeries(Guid AssetId, string CanonicalSymbol, IReadOnl
 /// <summary>De dónde salen las series y lo que cuesta operar.</summary>
 public interface IStrategyDataSource
 {
-    /// <summary>Series de los activos con posición, o de todos los que tengan precios.</summary>
+    /// <summary>Series de los activos que el usuario vigila y que tengan precios.</summary>
     Task<IReadOnlyList<PricedSeries>> ListSeriesAsync(
         DateOnly from,
         DateOnly to,
@@ -71,10 +71,12 @@ public sealed class StrategyService(
         var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
         // Se pide tanto histórico como necesite el sistema más exigente, más un margen
-        // para que su ventana esté completa desde el primer día evaluado.
+        // para que su ventana esté completa desde el primer día evaluado. La misma cuenta
+        // la usa la descarga de precios: si bajara menos, un activo recién añadido nunca
+        // llegaría a evaluarse.
         var required = strategies.Max(strategy => strategy.Current.RequiredDays);
         var series = await data
-            .ListSeriesAsync(today.AddDays(-(required * 2) - 365), today, cancellationToken)
+            .ListSeriesAsync(StrategyLookback.From(today, required), today, cancellationToken)
             .ConfigureAwait(false);
 
         var emitted = new List<EmittedSignal>();

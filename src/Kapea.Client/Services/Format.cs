@@ -25,6 +25,24 @@ public static class Format
 
     public static string Euros(decimal amount) => amount.ToString("C2", CultureInfo.CurrentCulture);
 
+    /// <summary>
+    /// El precio de una unidad, con los decimales que haga falta para que se vea.
+    /// </summary>
+    /// <remarks>
+    /// Dos decimales valen para casi todo y no para lo que cotiza por debajo del
+    /// céntimo: un token a 0,00000384 € aparecía como 0,00 €, que se lee como que no
+    /// vale nada. Cuando el precio es más pequeño que un céntimo se enseñan ocho
+    /// decimales, que es la precisión con la que ya se guardan las cantidades.
+    /// </remarks>
+    public static string Price(decimal amount) =>
+        Math.Abs(amount) >= 0.01m || amount == 0m
+            ? Euros(amount)
+            : amount.ToString("C8", CultureInfo.CurrentCulture);
+
+    /// <summary>Un precio ausente se dice, no se enseña como cero.</summary>
+    public static string Price(decimal? amount, string whenMissing) =>
+        amount is { } value ? Price(value) : whenMissing;
+
     /// <summary>Un importe ausente se dice con el texto que le corresponda, no con un cero.</summary>
     public static string Euros(decimal? amount, string whenMissing) =>
         amount is { } value ? Euros(value) : whenMissing;

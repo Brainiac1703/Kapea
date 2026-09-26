@@ -1,0 +1,6 @@
+
+/* Una señal que no se puede accionar se atenúa en lugar de esconderse: sigue diciendo
+   algo del sistema que la emitió, pero no compite con las que sí se pueden seguir. */
+.not-actionable {
+    opacity: 0.55;
+}

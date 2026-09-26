@@ -1,0 +1,181 @@
+@page "/watchlist"
+@inject KapeaApiClient Api
+@inject IToastService Toasts
+
+<PageTitle>@Ui["Watchlist_Title"]</PageTitle>
+
+<FluentLabel Typo="Typography.PageTitle">@Ui["Watchlist_Heading"]</FluentLabel>
+<FluentLabel Typo="Typography.Body" Class="intro">@Ui["Watchlist_Intro"]</FluentLabel>
+
+@* Añadir es lo primero que se hace aquí, así que va arriba y no escondido en un
+   diálogo: lo que ya se tiene aparece solo, lo demás hay que escribirlo. *@
+<FluentToolbar>
+    <FluentTextField @bind-Value="_symbol" Placeholder="@Ui["Watchlist_Symbol"]" />
+    <FluentSelect TOption="string"
+                  Items="@Classes"
+                  OptionValue="@(entry => entry)"
+                  OptionText="@(entry => ClassName(entry))"
+                  @bind-Value="_class" />
+    <FluentButton IconStart="@(new Icons.Regular.Size16.Add())" Disabled="@_working" OnClick="AddAsync">
+        @Ui["Watchlist_Add"]
+    </FluentButton>
+</FluentToolbar>
+
+@if (_notice is { Length: > 0 })
+{
+    <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="true">@_notice</FluentMessageBar>
+}
+
+@if (_assets is null)
+{
+    <FluentProgressRing />
+}
+else if (_assets.Count == 0)
+{
+    <FluentMessageBar Intent="MessageIntent.Info">@Ui["Watchlist_Empty"]</FluentMessageBar>
+}
+else
+{
+    <FluentDataGrid Items="@_assets.AsQueryable()"
+                    TGridItem="WatchedAssetResponse"
+                    GridTemplateColumns="1fr 1.6fr 0.9fr 1fr 1.1fr 1.1fr 90px">
+        <TemplateColumn Title="@Ui["Common_Asset"]">
+            <FluentAnchor Href="@($"evolution?asset={context.AssetId}")" Appearance="Appearance.Hypertext">
+                @context.Symbol
+            </FluentAnchor>
+        </TemplateColumn>
+        <PropertyColumn Property="@(asset => asset.DisplayName)" Title="@Ui["Watchlist_Name"]" />
+        <TemplateColumn Title="@Ui["Common_Type"]">@ClassName(context.AssetClass)</TemplateColumn>
+        <TemplateColumn Title="@Ui["Watchlist_Situation"]">
+            @* Lo que se tiene y lo que sólo se vigila se leen distinto: de un vistazo se
+               ve dónde se está dentro y dónde sólo se mira. *@
+            @if (context.IsHeld)
+            {
+                <span class="held">@Ui["Watchlist_Held"]</span>
+            }
+            else
+            {
+                <span class="watched-only">@Ui["Watchlist_OnlyWatched"]</span>
+            }
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Watchlist_Price"]" Align="Align.End">
+            @* Un activo sin precio lo dice: un cero se leería como que no vale nada. *@
+            @if (context.LastPriceInEuros is { } price)
+            {
+                <span title="@PriceMoment(context)">@Format.Price(price)</span>
+            }
+            else
+            {
+                <span class="watched-only">@Ui["Watchlist_NoPrice"]</span>
+            }
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Watchlist_Position"]" Align="Align.End">
+            @if (context.Quantity is { } quantity)
+            {
+                <div>@Format.Quantity(quantity)</div>
+                <div class="watched-only">@Format.Euros(context.MarketValueInEuros, Ui["Watchlist_NoPrice"].Value)</div>
+            }
+        </TemplateColumn>
+        <TemplateColumn Title="@Ui["Common_Actions"]" Align="Align.End">
+            @* Lo que se tiene no se puede dejar de seguir: dejaría una posición de la
+               cartera sin precio, sin señales y sin evolución. *@
+            <FluentButton IconEnd="@(new Icons.Regular.Size16.Delete())"
+                          Title="@(context.IsHeld ? Ui["Watchlist_CannotDrop"].Value : Ui["Watchlist_Drop"].Value)"
+                          Disabled="@(context.IsHeld || _working)"
+                          OnClick="@(() => DropAsync(context))" />
+        </TemplateColumn>
+    </FluentDataGrid>
+}
+
+@code {
+    private static readonly string[] Classes = ["Crypto", "Equity"];
+
+    private IReadOnlyList<WatchedAssetResponse>? _assets;
+    private string _symbol = string.Empty;
+    private string _class = "Crypto";
+    private string _notice = string.Empty;
+    private bool _working;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _assets = await Api.ListWatchlistAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            _assets = [];
+            Toasts.ShowApiError(exception);
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_symbol))
+        {
+            return;
+        }
+
+        _working = true;
+        _notice = string.Empty;
+
+        try
+        {
+            var added = await Api.WatchAssetAsync(new WatchAssetRequest(_symbol.Trim(), _class));
+
+            _notice = Notice(added);
+            _symbol = string.Empty;
+
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    private async Task DropAsync(WatchedAssetResponse asset)
+    {
+        _working = true;
+
+        try
+        {
+            await Api.StopWatchingAsync(asset.AssetId);
+            await ReloadAsync();
+        }
+        catch (KapeaApiException exception)
+        {
+            Toasts.ShowApiError(exception);
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    /// <summary>Lo que hay que decirle al usuario justo después de añadir.</summary>
+    private string Notice(WatchAssetResponse added) => (added.AlreadyWatched, added.HasPrices) switch
+    {
+        (true, _) => Ui["Watchlist_Already"],
+        (_, false) => Ui["Watchlist_WithoutPrices"],
+        _ => string.Empty,
+    };
+
+    private string PriceMoment(WatchedAssetResponse asset) =>
+        asset.PriceAsOf is { } day
+            ? string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["Watchlist_PriceOf"].Value, Format.Day(day))
+            : string.Empty;
+
+    private string ClassName(string assetClass) => assetClass switch
+    {
+        "Equity" => Ui["Portfolio_ClassEquity"],
+        "Crypto" => Ui["Portfolio_ClassCrypto"],
+        _ => assetClass,
+    };
+}

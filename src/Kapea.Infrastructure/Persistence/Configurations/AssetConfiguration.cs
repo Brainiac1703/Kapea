@@ -21,3 +21,21 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
         builder.HasIndex(asset => new { asset.CanonicalSymbol, asset.Class }).IsUnique();
     }
 }
+
+/// <summary>
+/// Los activos que un usuario vigila. Va aparte del catálogo, que es global.
+/// </summary>
+internal sealed class WatchedAssetConfiguration : IEntityTypeConfiguration<WatchedAsset>
+{
+    public void Configure(EntityTypeBuilder<WatchedAsset> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.ToTable("WatchedAssets");
+
+        // La clave es el par: un activo se sigue o no se sigue, no dos veces.
+        builder.HasKey(watched => new { watched.UserId, watched.AssetId });
+
+        builder.Property(watched => watched.AddedAt).IsRequired();
+    }
+}

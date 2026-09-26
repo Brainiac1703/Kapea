@@ -98,7 +98,24 @@ public sealed class StrategyDataSource(KapeaDbContext context, Application.Abstr
         DateOnly to,
         CancellationToken cancellationToken = default)
     {
+        // Sólo lo que el usuario vigila: lo que ha añadido y lo que tiene. Evaluar todo
+        // el catálogo emitía señales de activos que a él no le interesan, y no emitía
+        // ninguna de aquello en lo que está pensando entrar y aún no ha comprado.
+        var watched = await context.WatchedAssets
+            .Select(entry => entry.AssetId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var lots = await context.Lots
+            .Select(lot => lot.AssetId)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var followed = watched.Concat(lots).ToHashSet();
+
         var assets = await context.Assets
+            .Where(asset => followed.Contains(asset.Id))
             .Select(asset => new { asset.Id, asset.CanonicalSymbol })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

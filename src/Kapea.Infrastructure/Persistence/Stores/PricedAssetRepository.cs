@@ -11,6 +11,10 @@ namespace Kapea.Infrastructure.Persistence.Stores;
 /// Salta el filtro por usuario a propósito: los precios son un catálogo global, y
 /// descargar dos veces lo que valió bitcoin el martes solo gastaría cuota. Aun así no
 /// devuelve nada de nadie, solo qué activos hay que mirar.
+///
+/// Entran los que se han tenido alguna vez y los que alguien vigila sin tenerlos. Estos
+/// últimos son el motivo de que exista el seguimiento: sin precios no hay señales, y sin
+/// señales un sistema de entrada no sirve para decidir dónde entrar.
 /// </remarks>
 public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAssetRepository
 {
@@ -28,7 +32,14 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var held = lots.Select(lot => lot.AssetId).Distinct().ToList();
+        var watched = await context.WatchedAssets
+            .IgnoreQueryFilters()
+            .Select(entry => entry.AssetId)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var held = lots.Select(lot => lot.AssetId).Concat(watched).Distinct().ToList();
 
         var open = lots
             .Where(lot => !lot.RemainingQuantity.IsZero)
@@ -39,6 +50,24 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
         {
             return [];
         }
+
+        // Un activo que se vigila y nunca se ha tenido no tiene primera adquisición de la
+        // que partir: se baja tanto histórico como necesiten los sistemas declarados, que
+        // es lo que hace falta para poder evaluarlo.
+        // Los días que pide cada sistema salen de sus condiciones, así que se calculan
+        // en memoria: no es una columna que la base pueda comparar. Son unos pocos
+        // sistemas, no una tabla de movimientos.
+        var strategies = await context.Strategies
+            .IgnoreQueryFilters()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var requiredDays = strategies.Count == 0
+            ? 0
+            : strategies.Max(strategy => strategy.Current.RequiredDays);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var lookback = Domain.Strategies.StrategyLookback.From(today, requiredDays);
 
         // Todos los usuarios, pero sólo los vigentes: un activo que sólo aparece en
         // movimientos anulados no necesita precio.
@@ -67,14 +96,31 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
         return
         [
             .. assets
-                .Where(asset => moved.ContainsKey(asset.Id))
                 .Select(asset => new PricedAsset(
                     asset.Id,
                     asset.CanonicalSymbol,
                     asset.Class,
-                    DateOnly.FromDateTime(moved[asset.Id].First.UtcDateTime),
-                    open.Contains(asset.Id) ? null : DateOnly.FromDateTime(moved[asset.Id].Last.UtcDateTime)))
+                    moved.TryGetValue(asset.Id, out var dates)
+                        ? Earliest(DateOnly.FromDateTime(dates.First.UtcDateTime), lookback, watched.Contains(asset.Id))
+                        : lookback,
+
+                    // Lo que se vigila necesita precio de hoy aunque ya no se tenga: para
+                    // eso se sigue, para ver cómo evoluciona y decidir si se vuelve.
+                    open.Contains(asset.Id) || watched.Contains(asset.Id) || !moved.ContainsKey(asset.Id)
+                        ? null
+                        : DateOnly.FromDateTime(moved[asset.Id].Last.UtcDateTime)))
                 .OrderBy(asset => asset.CanonicalSymbol, StringComparer.Ordinal),
         ];
     }
+
+    /// <summary>
+    /// Desde cuándo hace falta la serie de un activo que se tiene y además se vigila.
+    /// </summary>
+    /// <remarks>
+    /// Se tira del más antiguo de los dos: la primera adquisición, para poder valorar lo
+    /// que se tuvo, y lo que pidan los sistemas, para poder evaluarlo. Quedarse con el
+    /// más reciente dejaría cojo uno de los dos usos.
+    /// </remarks>
+    private static DateOnly Earliest(DateOnly firstHeld, DateOnly lookback, bool isWatched) =>
+        isWatched && lookback < firstHeld ? lookback : firstHeld;
 }

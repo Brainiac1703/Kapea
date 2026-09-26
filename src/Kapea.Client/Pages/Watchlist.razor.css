@@ -1,0 +1,10 @@
+/* Lo que se tiene se distingue de lo que sólo se mira sin gritar: la diferencia importa
+   al recorrer la lista, pero no compite con los precios, que es lo que se viene a ver. */
+.held {
+    font-weight: 600;
+}
+
+.watched-only {
+    color: var(--neutral-foreground-hint);
+    font-size: 0.85rem;
+}

@@ -528,6 +528,29 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<SignalRunResponse>(response, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<WatchedAssetResponse>> ListWatchlistAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync("api/watchlist", cancellationToken);
+
+        return await ReadAsync<List<WatchedAssetResponse>>(response, cancellationToken);
+    }
+
+    public async Task<WatchAssetResponse> WatchAssetAsync(
+        WatchAssetRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/watchlist", request, cancellationToken);
+
+        return await ReadAsync<WatchAssetResponse>(response, cancellationToken);
+    }
+
+    public async Task StopWatchingAsync(Guid assetId, CancellationToken cancellationToken = default)
+    {
+        var response = await http.DeleteAsync($"api/watchlist/{assetId}", cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<SignalResponse>> ListSignalsAsync(
         int? days = null,
         CancellationToken cancellationToken = default)
