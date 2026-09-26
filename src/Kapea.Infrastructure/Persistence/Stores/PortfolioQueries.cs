@@ -1034,6 +1034,7 @@ public sealed class PortfolioQueries(
         DateOnly? from,
         DateOnly to,
         int indicatorWindowDays,
+        Domain.Calculation.SeriesInterval? interval = null,
         CancellationToken cancellationToken = default)
     {
         var asset = await context.Assets
@@ -1064,18 +1065,23 @@ public sealed class PortfolioQueries(
         // día que le faltara parecería fiesta.
         var closedOn = await ClosuresAsync(asset, desde, to, cancellationToken).ConfigureAwait(false);
 
-        var days = PortfolioHistory.ForAsset(
+        var daily = PortfolioHistory.ForAsset(
             await DaysAsync(desde, to, cancellationToken).ConfigureAwait(false),
             assetId,
-            quotes.ToDictionary(price => price.Date, price => Money.Euros(price.PriceInEuros)),
+            quotes.ToDictionary(price => price.Date),
             closedOn);
 
-        // Los indicadores se calculan solo sobre los días con precio: rellenar los huecos
-        // daría una media de lo que dice el relleno, no de lo que hizo el mercado.
-        var series = days
+        // Los indicadores se calculan sobre los días y no sobre lo agregado: una media
+        // de veinte semanas no es la misma que una de veinte días, y agrupar para mirar
+        // no puede cambiar lo que el motor evalúa. Sólo sobre los días con precio,
+        // además: rellenar los huecos daría la media del relleno.
+        var series = daily
             .Where(day => day.PriceInEuros is not null)
             .Select(day => new PricePoint(day.Date, day.PriceInEuros!.Value.Amount))
             .ToList();
+
+        var grouped = interval ?? Domain.Calculation.SeriesAggregation.Suggested(to.DayNumber - desde.DayNumber + 1);
+        var days = Domain.Calculation.SeriesAggregation.By(daily, grouped);
 
         return new AssetHistoryResponse(
             assetId,
@@ -1087,12 +1093,17 @@ public sealed class PortfolioQueries(
                     day.PriceInEuros?.Amount,
                     day.ValueInEuros?.Amount,
                     day.CarriedFrom,
-                    day.MarketClosed)),
+                    day.MarketClosed,
+                    day.OpenInEuros?.Amount,
+                    day.HighInEuros?.Amount,
+                    day.LowInEuros?.Amount)),
             ],
             Points(TechnicalIndicators.SimpleMovingAverage(series, indicatorWindowDays)),
             Points(TechnicalIndicators.ExponentialMovingAverage(series, indicatorWindowDays)),
             Points(TechnicalIndicators.RelativeStrengthIndex(series, indicatorWindowDays)),
-            indicatorWindowDays);
+            indicatorWindowDays,
+            grouped.ToString(),
+            daily.Any(day => day.HasRange));
     }
 
     private static IReadOnlyList<IndicatorPointResponse> Points(IReadOnlyList<IndicatorPoint> points) =>

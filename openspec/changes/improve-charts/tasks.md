@@ -8,11 +8,11 @@
 
 ## 2. Entregar y agregar la serie
 
-- [ ] 2.1 Llevar el recorrido diario a la serie de un activo y a sus contratos, distinguiendo el día sin recorrido del de recorrido nulo; verificar con tests de integración de la API
-- [ ] 2.2 Implementar la agregación por semanas y por meses: apertura del primero, cierre del último, extremos de todos; verificar con tests de semana completa, de semana con días de mercado cerrado y de tramo sin ningún dato
-- [ ] 2.3 Verificar con test que el máximo de un tramo es el mayor de los máximos de sus días y no el mayor de sus cierres, que es el error clásico al agregar
-- [ ] 2.4 Admitir el intervalo en el endpoint de la serie de un activo, con el que sugiere el periodo por omisión; verificar con tests de integración de la API
-- [ ] 2.5 Resolver «lo que va de año» como desde el 1 de enero en curso, y un periodo mayor que la historia disponible como lo que haya; verificar con tests
+- [x] 2.1 Llevar el recorrido diario a la serie de un activo y a sus contratos, distinguiendo el día sin recorrido del de recorrido nulo; verificar con tests de integración de la API
+- [x] 2.2 Implementar la agregación por semanas y por meses: apertura del primero, cierre del último, extremos de todos; verificar con tests de semana completa, de semana con días de mercado cerrado y de tramo sin ningún dato
+- [x] 2.3 Verificar con test que el máximo de un tramo es el mayor de los máximos de sus días y no el mayor de sus cierres, que es el error clásico al agregar
+- [x] 2.4 Admitir el intervalo en el endpoint de la serie de un activo, con el que sugiere el periodo por omisión; verificar con tests de integración de la API
+- [x] 2.5 Resolver «lo que va de año» como desde el 1 de enero en curso, y un periodo mayor que la historia disponible como lo que haya; verificar con tests
 
 ## 3. Los indicadores con el recorrido
 

@@ -107,8 +107,86 @@ public class AssetChartCoverageTests(KapeaApiFactory factory)
         Assert.Equal(before.Groups.Count, after.Groups.Count);
     }
 
+    [Fact]
+    public async Task The_range_of_each_day_comes_with_the_series()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "WITHRANGE", days: 5, withRange: true);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-05");
+
+        Assert.True(history!.HasRange);
+        Assert.All(history.Days, day => Assert.NotNull(day.HighInEuros));
+    }
+
+    [Fact]
+    public async Task An_asset_whose_provider_gives_no_range_says_so()
+    {
+        // POL, PEPE y TAO sólo los cubre CoinGecko. La pantalla tiene que llevarlo bien
+        // en lugar de parecer rota.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "NORANGE", days: 5);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-05");
+
+        Assert.False(history!.HasRange);
+        Assert.All(history.Days, day => Assert.Null(day.HighInEuros));
+    }
+
+    [Fact]
+    public async Task The_series_can_be_grouped_by_weeks()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "BYWEEK", days: 21, withRange: true);
+
+        var daily = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-21&interval=daily");
+        var weekly = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-21&interval=weekly");
+
+        Assert.Equal("Daily", daily!.Interval);
+        Assert.Equal("Weekly", weekly!.Interval);
+        Assert.True(weekly.Days.Count < daily.Days.Count);
+
+        // Agrupar para mirar no puede cambiar lo que el motor calcula.
+        Assert.Equal(daily.SimpleMovingAverage.Count, weekly.SimpleMovingAverage.Count);
+    }
+
+    [Fact]
+    public async Task An_unknown_interval_is_refused_instead_of_silently_ignored()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "BADINTV", days: 5);
+
+        var response = await client.GetAsync(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-05&interval=hourly");
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_long_period_is_grouped_without_being_asked()
+    {
+        // Cinco años en días son más puntos que píxeles. El periodo sugiere el intervalo.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "LONGSPAN", days: 40);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2020-03-01&to=2026-03-05");
+
+        Assert.Equal("Monthly", history!.Interval);
+    }
+
     /// <summary>Un activo del catálogo con cotizaciones y sin un solo movimiento.</summary>
-    private async Task<Guid> QuotedAssetAsync(Guid user, string symbol, int days, int? skip = null)
+    private async Task<Guid> QuotedAssetAsync(
+        Guid user, string symbol, int days, int? skip = null, bool withRange = false)
     {
         await using var context = factory.CreateContext(user);
 
@@ -124,7 +202,11 @@ public class AssetChartCoverageTests(KapeaApiFactory factory)
                 continue;
             }
 
-            context.DailyPrices.Add(new DailyPrice(asset.Id, date, 100m + day, "Prueba"));
+            var price = new DailyPrice(asset.Id, date, 100m + day, "Prueba");
+
+            context.DailyPrices.Add(withRange
+                ? price.WithRange(open: 99m + day, high: 105m + day, low: 98m + day)
+                : price);
         }
 
         await context.SaveChangesAsync();

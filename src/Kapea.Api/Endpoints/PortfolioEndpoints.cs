@@ -438,16 +438,29 @@ public static class PortfolioEndpoints
             DateOnly? to,
             int? window,
             bool? all,
+            string? interval,
             IPortfolioQueries queries,
             TimeProvider time,
             CancellationToken token) =>
         {
             var (desde, hasta) = Range(from, to, time);
 
+            // Un intervalo que no se entiende se rechaza en lugar de caer en el diario:
+            // devolver otra cosa sin decirlo llevaría a leer semanas creyendo ver días.
+            if (interval is not null
+                && !Enum.TryParse<Domain.Calculation.SeriesInterval>(interval, ignoreCase: true, out _))
+            {
+                return Results.BadRequest($"Intervalo desconocido: {interval}.");
+            }
+
+            var grouped = interval is null
+                ? (Domain.Calculation.SeriesInterval?)null
+                : Enum.Parse<Domain.Calculation.SeriesInterval>(interval, ignoreCase: true);
+
             // Pedirlo todo no es pedir un número grande de días: cuánto hay depende del
             // activo, así que lo resuelve quien conoce su serie.
             return await queries.GetAssetHistoryAsync(
-                assetId, all == true ? null : desde, hasta, window ?? DefaultIndicatorWindow, token) is { } history
+                assetId, all == true ? null : desde, hasta, window ?? DefaultIndicatorWindow, grouped, token) is { } history
                 ? Results.Ok(history)
                 : Results.NotFound();
         });

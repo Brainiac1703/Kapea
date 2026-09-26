@@ -405,15 +405,26 @@ public sealed record ClassHistoryDayResponse(DateOnly Date, IReadOnlyDictionary<
 /// <summary>Un día de la evolución de un activo. Sin precio, el valor viaja vacío.</summary>
 /// <param name="CarriedFrom">De qué día viene el precio, cuando no es del día valorado.</param>
 /// <param name="MarketClosed">Ese día no cotizó su mercado, así que no falta ningún dato.</param>
+/// <param name="OpenInEuros">Primer precio del día o del tramo. Vacío si el proveedor no lo da.</param>
+/// <param name="HighInEuros">Mayor precio del día o del tramo.</param>
+/// <param name="LowInEuros">Menor precio del día o del tramo.</param>
 public sealed record AssetHistoryDayResponse(
     DateOnly Date,
     decimal Quantity,
     decimal? PriceInEuros,
     decimal? ValueInEuros,
     DateOnly? CarriedFrom = null,
-    bool MarketClosed = false);
+    bool MarketClosed = false,
+    decimal? OpenInEuros = null,
+    decimal? HighInEuros = null,
+    decimal? LowInEuros = null);
 
 /// <summary>La evolución de un activo con sus indicadores.</summary>
+/// <param name="Interval">Cada cuánto se agrupa la serie: Daily, Weekly o Monthly.</param>
+/// <param name="HasRange">
+/// El proveedor de este activo da el recorrido de cada día. Cuando es falso sólo hay
+/// cierres, y la pantalla no puede dibujar máximos ni mínimos.
+/// </param>
 public sealed record AssetHistoryResponse(
     Guid AssetId,
     string AssetSymbol,
@@ -421,7 +432,9 @@ public sealed record AssetHistoryResponse(
     IReadOnlyList<IndicatorPointResponse> SimpleMovingAverage,
     IReadOnlyList<IndicatorPointResponse> ExponentialMovingAverage,
     IReadOnlyList<IndicatorPointResponse> RelativeStrengthIndex,
-    int IndicatorWindowDays);
+    int IndicatorWindowDays,
+    string Interval = "Daily",
+    bool HasRange = false);
 
 /// <summary>Un valor de un indicador con el día al que corresponde.</summary>
 public sealed record IndicatorPointResponse(DateOnly Date, decimal Value);
