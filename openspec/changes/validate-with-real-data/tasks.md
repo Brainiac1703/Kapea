@@ -15,8 +15,8 @@
 
 - [x] 3.1 Importar el histórico completo de las tres plataformas y calcular el ejercicio declarado; verificar que la importación termina sin inconsistencias ni movimientos sin clasificar
 - [x] 3.2 Comparar la ganancia patrimonial total y su desglose por activo con lo presentado; documentar cada diferencia y su causa en una nota junto a este change, antes de tocar nada
-- [ ] 3.3 Corregir las discrepancias cuya causa sea un error de Kapea; verificar que la cifra pasa a coincidir y que ningún test existente se rompe
-- [ ] 3.4 Añadir cada discrepancia corregida como caso de la batería de referencia, con sus cifras calculadas a mano; verificar que la batería completa pasa
+- [x] 3.3 Corregir las discrepancias cuya causa sea un error de Kapea; verificar que la cifra pasa a coincidir y que ningún test existente se rompe
+- [x] 3.4 Añadir cada discrepancia corregida como caso de la batería de referencia, con sus cifras calculadas a mano; verificar que la batería completa pasa
 
 ## 4. Reproducibilidad sobre datos reales
 

@@ -90,7 +90,29 @@ Kapea mete la comisión en el coste; el informe la deja fuera y la reporta apart
 un error de lectura de ninguno de los dos**: son dos criterios distintos sobre el mismo
 dato, y la diferencia total —3,34 €— es exactamente la suma de esas comisiones.
 
-Cuál de los dos corresponde aplicar no se decide aquí. Queda para el asesor.
+### Lo dice el propio informe
+
+La duda se resuelve en las notas explicativas del informe, sin salir de él:
+
+> el coste de adquisición viene determinado por la suma del precio pactado por la compra
+> de los activos más las comisiones que surgen de la realización de esas transacciones y
+> por lo tanto están directamente relacionadas con las mismas
+
+Es el criterio de Kapea, enunciado por Bit2Me. Coincide con el artículo 35 de la Ley del
+IRPF, que define el valor de adquisición como el importe real más los gastos y tributos
+inherentes a la adquisición satisfechos por el adquirente, y con las consultas de la
+Dirección General de Tributos que lo han aplicado a las comisiones de los criptoactivos.
+
+Lo que ocurre es que el resumen del informe **no aplica ese criterio**: aparta las
+comisiones en una línea llamada «Valores totales de transacción no deducidos», 37,30 € en
+todo el año. *No deducidos* es exactamente lo que dice: no se han restado, y queda a
+cuenta del contribuyente hacerlo.
+
+**Conclusión: el cálculo de Kapea no se toca.** No hay ninguna discrepancia cuya causa sea
+un error suyo, así que tampoco hay nada que añadir a la batería de referencia por este
+contraste. Lo que Kapea hace es lo que la ley pide y lo que Bit2Me dice que hay que hacer.
+
+Qué hacer con la declaración ya presentada es otra cosa, y no se decide aquí.
 
 ### Kraken no está en la declaración
 
@@ -116,12 +138,12 @@ sobre los documentos, no una conclusión fiscal: hay que confirmarlo con el ases
 
 ## Lo que sigue pendiente
 
-Nada que dependa de datos. Lo que queda son dos decisiones que no son de Kapea:
+Del contraste, nada: ninguna diferencia resultó ser un error de Kapea.
 
-1. **Si la comisión de compra va o no en el valor de adquisición.** De la respuesta
-   depende si Kapea tiene que cambiar de criterio o si la declaración se quedó corta en
-   3,34 €. Hasta saberlo no se toca el cálculo.
-2. **Qué hacer con Kraken y con los rendimientos de staking**, que no se declararon.
+Queda construir los casos de test de extremo a extremo con documentos falsos, según lo
+decidido más arriba, y repetir la importación del fichero de XTB cuando vuelva a estar en
+disco.
 
-Y queda construir los casos de test de extremo a extremo con documentos falsos, según lo
-decidido más arriba.
+Fuera de Kapea, tres cosas para el asesor: los 3,34 € de comisiones no deducidas, las
+operaciones de Kraken que no se declararon junto con los 9,94 € de staking, y que las dos
+declaraciones lleven la cifra entera en lugar de repartirla.
