@@ -34,6 +34,6 @@
 
 ## 5. Validación con los datos del usuario
 
-- [ ] 5.1 (en espera de que el usuario exporte su histórico de XTB) Importar el histórico real de acciones y comparar el valor de las posiciones abiertas, el coste y el resultado con los de su hoja de cálculo; documentar cada diferencia y su causa
+- [x] 5.1 Importar el histórico real de acciones y comparar el valor de las posiciones abiertas, el coste y el resultado con los de su hoja de cálculo; documentar cada diferencia y su causa
 - [x] 5.2 Repetir la comparación con el histórico de cripto, incluidos los pesos por activo; documentar las diferencias
 - [x] 5.3 Comparar el efectivo calculado con el saldo neto de su hoja de movimientos; verificar que coincide o explicar por qué no
