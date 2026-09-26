@@ -16,6 +16,11 @@ namespace Kapea.Domain.MarketData;
 /// <param name="AssetId">Activo del catálogo.</param>
 /// <param name="RequestedFrom">Día más antiguo por el que se ha preguntado.</param>
 /// <param name="RequestedTo">Día más reciente por el que se ha preguntado.</param>
+/// <param name="RangeRequested">
+/// Ya se volvió a pedir la serie para completar su recorrido. Sin esta marca, el relleno
+/// del recorrido se repetiría en cada vuelta: el tramo ya consta pedido, pero lo que se
+/// pide ahora no es lo mismo que se pidió entonces.
+/// </param>
 /// <param name="RequestedWith">
 /// Identificador de proveedor con el que se preguntó, cuando lo había. Si el activo pasa
 /// a resolverse con otro, lo pedido deja de valer: se está preguntando por otra cosa.
@@ -24,7 +29,8 @@ public sealed record PriceHistoryReach(
     Guid AssetId,
     DateOnly RequestedFrom,
     DateOnly RequestedTo,
-    string? RequestedWith)
+    string? RequestedWith,
+    bool RangeRequested = false)
 {
     /// <summary>Extiende lo pedido con un tramo nuevo, sin encoger nunca lo que ya abarcaba.</summary>
     public PriceHistoryReach Including(DateOnly from, DateOnly to) =>
@@ -38,6 +44,14 @@ public sealed record PriceHistoryReach(
     public bool AnswersFor(string? providerId) =>
         string.Equals(RequestedWith, providerId, StringComparison.Ordinal);
 
+    /// <summary>
+    /// Un alcance recién nacido, de una serie que se acaba de pedir.
+    /// </summary>
+    /// <remarks>
+    /// Nace con el recorrido dado por pedido: lo que se acaba de descargar ya trae el
+    /// que su proveedor dé. La marca en falso está reservada a lo que se descargó antes
+    /// de que el recorrido se guardara, que es lo único que hay que volver a pedir.
+    /// </remarks>
     public static PriceHistoryReach Of(Guid assetId, DateOnly from, DateOnly to, string? providerId) =>
-        new(assetId, from, to, providerId);
+        new(assetId, from, to, providerId, RangeRequested: true);
 }

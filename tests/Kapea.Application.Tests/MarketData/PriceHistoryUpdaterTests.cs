@@ -176,7 +176,7 @@ public class PriceHistoryUpdaterTests
 
         store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
         store.Reached[Bitcoin] = new PriceHistoryReach(
-            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10), null);
+            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10), null, RangeRequested: true);
 
         var updater = Wanting(provider, store, new DateOnly(2000, 1, 1));
 
@@ -202,7 +202,7 @@ public class PriceHistoryUpdaterTests
 
         store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
         store.Reached[Bitcoin] = new PriceHistoryReach(
-            Bitcoin, new DateOnly(2020, 1, 1), new DateOnly(2026, 3, 10), null);
+            Bitcoin, new DateOnly(2020, 1, 1), new DateOnly(2026, 3, 10), null, RangeRequested: true);
 
         await Wanting(provider, store, new DateOnly(2010, 1, 1)).UpdateAsync();
 
@@ -222,7 +222,7 @@ public class PriceHistoryUpdaterTests
 
         store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
         store.Reached[Bitcoin] = new PriceHistoryReach(
-            Bitcoin, new DateOnly(2000, 1, 1), new DateOnly(2026, 3, 10), "otro-identificador");
+            Bitcoin, new DateOnly(2000, 1, 1), new DateOnly(2026, 3, 10), "otro-identificador", RangeRequested: true);
 
         await Wanting(provider, store, new DateOnly(2000, 1, 1)).UpdateAsync();
 
@@ -265,7 +265,7 @@ public class PriceHistoryUpdaterTests
         {
             store.Covered[asset] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8));
             store.Reached[asset] = new PriceHistoryReach(
-                asset, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8), null);
+                asset, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8), null, RangeRequested: true);
         }
 
         await new PriceHistoryUpdater(
@@ -294,7 +294,7 @@ public class PriceHistoryUpdaterTests
 
         store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8));
         store.Reached[Bitcoin] = new PriceHistoryReach(
-            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8), null);
+            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8), null, RangeRequested: true);
 
         var updater = new PriceHistoryUpdater(
             new Assets(
@@ -332,6 +332,42 @@ public class PriceHistoryUpdaterTests
             NullLogger<PriceHistoryUpdater>.Instance).UpdateAsync();
 
         Assert.Equal(new DateOnly(2000, 1, 1), Assert.Single(rates.Asked).From);
+    }
+
+    [Fact]
+    public async Task What_is_already_downloaded_is_asked_again_once_to_complete_its_range()
+    {
+        // La serie se descargó antes de que se guardara el recorrido. Hay que volver a
+        // pedirla una vez para completarlo.
+        var provider = new Provider();
+        var store = new Store();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
+        store.Reached[Bitcoin] = new PriceHistoryReach(
+            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10), null);
+
+        await Wanting(provider, store, new DateOnly(2026, 1, 20)).UpdateAsync();
+
+        var asked = Assert.Single(provider.Asked);
+
+        Assert.Equal(new DateOnly(2026, 1, 20), asked.From);
+        Assert.Equal(new DateOnly(2026, 3, 10), asked.To);
+        Assert.True(store.Reached[Bitcoin].RangeRequested);
+    }
+
+    [Fact]
+    public async Task The_range_is_not_asked_for_twice()
+    {
+        var provider = new Provider();
+        var store = new Store();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
+        store.Reached[Bitcoin] = new PriceHistoryReach(
+            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10), null, RangeRequested: true);
+
+        await Wanting(provider, store, new DateOnly(2026, 1, 20)).UpdateAsync();
+
+        Assert.Empty(provider.Asked);
     }
 
     /// <summary>El actualizador del activo de siempre, con un suelo al que llegar.</summary>

@@ -99,4 +99,18 @@ public class CoinGeckoPriceHistoryProviderTests
             clock,
             NullLogger<CoinGeckoPriceHistoryProvider>.Instance);
     }
+    [Fact]
+    public async Task Without_a_range_the_day_is_marked_as_having_none()
+    {
+        // Su capa gratuita no da apertura, máximo ni mínimo. No tenerlos no es un fallo:
+        // es lo que hay, y se distingue de un recorrido de cero.
+        var handler = new RecordedResponseHandler().RespondWithFile(Recorded("coingecko-history-btc.json"));
+
+        var prices = await Provider(handler).GetHistoryAsync(Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25)));
+
+        Assert.NotEmpty(prices);
+        Assert.All(prices, price => Assert.False(price.HasRange));
+        Assert.All(prices, price => Assert.Null(price.HighInEuros));
+    }
+
 }

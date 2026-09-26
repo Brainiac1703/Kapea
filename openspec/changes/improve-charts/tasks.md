@@ -1,10 +1,10 @@
 ## 1. Guardar el recorrido del día
 
-- [ ] 1.1 Añadir a la serie diaria la apertura, el máximo y el mínimo como opcionales, con su migración; verificar con test de integración que un día sin ellos se guarda y se lee como hasta ahora
-- [ ] 1.2 Rechazar un recorrido incoherente —máximo menor que el mínimo, o cierre fuera de ambos— conservando el cierre; verificar con tests de cada caso
-- [ ] 1.3 Leer apertura, máximo y mínimo del proveedor de Yahoo contra respuestas grabadas; verificar que un activo sin ellos sigue entregando su cierre
-- [ ] 1.4 Dejar que CoinGecko entregue sólo el cierre sin que eso parezca un fallo; verificar con test que el activo queda marcado como sin recorrido
-- [ ] 1.5 Volver a pedir el recorrido de lo ya descargado, en segundo plano y sin retrasar la puesta al día; verificar con test que el cierre guardado no cambia y que una segunda pasada no vuelve a pedir lo mismo
+- [x] 1.1 Añadir a la serie diaria la apertura, el máximo y el mínimo como opcionales, con su migración; verificar con test de integración que un día sin ellos se guarda y se lee como hasta ahora
+- [x] 1.2 Rechazar un recorrido incoherente —máximo menor que el mínimo, o cierre fuera de ambos— conservando el cierre; verificar con tests de cada caso
+- [x] 1.3 Leer apertura, máximo y mínimo del proveedor de Yahoo contra respuestas grabadas; verificar que un activo sin ellos sigue entregando su cierre
+- [x] 1.4 Dejar que CoinGecko entregue sólo el cierre sin que eso parezca un fallo; verificar con test que el activo queda marcado como sin recorrido
+- [x] 1.5 Volver a pedir el recorrido de lo ya descargado, en segundo plano y sin retrasar la puesta al día; verificar con test que el cierre guardado no cambia y que una segunda pasada no vuelve a pedir lo mismo
 
 ## 2. Entregar y agregar la serie
 

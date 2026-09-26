@@ -165,22 +165,32 @@ public sealed class PriceHistoryStore(KapeaDbContext context) : IPriceHistorySto
 
         var existing = await context.DailyPrices
             .Where(price => assetIds.Contains(price.AssetId) && price.Date >= earliest && price.Date <= latest)
-            .Select(price => new { price.AssetId, price.Date })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var stored = existing.Select(entry => (entry.AssetId, entry.Date)).ToHashSet();
+        var stored = existing.ToDictionary(entry => (entry.AssetId, entry.Date));
         var written = 0;
 
         foreach (var price in prices)
         {
-            if (!stored.Add((price.AssetId, price.Date)))
+            if (!stored.TryGetValue((price.AssetId, price.Date), out var already))
             {
+                stored[(price.AssetId, price.Date)] = price;
+                context.DailyPrices.Add(price);
+                written++;
+
                 continue;
             }
 
-            context.DailyPrices.Add(price);
-            written++;
+            // El día ya está, pero puede haber llegado antes sin recorrido. Se completa
+            // sin tocar el cierre, que es lo que no se reescribe nunca.
+            if (price.HasRange && !already.HasRange)
+            {
+                var entry = context.Entry(already);
+                entry.Property(stored => stored.OpenInEuros).CurrentValue = price.OpenInEuros;
+                entry.Property(stored => stored.HighInEuros).CurrentValue = price.HighInEuros;
+                entry.Property(stored => stored.LowInEuros).CurrentValue = price.LowInEuros;
+            }
         }
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

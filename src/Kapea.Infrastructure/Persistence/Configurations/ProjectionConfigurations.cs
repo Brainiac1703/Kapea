@@ -287,6 +287,16 @@ internal sealed class DailyPriceConfiguration : IEntityTypeConfiguration<Domain.
             .IsRequired();
 
         builder.Property(price => price.Source).HasMaxLength(32).IsRequired();
+
+        // El recorrido es opcional: hay proveedores que no lo dan, y nulo significa eso
+        // y no un recorrido de cero.
+        foreach (var range in new[] { nameof(Domain.MarketData.DailyPrice.OpenInEuros), nameof(Domain.MarketData.DailyPrice.HighInEuros), nameof(Domain.MarketData.DailyPrice.LowInEuros) })
+        {
+            builder.Property(range)
+                .HasPrecision(ValueObjectConverters.RatePrecision, ValueObjectConverters.RateScale);
+        }
+
+        builder.Ignore(price => price.HasRange);
     }
 }
 
@@ -305,6 +315,7 @@ internal sealed class PriceHistoryReachConfiguration
         builder.Property(reach => reach.RequestedFrom).IsRequired();
         builder.Property(reach => reach.RequestedTo).IsRequired();
         builder.Property(reach => reach.RequestedWith).HasMaxLength(64);
+        builder.Property(reach => reach.RangeRequested).IsRequired();
     }
 }
 
