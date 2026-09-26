@@ -27,12 +27,17 @@ public interface IPricedAssetRepository
 /// gráfica de aquellos meses saldría corta sin que nada lo explicara. Lo que no necesita
 /// es precio de hoy.
 /// </remarks>
+/// <param name="ProviderId">
+/// Identificador con el que el proveedor conoce el activo, cuando se sabe. Vacío en lo
+/// que entró importando movimientos, que se resuelve por su símbolo.
+/// </param>
 public sealed record PricedAsset(
     Guid AssetId,
     string CanonicalSymbol,
     AssetClass Class,
     DateOnly FirstHeldOn,
-    DateOnly? LastHeldOn = null);
+    DateOnly? LastHeldOn = null,
+    string? ProviderId = null);
 
 /// <summary>Lo que dejó una pasada del relleno.</summary>
 public sealed record PriceHistoryUpdate(int Assets, int DaysWritten, int AssetsWithoutCoverage);
@@ -130,7 +135,8 @@ public sealed class PriceHistoryUpdater(
             {
                 var prices = await provider
                     .GetHistoryAsync(
-                        new PriceHistoryRequest(asset.AssetId, asset.CanonicalSymbol, asset.Class, from, to),
+                        new PriceHistoryRequest(
+                            asset.AssetId, asset.CanonicalSymbol, asset.Class, from, to, asset.ProviderId),
                         cancellationToken)
                     .ConfigureAwait(false);
 

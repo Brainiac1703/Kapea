@@ -1702,4 +1702,22 @@
   <data name="Signals_TopUp" xml:space="preserve">
     <value>Ya lo tienes: sería ampliar</value>
   </data>
+  <data name="Watchlist_Search" xml:space="preserve">
+    <value>Busca por nombre o símbolo</value>
+  </data>
+  <data name="Watchlist_DoSearch" xml:space="preserve">
+    <value>Buscar</value>
+  </data>
+  <data name="Watchlist_NoResults" xml:space="preserve">
+    <value>No se ha encontrado nada con ese texto. Puedes seguirlo igualmente por su símbolo, eligiendo de qué tipo es.</value>
+  </data>
+  <data name="Watchlist_AddBySymbol" xml:space="preserve">
+    <value>Seguir por símbolo</value>
+  </data>
+  <data name="Watchlist_PartialSearch" xml:space="preserve">
+    <value>Uno de los proveedores no ha respondido, así que pueden faltar resultados.</value>
+  </data>
+  <data name="Watchlist_Market" xml:space="preserve">
+    <value>Dónde cotiza</value>
+  </data>
 </root>

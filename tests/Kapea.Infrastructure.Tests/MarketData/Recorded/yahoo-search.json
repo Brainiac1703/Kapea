@@ -1,0 +1,8 @@
+{
+  "quotes": [
+    { "symbol": "NOW", "shortname": "ServiceNow, Inc.", "longname": "ServiceNow, Inc.", "quoteType": "EQUITY", "exchDisp": "NYSE" },
+    { "symbol": "^GSPC", "shortname": "S&P 500", "quoteType": "INDEX", "exchDisp": "SNP" },
+    { "symbol": "NOWG.L", "shortname": "Un ETF cualquiera", "quoteType": "ETF", "exchDisp": "LSE" }
+  ],
+  "news": []
+}

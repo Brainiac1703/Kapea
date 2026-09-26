@@ -22,7 +22,25 @@ public interface IWatchlistRepository
     /// <summary>El activo del catálogo con ese símbolo y esa clase, si existe.</summary>
     Task<Asset?> FindAsync(string symbol, AssetClass assetClass, CancellationToken cancellationToken = default);
 
-    Task<Asset> AddToCatalogueAsync(string symbol, AssetClass assetClass, CancellationToken cancellationToken = default);
+    Task<Asset> AddToCatalogueAsync(
+        string symbol,
+        AssetClass assetClass,
+        CancellationToken cancellationToken = default,
+        string? displayName = null,
+        string? providerId = null);
+
+    /// <summary>
+    /// El activo del catálogo que corresponde a un resultado de búsqueda, si lo hay.
+    /// </summary>
+    /// <remarks>
+    /// El símbolo del proveedor no tiene por qué ser el del catálogo: Kapea guarda los
+    /// valores como los nombra el bróker —NOW.US— y Yahoo los nombra sin el mercado
+    /// —NOW—. Reconocerlo es lo que evita crear un segundo activo con su propia cola de
+    /// lotes para lo mismo.
+    /// </remarks>
+    Task<Asset?> FindByProviderAsync(
+        AssetSearchResult result,
+        CancellationToken cancellationToken = default);
 
     Task<bool> IsWatchedAsync(Guid assetId, CancellationToken cancellationToken = default);
 
@@ -96,6 +114,43 @@ public sealed class WatchlistService(
         return new WatchAssetResponse(watched!, already, covered);
     }
 
+    /// <summary>Empieza a seguir el activo que el usuario ha elegido de una búsqueda.</summary>
+    public async Task<WatchAssetResponse> AddAsync(
+        AssetSearchResult result,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        var asset = await repository.FindByProviderAsync(result, cancellationToken).ConfigureAwait(false);
+
+        if (asset is null)
+        {
+            asset = await repository
+                .AddToCatalogueAsync(result.Symbol, result.Class, cancellationToken, result.Name, result.ProviderId)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            // Ya existía, quizá con otro símbolo: se queda el suyo, que es con el que
+            // están sus movimientos, y aprende con qué identificador pedir sus precios.
+            asset.KnownAs(result.ProviderId, result.Name);
+        }
+
+        var already = await repository.IsWatchedAsync(asset.Id, cancellationToken).ConfigureAwait(false);
+
+        if (!already)
+        {
+            await repository.WatchAsync(asset.Id, timeProvider.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        }
+
+        await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        var covered = await HasPricesAsync(asset, cancellationToken).ConfigureAwait(false);
+        var watched = await repository.FindWatchedAsync(asset.Id, cancellationToken).ConfigureAwait(false);
+
+        return new WatchAssetResponse(watched!, already, covered);
+    }
+
     public async Task RemoveAsync(Guid assetId, CancellationToken cancellationToken = default)
     {
         // Un activo que se tiene y no se vigila dejaría una posición sin precio, sin
@@ -126,7 +181,8 @@ public sealed class WatchlistService(
         {
             var series = await prices
                 .GetHistoryAsync(
-                    new PriceHistoryRequest(asset.Id, asset.CanonicalSymbol, asset.Class, today.AddDays(-CoverageDays), today),
+                    new PriceHistoryRequest(
+                        asset.Id, asset.CanonicalSymbol, asset.Class, today.AddDays(-CoverageDays), today, asset.ProviderId),
                     cancellationToken)
                 .ConfigureAwait(false);
 

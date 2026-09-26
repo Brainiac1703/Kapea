@@ -14,6 +14,7 @@ internal sealed class AssetConfiguration : IEntityTypeConfiguration<Asset>
         builder.Property(asset => asset.CanonicalSymbol).HasMaxLength(32).IsRequired();
         builder.Property(asset => asset.DisplayName).HasMaxLength(200).IsRequired();
         builder.Property(asset => asset.Isin).HasMaxLength(12);
+        builder.Property(asset => asset.ProviderId).HasMaxLength(120);
         builder.Property(asset => asset.Class).HasConversion<string>().HasMaxLength(16).IsRequired();
 
         // El catálogo es global: el mismo BTC vale para cualquier usuario, y duplicarlo

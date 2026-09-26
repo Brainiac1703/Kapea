@@ -11,8 +11,16 @@ public sealed class Asset
 {
     // El parámetro se llama @class para que coincida con la propiedad Class: EF enlaza
     // el constructor por nombre y, sin esa correspondencia, no puede materializar el activo.
-    private Asset(Guid id, string canonicalSymbol, AssetClass @class, string? isin, string displayName, bool isVerified)
+    private Asset(
+        Guid id,
+        string canonicalSymbol,
+        AssetClass @class,
+        string? isin,
+        string displayName,
+        bool isVerified,
+        string? providerId = null)
     {
+        ProviderId = providerId;
         Id = id;
         CanonicalSymbol = canonicalSymbol;
         Class = @class;
@@ -40,9 +48,30 @@ public sealed class Asset
     /// </summary>
     public bool IsVerified { get; private set; }
 
-    public static Asset Create(string canonicalSymbol, AssetClass assetClass, string? displayName = null, string? isin = null) =>
+    /// <summary>
+    /// Identificador con el que conoce este activo el proveedor que da sus precios.
+    /// </summary>
+    /// <remarks>
+    /// No es el símbolo: el símbolo identifica el activo dentro de Kapea, y esto sólo
+    /// sirve para pedirle datos al proveedor. Existe porque varios activos pueden
+    /// compartir símbolo, y deducirlo traería el precio de otra cosa sin que nada
+    /// fallara.
+    ///
+    /// Vacío en todo lo que entró importando movimientos, que se sigue resolviendo por
+    /// su símbolo.
+    /// </remarks>
+    public string? ProviderId { get; private set; }
+
+    public static Asset Create(
+        string canonicalSymbol,
+        AssetClass assetClass,
+        string? displayName = null,
+        string? isin = null,
+        string? providerId = null) =>
         new(Guid.NewGuid(), NormalizeSymbol(canonicalSymbol), assetClass, NormalizeIsin(isin, assetClass),
-            string.IsNullOrWhiteSpace(displayName) ? NormalizeSymbol(canonicalSymbol) : displayName.Trim(), isVerified: true);
+            string.IsNullOrWhiteSpace(displayName) ? NormalizeSymbol(canonicalSymbol) : displayName.Trim(),
+            isVerified: true,
+            string.IsNullOrWhiteSpace(providerId) ? null : providerId.Trim());
 
     /// <summary>Alta automática desde una importación con un símbolo que no se pudo resolver.</summary>
     public static Asset CreateUnverified(string canonicalSymbol, AssetClass assetClass) =>
@@ -62,6 +91,27 @@ public sealed class Asset
         }
 
         IsVerified = true;
+    }
+
+    /// <summary>
+    /// Deja dicho con qué identificador lo conoce su proveedor.
+    /// </summary>
+    /// <remarks>
+    /// Se usa cuando un activo que ya existía se reconoce en una búsqueda: a partir de
+    /// ahí sus precios se piden por el identificador y no por su símbolo, que es lo que
+    /// permite distinguirlo de otro que se llame igual.
+    /// </remarks>
+    public void KnownAs(string providerId, string? displayName = null)
+    {
+        if (!string.IsNullOrWhiteSpace(providerId))
+        {
+            ProviderId = providerId.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            DisplayName = displayName.Trim();
+        }
     }
 
     private static string NormalizeSymbol(string symbol)

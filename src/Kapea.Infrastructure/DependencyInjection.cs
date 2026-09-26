@@ -176,6 +176,27 @@ public static class DependencyInjection
                 new Uri(configuration["Yahoo:BaseAddress"] ?? "https://query1.finance.yahoo.com/")))
             .AddStandardResilienceHandler();
 
+        // La búsqueda usa los mismos hosts que los precios, pero con su propio cliente:
+        // una búsqueda que tarda no puede quedarse esperando a que un proveedor de
+        // precios termine lo suyo.
+        services.AddHttpClient<CoinGeckoAssetSearchProvider>(client =>
+            CoinGeckoMarketPriceProvider.Configure(
+                client,
+                new Uri(configuration["CoinGecko:BaseAddress"] ?? "https://api.coingecko.com/")))
+            .AddStandardResilienceHandler();
+
+        services.AddHttpClient<YahooAssetSearchProvider>(client =>
+            YahooMarketPriceProvider.Configure(
+                client,
+                new Uri(configuration["Yahoo:BaseAddress"] ?? "https://query1.finance.yahoo.com/")))
+            .AddStandardResilienceHandler();
+
+        services.AddScoped<IAssetSearchProvider>(provider =>
+            provider.GetRequiredService<CoinGeckoAssetSearchProvider>());
+        services.AddScoped<IAssetSearchProvider>(provider =>
+            provider.GetRequiredService<YahooAssetSearchProvider>());
+        services.AddScoped<Kapea.Application.Watchlist.AssetSearchService>();
+
         services.AddMemoryCache();
         services.AddScoped<IAssetClassLookup, AssetClassLookup>();
 
