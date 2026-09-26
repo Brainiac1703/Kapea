@@ -434,10 +434,33 @@ public sealed record AssetHistoryResponse(
     IReadOnlyList<IndicatorPointResponse> RelativeStrengthIndex,
     int IndicatorWindowDays,
     string Interval = "Daily",
-    bool HasRange = false);
+    bool HasRange = false,
+    DispersionResponse? Dispersion = null);
 
 /// <summary>Un valor de un indicador con el día al que corresponde.</summary>
 public sealed record IndicatorPointResponse(DateOnly Date, decimal Value);
+
+/// <summary>Los tres valores de una banda un día.</summary>
+public sealed record BandPointResponse(DateOnly Date, decimal Middle, decimal Upper, decimal Lower);
+
+/// <summary>
+/// Cuánto se ha movido un activo, para poder dibujarlo sobre su serie.
+/// </summary>
+/// <remarks>
+/// Describe lo ya ocurrido. No es un pronóstico ni la probabilidad de que el precio esté
+/// dentro de la banda: que haya estado el noventa por ciento del tiempo no dice que vaya
+/// a estarlo el noventa por ciento de las veces.
+/// </remarks>
+/// <param name="WindowDays">Sobre cuántos días se han calculado.</param>
+/// <param name="AverageRangeFromDayRange">
+/// El recorrido medio se ha medido con máximos y mínimos. Cuando es falso se ha medido de
+/// cierre a cierre, que se queda corto, y las dos medidas no son comparables.
+/// </param>
+public sealed record DispersionResponse(
+    IReadOnlyList<BandPointResponse> Volatility,
+    IReadOnlyList<IndicatorPointResponse> AverageRange,
+    int WindowDays,
+    bool AverageRangeFromDayRange);
 
 /// <summary>Rendimiento y riesgo de un periodo, con su referencia.</summary>
 /// <param name="TimeWeightedReturn">Rentabilidad que juzga las decisiones, en tanto por uno.</param>

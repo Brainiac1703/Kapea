@@ -207,20 +207,20 @@ public class AverageDailyRangeTests
         var calm = TechnicalIndicators.AverageDailyRange(Alternating(100m, 101m, 20), days: 5);
         var wild = TechnicalIndicators.AverageDailyRange(Alternating(100m, 130m, 20), days: 5);
 
-        Assert.True(wild[^1].Value > calm[^1].Value);
+        Assert.True(wild.Points[^1].Value > calm.Points[^1].Value);
     }
 
     [Fact]
     public void A_series_with_a_single_day_has_nothing_to_measure() =>
         Assert.Empty(TechnicalIndicators.AverageDailyRange(
-            [new PricePoint(new DateOnly(2026, 1, 1), 100m)], days: 5));
+            [new PricePoint(new DateOnly(2026, 1, 1), 100m)], days: 5).Points);
 
     [Fact]
     public void A_flat_series_does_not_move_at_all()
     {
         var range = TechnicalIndicators.AverageDailyRange(Alternating(100m, 100m, 20), days: 5);
 
-        Assert.All(range, point => Assert.Equal(0m, point.Value));
+        Assert.All(range.Points, point => Assert.Equal(0m, point.Value));
     }
 
     [Fact]
@@ -230,7 +230,51 @@ public class AverageDailyRangeTests
         // cinco variaciones necesita seis días.
         var range = TechnicalIndicators.AverageDailyRange(Alternating(100m, 110m, 10), days: 5);
 
-        Assert.Equal(new DateOnly(2026, 1, 6), range[0].Date);
+        Assert.Equal(new DateOnly(2026, 1, 6), range.Points[0].Date);
+    }
+
+    [Fact]
+    public void With_highs_and_lows_the_range_is_measured_with_them_and_says_so()
+    {
+        // Es lo que el activo se movió de verdad. De cierre a cierre, un día que subió
+        // un ocho por ciento y volvió al punto de partida se mide como cero.
+        var series = Enumerable.Range(0, 20)
+            .Select(index => new PricePoint(new DateOnly(2026, 1, 1).AddDays(index), 100m, 110m, 90m))
+            .ToList();
+
+        var range = TechnicalIndicators.AverageDailyRange(series, days: 5);
+
+        Assert.True(range.FromDayRange);
+        Assert.Equal(20m, range.Points[^1].Value);
+    }
+
+    [Fact]
+    public void Without_highs_and_lows_it_falls_back_to_closes_and_says_so()
+    {
+        var range = TechnicalIndicators.AverageDailyRange(Alternating(100m, 110m, 20), days: 5);
+
+        Assert.False(range.FromDayRange);
+        Assert.NotEmpty(range.Points);
+    }
+
+    [Fact]
+    public void The_two_ways_are_never_mixed_in_one_series()
+    {
+        // Mezclarlas daría una cifra que no es ni una cosa ni la otra. Basta un día sin
+        // recorrido para medirlo todo de cierre a cierre.
+        var series = Enumerable.Range(0, 20)
+            .Select(index => index == 7
+                ? new PricePoint(new DateOnly(2026, 1, 1).AddDays(index), 100m)
+                : new PricePoint(new DateOnly(2026, 1, 1).AddDays(index), 100m, 110m, 90m))
+            .ToList();
+
+        var range = TechnicalIndicators.AverageDailyRange(series, days: 5);
+
+        Assert.False(range.FromDayRange);
+
+        // De cierre a cierre una serie plana no se mueve, aunque cada día tuviera veinte
+        // euros de recorrido.
+        Assert.All(range.Points, point => Assert.Equal(0m, point.Value));
     }
 
     private static List<PricePoint> Alternating(decimal low, decimal high, int days) =>

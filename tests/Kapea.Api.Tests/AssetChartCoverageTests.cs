@@ -184,6 +184,52 @@ public class AssetChartCoverageTests(KapeaApiFactory factory)
         Assert.Equal("Monthly", history!.Interval);
     }
 
+    [Fact]
+    public async Task The_dispersion_comes_with_the_window_it_was_measured_over()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "DISPER", days: 40, withRange: true);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-04-09&window=5&interval=daily");
+
+        var dispersion = history!.Dispersion;
+
+        Assert.NotNull(dispersion);
+        Assert.Equal(5, dispersion.WindowDays);
+        Assert.NotEmpty(dispersion.Volatility);
+        Assert.NotEmpty(dispersion.AverageRange);
+        Assert.True(dispersion.AverageRangeFromDayRange);
+    }
+
+    [Fact]
+    public async Task Too_few_days_give_no_dispersion_instead_of_a_weaker_one()
+    {
+        // Una banda calculada sobre menos días parecería igual de firme y no lo sería.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "TOOSHORT", days: 3, withRange: true);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-03&window=20&interval=daily");
+
+        Assert.Null(history!.Dispersion);
+    }
+
+    [Fact]
+    public async Task Without_a_range_the_average_says_it_was_measured_on_closes()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "CLOSEONLY", days: 40);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-04-09&window=5&interval=daily");
+
+        Assert.False(history!.Dispersion!.AverageRangeFromDayRange);
+    }
+
     /// <summary>Un activo del catálogo con cotizaciones y sin un solo movimiento.</summary>
     private async Task<Guid> QuotedAssetAsync(
         Guid user, string symbol, int days, int? skip = null, bool withRange = false)

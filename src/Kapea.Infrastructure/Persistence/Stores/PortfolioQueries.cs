@@ -1077,7 +1077,11 @@ public sealed class PortfolioQueries(
         // además: rellenar los huecos daría la media del relleno.
         var series = daily
             .Where(day => day.PriceInEuros is not null)
-            .Select(day => new PricePoint(day.Date, day.PriceInEuros!.Value.Amount))
+            .Select(day => new PricePoint(
+                day.Date,
+                day.PriceInEuros!.Value.Amount,
+                day.HighInEuros?.Amount,
+                day.LowInEuros?.Amount))
             .ToList();
 
         var grouped = interval ?? Domain.Calculation.SeriesAggregation.Suggested(to.DayNumber - desde.DayNumber + 1);
@@ -1103,11 +1107,36 @@ public sealed class PortfolioQueries(
             Points(TechnicalIndicators.RelativeStrengthIndex(series, indicatorWindowDays)),
             indicatorWindowDays,
             grouped.ToString(),
-            daily.Any(day => day.HasRange));
+            daily.Any(day => day.HasRange),
+            Dispersion(series, indicatorWindowDays));
     }
 
     private static IReadOnlyList<IndicatorPointResponse> Points(IReadOnlyList<IndicatorPoint> points) =>
         [.. points.Select(point => new IndicatorPointResponse(point.Date, point.Value))];
+
+    /// <summary>
+    /// Cuánto se ha movido el activo, para dibujarlo sobre su serie.
+    /// </summary>
+    /// <remarks>
+    /// Sin días suficientes para la ventana no se devuelve nada, en lugar de una banda
+    /// calculada sobre menos días: parecería igual de firme y no lo sería.
+    /// </remarks>
+    private static DispersionResponse? Dispersion(IReadOnlyList<PricePoint> series, int window)
+    {
+        var bands = TechnicalIndicators.BollingerBands(series, window);
+        var range = TechnicalIndicators.AverageDailyRange(series, window);
+
+        if (bands.Count == 0 && range.Points.Count == 0)
+        {
+            return null;
+        }
+
+        return new DispersionResponse(
+            [.. bands.Select(band => new BandPointResponse(band.Date, band.Middle, band.Upper, band.Lower))],
+            Points(range.Points),
+            window,
+            range.FromDayRange);
+    }
 
     /// <summary>Los días en que no cotizó el mercado de un activo.</summary>
     /// <remarks>

@@ -16,9 +16,9 @@
 
 ## 3. Los indicadores con el recorrido
 
-- [ ] 3.1 Calcular el recorrido medio con máximos y mínimos cuando los haya, y de cierre a cierre cuando no, declarando cuál se ha usado; verificar con tests de ambos casos
-- [ ] 3.2 Verificar con test que las dos formas no se mezclan en una misma serie
-- [ ] 3.3 Entregar las bandas de volatilidad y la envolvente del recorrido para dibujarlas, con la ventana sobre la que se calculan; verificar con tests, incluida la serie demasiado corta
+- [x] 3.1 Calcular el recorrido medio con máximos y mínimos cuando los haya, y de cierre a cierre cuando no, declarando cuál se ha usado; verificar con tests de ambos casos
+- [x] 3.2 Verificar con test que las dos formas no se mezclan en una misma serie
+- [x] 3.3 Entregar las bandas de volatilidad y la envolvente del recorrido para dibujarlas, con la ventana sobre la que se calculan; verificar con tests, incluida la serie demasiado corta
 
 ## 4. La escala de periodos
 

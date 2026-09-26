@@ -103,7 +103,7 @@ public sealed class IndicatorSet
         Operand.SimpleMovingAverage => Points(TechnicalIndicators.SimpleMovingAverage(series, window)),
         Operand.ExponentialMovingAverage => Points(TechnicalIndicators.ExponentialMovingAverage(series, window)),
         Operand.RelativeStrengthIndex => Points(TechnicalIndicators.RelativeStrengthIndex(series, window)),
-        Operand.AverageDailyRange => Points(TechnicalIndicators.AverageDailyRange(series, window)),
+        Operand.AverageDailyRange => Points(TechnicalIndicators.AverageDailyRange(series, window).Points),
         Operand.MacdLine => Macd(series, window, point => point.Line),
         Operand.MacdSignal => Macd(series, window, point => point.Signal),
         Operand.MacdDistance => Macd(series, window, point => point.Distance),
