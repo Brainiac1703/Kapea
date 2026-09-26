@@ -1,0 +1,8 @@
+{
+  "coins": [
+    { "id": "cardano", "name": "Cardano", "symbol": "ada", "market_cap_rank": 9 },
+    { "id": "ada-the-ai-dog", "name": "ADA the AI Dog", "symbol": "ada", "market_cap_rank": null }
+  ],
+  "exchanges": [],
+  "categories": []
+}

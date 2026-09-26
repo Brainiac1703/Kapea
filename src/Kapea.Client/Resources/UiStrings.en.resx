@@ -1702,4 +1702,22 @@
   <data name="Signals_TopUp" xml:space="preserve">
     <value>You already hold it: this would top up</value>
   </data>
+  <data name="Watchlist_Search" xml:space="preserve">
+    <value>Search by name or symbol</value>
+  </data>
+  <data name="Watchlist_DoSearch" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Watchlist_NoResults" xml:space="preserve">
+    <value>Nothing found for that text. You can still follow it by its symbol, choosing what kind of asset it is.</value>
+  </data>
+  <data name="Watchlist_AddBySymbol" xml:space="preserve">
+    <value>Follow by symbol</value>
+  </data>
+  <data name="Watchlist_PartialSearch" xml:space="preserve">
+    <value>One of the providers did not answer, so results may be missing.</value>
+  </data>
+  <data name="Watchlist_Market" xml:space="preserve">
+    <value>Where it trades</value>
+  </data>
 </root>

@@ -536,6 +536,25 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<List<WatchedAssetResponse>>(response, cancellationToken);
     }
 
+    public async Task<AssetSearchResponse> SearchAssetsAsync(
+        string text,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.GetAsync(
+            $"api/watchlist/search?text={Uri.EscapeDataString(text)}", cancellationToken);
+
+        return await ReadAsync<AssetSearchResponse>(response, cancellationToken);
+    }
+
+    public async Task<WatchAssetResponse> FollowAssetAsync(
+        FollowAssetRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await http.PostAsJsonAsync("api/watchlist/follow", request, cancellationToken);
+
+        return await ReadAsync<WatchAssetResponse>(response, cancellationToken);
+    }
+
     public async Task<WatchAssetResponse> WatchAssetAsync(
         WatchAssetRequest request,
         CancellationToken cancellationToken = default)
