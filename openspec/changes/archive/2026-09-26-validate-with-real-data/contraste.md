@@ -33,11 +33,19 @@ y los dos ejercicios fiscales.
 | Fiscal 2025 | −24,55 | −24,55 |
 | Fiscal 2026 | 109,81 | 109,81 |
 
-La reimportación sin duplicados está probada de sobra en Kraken y Bit2Me: la
-sincronización lleva 347 pasadas contra sus API y ninguna ha introducido un
-movimiento nuevo. Con el fichero de XTB no se ha repetido porque ya no está en
-disco; la prueba anterior, cuando el usuario reimportó a mano, dio 37 duplicados de
-39 leídos.
+La reimportación tampoco introduce nada. En Kraken y Bit2Me la sincronización lleva 347
+pasadas contra sus API sin un solo movimiento nuevo. Y el informe de XTB, vuelto a subir
+entero:
+
+| Leídas | Importadas | Duplicadas | Rechazadas | Sin efecto financiero |
+|---|---|---|---|---|
+| 37 | 0 | 37 | 0 | 22 |
+
+Descartada la vista previa, el patrimonio, las posiciones y el efectivo de las tres
+cuentas quedan idénticos.
+
+De paso queda cerrado algo que antes no salía: en el intento anterior del usuario dos
+filas se rechazaban. Ahora no se rechaza ninguna.
 
 ## Los ficheros reales no entran en el repositorio
 

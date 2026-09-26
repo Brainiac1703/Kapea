@@ -21,5 +21,5 @@
 ## 4. Reproducibilidad sobre datos reales
 
 - [x] 4.1 Ejecutar un recálculo completo desde cero sobre el histórico real; verificar que lotes, posiciones y resultados son idénticos a los de la primera pasada
-- [ ] 4.2 Repetir la importación de todos los ficheros ya importados; verificar que no entra ningún movimiento nuevo y que todo se descarta por duplicado
+- [x] 4.2 Repetir la importación de todos los ficheros ya importados; verificar que no entra ningún movimiento nuevo y que todo se descarta por duplicado
 - [x] 4.3 Dejar escrito en el change el resultado del contraste: qué cuadró, qué no y qué queda pendiente de confirmar con un asesor
