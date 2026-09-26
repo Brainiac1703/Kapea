@@ -44,7 +44,7 @@ internal static class XtbWorkbook
         Row(cash, 12, ["Total", "", "", "", "", "603.76", "", "", "", ""]);
 
         var open = workbook.Worksheets.Add("Open Positions");
-        Row(open, 1, ["Account number", "53882396"]);
+        Row(open, 1, ["Account number", "10203040"]);
         Row(open, 2, ["Open Positions"]);
         Row(open, 3, ["Data as of report generated", "2026-09-24"]);
         Row(open, 4, ["Product", "Metric", "Amount", "Currency"]);
@@ -59,7 +59,7 @@ internal static class XtbWorkbook
 
     private static void Preamble(IXLWorksheet sheet, string title)
     {
-        Row(sheet, 1, ["Account number", "53882396"]);
+        Row(sheet, 1, ["Account number", "10203040"]);
         Row(sheet, 2, [title]);
         Row(sheet, 3, ["Date from (UTC)", "2024-12-31"]);
         Row(sheet, 4, ["Date to (UTC)", "2026-09-24"]);

@@ -1,6 +1,6 @@
 ## Why
 
-La exportación actual de XTB no se puede importar. Es un libro de Excel con tres hojas —posiciones cerradas, operaciones de efectivo y posiciones abiertas— y cuatro filas de metadatos delante de cada tabla. Kapea lee sólo la primera hoja y toma su primera fila como cabecera, así que cree que las columnas se llaman «Account number» y «53882396», no reconoce ningún perfil y rechaza el fichero.
+La exportación actual de XTB no se puede importar. Es un libro de Excel con tres hojas —posiciones cerradas, operaciones de efectivo y posiciones abiertas— y cuatro filas de metadatos delante de cada tabla. Kapea lee sólo la primera hoja y toma su primera fila como cabecera, así que cree que las columnas se llaman «Account number» y el número de cuenta, no reconoce ningún perfil y rechaza el fichero.
 
 No es un caso raro de una plataforma: un informe con su cabecera administrativa delante y varias pestañas es la forma normal de exportar de muchos brókeres. Mientras el lector suponga «una hoja, cabecera en la primera fila», la promesa de dar de alta una plataforma sin escribir código se queda a medias.
 

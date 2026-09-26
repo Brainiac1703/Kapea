@@ -9,7 +9,7 @@
 - [x] 2.1 Importar cada exportación real y anotar si el formato se reconoce; verificar que las cabeceras reales coinciden con las declaradas en XtbFormat.Known
 - [x] 2.2 Corregir las entradas de XtbFormat.Known que no coincidan con la exportación real; verificar que la importación completa deja de rechazar el fichero
 - [x] 2.3 Revisar los movimientos que queden sin clasificar y decidir con el usuario el tipo que les corresponde, en particular las líneas de compraventa del informe de efectivo; verificar que el recuento de sin clasificar baja a cero o que lo que queda está justificado
-- [ ] 2.4 Incorporar las exportaciones reales como casos de test de extremo a extremo con sus cifras esperadas; verificar que la importación produce exactamente los movimientos esperados
+- [x] 2.4 Incorporar casos de test de extremo a extremo con la forma real de cada exportación y cifras inventadas; verificar que la importación produce exactamente los movimientos esperados
 
 ## 3. Contraste con la declaración presentada
 

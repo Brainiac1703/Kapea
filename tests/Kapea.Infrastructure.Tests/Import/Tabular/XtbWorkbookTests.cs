@@ -21,7 +21,7 @@ public class XtbWorkbookTests
     public void The_current_export_is_recognised_sheet_by_sheet()
     {
         using var book = XtbWorkbook.Build();
-        var sheets = TabularReader.ReadSheets(book, "EUR_53882396.xlsx");
+        var sheets = TabularReader.ReadSheets(book, "EUR_10203040.xlsx");
 
         var matched = SheetMatching.Match(sheets, BuiltInProfiles.All(Created), PlatformCode.Xtb);
 
@@ -99,7 +99,7 @@ public class XtbWorkbookTests
     private static Kapea.Application.Import.ImportReadResult ReadSheet(string sheetName)
     {
         using var book = XtbWorkbook.Build();
-        var sheets = TabularReader.ReadSheets(book, "EUR_53882396.xlsx");
+        var sheets = TabularReader.ReadSheets(book, "EUR_10203040.xlsx");
         var matched = SheetMatching.Match(sheets, BuiltInProfiles.All(Created), PlatformCode.Xtb)
             .Single(sheet => sheet.Sheet == sheetName);
 

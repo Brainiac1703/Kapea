@@ -140,9 +140,18 @@ sobre los documentos, no una conclusión fiscal: hay que confirmarlo con el ases
 
 Del contraste, nada: ninguna diferencia resultó ser un error de Kapea.
 
-Queda construir los casos de test de extremo a extremo con documentos falsos, según lo
-decidido más arriba, y repetir la importación del fichero de XTB cuando vuelva a estar en
-disco.
+Queda repetir la importación del fichero de XTB cuando vuelva a estar en disco.
+
+Los casos de extremo a extremo ya están, con documentos falsos: un informe con la forma
+del real —tres hojas, metadatos delante de cada tabla, precios en dólares y totales en
+euros, la hoja de efectivo repitiendo cada compraventa— y cifras elegidas para poder
+calcularlas a mano. Comprueban el recorrido entero, del fichero subido a la cartera y al
+resultado del ejercicio. Invertir dos columnas del informe hace fallar las tres, así que
+comprueban algo.
+
+Al escribirlos se vio que el libro falso que ya existía llevaba el número de cuenta real
+del usuario, y una propuesta archivada también. Los dos están cambiados por uno inventado.
+El historial de git conserva el anterior.
 
 Fuera de Kapea, tres cosas para el asesor: los 3,34 € de comisiones no deducidas, las
 operaciones de Kraken que no se declararon junto con los 9,94 € de staking, y que las dos
