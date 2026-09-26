@@ -89,3 +89,17 @@ El sistema DEBE poder resumir, por fuente y periodo, cuántas ideas se resolvier
 
 - **WHEN** ninguna idea de la fuente se ha resuelto
 - **THEN** el sistema lo dice en lugar de dar un rendimiento de cero
+
+### Requirement: Una idea puede hablar de algo que no se tiene
+
+El usuario DEBE poder registrar una idea sobre cualquier activo, tenga posición o no. Registrarla DEBE poner ese activo en seguimiento, de modo que a partir de ese momento tenga precio y pueda evaluarse.
+
+#### Scenario: Idea sobre un activo nuevo
+
+- **WHEN** el usuario anota una idea sobre un activo que no seguía
+- **THEN** la idea queda registrada y el activo pasa a estar en seguimiento
+
+#### Scenario: Idea sobre algo que ya se sigue
+
+- **WHEN** el usuario anota una idea sobre un activo que ya estaba en la lista
+- **THEN** la idea queda registrada y la lista no se duplica
