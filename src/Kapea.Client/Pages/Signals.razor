@@ -1,4 +1,5 @@
 @page "/signals"
+@using Kapea.Client.Layout
 @inject KapeaApiClient Api
 @inject IToastService Toasts
 
@@ -37,7 +38,7 @@ else
             </div>
         </TemplateColumn>
         <TemplateColumn Title="@Ui["Common_Asset"]">
-            <FluentAnchor Href="@($"evolution/{context.AssetId}")" Appearance="Appearance.Hypertext">
+            <FluentAnchor Href="@Routes.AssetChart(context.AssetId)" Appearance="Appearance.Hypertext">
                 @context.AssetSymbol
             </FluentAnchor>
         </TemplateColumn>
