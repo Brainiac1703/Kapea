@@ -1,7 +1,7 @@
 ## 1. Preparación de los datos
 
 - [x] 1.1 Reunir las exportaciones reales de xStation5 (operaciones de efectivo, posiciones cerradas y posiciones abiertas) y el histórico de Kraken y Bit2Me; verificar que cada fichero se abre y contiene el periodo esperado
-- [ ] 1.2 Decidir con el usuario cómo se incorporan al repositorio —anonimizados, con importes reescalados o fuera del control de versiones— y dejarlo escrito en el propio change antes de añadir ningún fichero
+- [x] 1.2 Decidir con el usuario cómo se incorporan al repositorio —anonimizados, con importes reescalados o fuera del control de versiones— y dejarlo escrito en el propio change antes de añadir ningún fichero
 - [ ] 1.3 Identificar el ejercicio ya declarado contra el que contrastar y reunir las cifras presentadas; verificar que se tiene la ganancia patrimonial total y su desglose por activo
 
 ## 2. Contraste del adaptador de XTB

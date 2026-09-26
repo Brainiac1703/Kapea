@@ -39,14 +39,29 @@ movimiento nuevo. Con el fichero de XTB no se ha repetido porque ya no está en
 disco; la prueba anterior, cuando el usuario reimportó a mano, dio 37 duplicados de
 39 leídos.
 
+## Los ficheros reales no entran en el repositorio
+
+Decidido con el usuario el 26 de septiembre de 2026.
+
+Sus exportaciones llevan datos financieros personales y **no se suben**, ni anonimizadas
+ni con los importes reescalados. Se leen en local para contrastar, y nada más.
+
+Los casos de test de extremo a extremo se construyen con **documentos falsos** que
+reproduzcan la estructura de cada formato. Lo que hay que probar es que Kapea lee bien
+un fichero de XTB o de Bit2Me y calcula lo que debe; eso no necesita que las cifras
+sean las suyas.
+
+*Esto contradice la tarea 2.4, escrita antes de tomar la decisión.* Incorporar las
+exportaciones reales como casos de test queda descartado; lo que procede es construir
+esos casos con datos inventados.
+
 ## Lo que sigue pendiente
 
-Todo lo que queda depende de dos cosas que sólo puede aportar el usuario:
+Queda una sola cosa, y es un dato: **la declaración del ejercicio 2025**. Kapea calcula
+−24,55 € de pérdida patrimonial repartida en nueve criptomonedas, y sin lo presentado no
+hay contra qué contrastar. Es la comprobación de más valor del change: la única capaz de
+destapar que una cifra fiscal está mal.
 
-1. **La declaración presentada del ejercicio 2025.** Kapea calcula −24,55 € de pérdida
-   patrimonial, repartida en nueve criptomonedas. Sin lo presentado no hay contra qué
-   contrastar. Es la comprobación de más valor del change: la única capaz de destapar
-   que una cifra fiscal está mal.
-2. **Cómo entran los ficheros reales en el repositorio.** Llevan datos financieros
-   personales, así que la decisión —anonimizar, reescalar importes o dejarlos fuera del
-   control de versiones— se toma antes de añadir ninguno.
+El PDF que el usuario tenía a mano es el Modelo 100 del ejercicio 2024, presentado en
+abril de 2025. Su histórico empieza en mayo de 2025, así que no contiene ninguna de
+estas operaciones.
