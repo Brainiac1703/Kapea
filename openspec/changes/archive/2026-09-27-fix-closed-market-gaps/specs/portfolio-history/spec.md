@@ -10,6 +10,8 @@ Fuera de ese caso, el sistema NO PUEDE arrastrar el precio del día anterior ni 
 
 El precio arrastrado NO DEBE presentarse como si fuera del día: quien mire la serie DEBE poder ver cuáles lo son.
 
+Que falte la cotización de un activo que no se tiene NO DEBE marcar el día como incompleto: no había nada que valorar, así que no falta nada.
+
 #### Scenario: Falta el precio de un activo
 
 - **WHEN** un día tiene precio de todos los activos menos uno, y el mercado de ése estaba abierto
@@ -39,6 +41,11 @@ El precio arrastrado NO DEBE presentarse como si fuera del día: quien mire la s
 
 - **WHEN** no hay ningún cierre anterior del que tirar
 - **THEN** no se arrastra nada y el día queda incompleto
+
+#### Scenario: Falta el precio de algo que sólo se vigila
+
+- **WHEN** un día no tiene cotización de un activo que el usuario vigila pero no tiene
+- **THEN** el día no se marca como incompleto, porque ese activo no entra en el valor de la cartera
 
 ## ADDED Requirements
 
