@@ -838,6 +838,9 @@
   <data name="Evolution_ByClass" xml:space="preserve">
     <value>Reparto por clase de activo</value>
   </data>
+  <data name="Evolution_Carried" xml:space="preserve">
+    <value>En {0} días el mercado estuvo cerrado y las posiciones se valoran al último cierre.</value>
+  </data>
   <data name="Evolution_Incomplete" xml:space="preserve">
     <value>Hay {0} días a los que les falta el precio de algún activo. Esos días la cifra sale corta.</value>
   </data>

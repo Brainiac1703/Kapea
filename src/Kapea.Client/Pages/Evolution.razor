@@ -109,6 +109,16 @@ else
         </FluentMessageBar>
     }
 
+    @* Los días de mercado cerrado no son un aviso sino una aclaración: el valor es
+       correcto, pero no es un dato nuevo de ese día. *@
+    @if (CarriedDays() is > 0 and var carried)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+            @string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                Ui["Evolution_Carried"].Value, carried)
+        </FluentMessageBar>
+    }
+
     <LineChart Lines="@Wealth()" Title="@Ui["Evolution_Heading"]" />
 
     <FluentLabel Typo="Typography.H4">@Ui["Evolution_ByClass"]</FluentLabel>
@@ -122,8 +132,13 @@ else
         ("Evolution_Period_Month", 30),
         ("Evolution_Period_Quarter", 90),
         ("Evolution_Period_Year", 365),
-        ("Evolution_Period_All", 3650),
+        // «Todo» no es un número de días: cuánto hay depende de cuándo empezó la
+        // cartera, y rellenar con años anteriores aplasta la línea contra un extremo.
+        ("Evolution_Period_All", null),
     ];
+
+    /// <summary>Cuántos días se han valorado con el cierre de un día anterior.</summary>
+    private int CarriedDays() => _history?.Days.Count(day => day.HasCarriedPrices) ?? 0;
 
     private PortfolioHistoryResponse? _history;
     private PerformanceResponse? _performance;
@@ -142,7 +157,7 @@ else
     {
         try
         {
-            _history = await Api.GetHistoryAsync(_days);
+            _history = await Api.GetHistoryAsync(_days, all: _days is null);
             _performance = await Api.GetPerformanceAsync(_days);
         }
         catch (KapeaApiException exception)

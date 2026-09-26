@@ -998,11 +998,15 @@ public sealed class PortfolioQueries(
     /// que pueda quedarse vieja cuando entre una importación con fecha anterior.
     /// </remarks>
     public async Task<PortfolioHistoryResponse> GetHistoryAsync(
-        DateOnly from,
+        DateOnly? from,
         DateOnly to,
         CancellationToken cancellationToken = default)
     {
-        var days = await DaysAsync(from, to, cancellationToken).ConfigureAwait(false);
+        // Sin fecha de inicio se enseña desde el primer movimiento. Cuánto hay depende de
+        // la cartera, así que lo resuelve quien la conoce y no quien pregunta.
+        var desde = from ?? await FirstMovementAsync(to, cancellationToken).ConfigureAwait(false);
+
+        var days = await DaysAsync(desde, to, cancellationToken).ConfigureAwait(false);
 
         var classes = await context.Assets
             .ToDictionaryAsync(asset => asset.Id, asset => asset.Class, cancellationToken)
@@ -1014,7 +1018,8 @@ public sealed class PortfolioQueries(
                     day.Date,
                     day.ValueInEuros.Amount,
                     day.NetContributionInEuros.Amount,
-                    day.IsComplete)),
+                    day.IsComplete,
+                    day.HasCarriedPrices)),
             ],
             [
                 .. PortfolioHistory.ByClass(days, classes).Select(day => new ClassHistoryDayResponse(
@@ -1054,10 +1059,16 @@ public sealed class PortfolioQueries(
             .GetAsync(assetId, desde, to, cancellationToken)
             .ConfigureAwait(false);
 
+        // Qué días no cotizó su mercado, para distinguir un festivo de una laguna. Se
+        // deduce de los demás activos de su clase, no sólo de éste: mirándolo solo, cada
+        // día que le faltara parecería fiesta.
+        var closedOn = await ClosuresAsync(asset, desde, to, cancellationToken).ConfigureAwait(false);
+
         var days = PortfolioHistory.ForAsset(
             await DaysAsync(desde, to, cancellationToken).ConfigureAwait(false),
             assetId,
-            quotes.ToDictionary(price => price.Date, price => Money.Euros(price.PriceInEuros)));
+            quotes.ToDictionary(price => price.Date, price => Money.Euros(price.PriceInEuros)),
+            closedOn);
 
         // Los indicadores se calculan solo sobre los días con precio: rellenar los huecos
         // daría una media de lo que dice el relleno, no de lo que hizo el mercado.
@@ -1071,7 +1082,12 @@ public sealed class PortfolioQueries(
             asset.CanonicalSymbol,
             [
                 .. days.Select(day => new AssetHistoryDayResponse(
-                    day.Date, day.Quantity.Value, day.PriceInEuros?.Amount, day.ValueInEuros?.Amount)),
+                    day.Date,
+                    day.Quantity.Value,
+                    day.PriceInEuros?.Amount,
+                    day.ValueInEuros?.Amount,
+                    day.CarriedFrom,
+                    day.MarketClosed)),
             ],
             Points(TechnicalIndicators.SimpleMovingAverage(series, indicatorWindowDays)),
             Points(TechnicalIndicators.ExponentialMovingAverage(series, indicatorWindowDays)),
@@ -1081,6 +1097,66 @@ public sealed class PortfolioQueries(
 
     private static IReadOnlyList<IndicatorPointResponse> Points(IReadOnlyList<IndicatorPoint> points) =>
         [.. points.Select(point => new IndicatorPointResponse(point.Date, point.Value))];
+
+    /// <summary>Los días en que no cotizó el mercado de un activo.</summary>
+    /// <remarks>
+    /// Se mira su mercado y no su clase: dentro de la renta variable conviven bolsas con
+    /// festivos distintos, y mirándolas juntas un festivo de una parece una laguna.
+    /// </remarks>
+    private async Task<IReadOnlySet<DateOnly>> ClosuresAsync(
+        Domain.Assets.Asset asset,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken)
+    {
+        var market = Domain.Assets.Market.Of(asset.CanonicalSymbol, asset.Class);
+
+        var siblings = await context.Assets
+            .Where(other => other.Class == asset.Class)
+            .Select(other => new { other.Id, other.CanonicalSymbol, other.Class })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var markets = siblings
+            .Select(other => new { other.Id, Market = Domain.Assets.Market.Of(other.CanonicalSymbol, other.Class) })
+            .Where(other => string.Equals(other.Market, market, StringComparison.Ordinal))
+            .ToDictionary(other => other.Id, other => other.Market);
+
+        var prices = await priceHistory
+            .GetAsync([.. markets.Keys], from, to, cancellationToken)
+            .ConfigureAwait(false);
+
+        var closures = MarketClosures.Of(prices, markets, from, to);
+        var days = new HashSet<DateOnly>();
+
+        for (var day = from; day <= to; day = day.AddDays(1))
+        {
+            if (closures.WasClosed(market, day))
+            {
+                days.Add(day);
+            }
+        }
+
+        return days;
+    }
+
+    /// <summary>
+    /// El día del primer movimiento, o el final del rango si no hay ninguno.
+    /// </summary>
+    /// <remarks>
+    /// Sin movimientos no hay nada que enseñar, y devolver un solo día vacío lo dice sin
+    /// necesidad de un caso aparte en quien pregunta.
+    /// </remarks>
+    private async Task<DateOnly> FirstMovementAsync(DateOnly to, CancellationToken cancellationToken)
+    {
+        var first = await context.Transactions
+            .OrderBy(transaction => transaction.OccurredAt.Instant)
+            .Select(transaction => (DateTimeOffset?)transaction.OccurredAt.Instant)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return first is { } instant ? DateOnly.FromDateTime(instant.UtcDateTime) : to;
+    }
 
     private async Task<IReadOnlyList<PortfolioDay>> DaysAsync(
         DateOnly from,
@@ -1098,8 +1174,29 @@ public sealed class PortfolioQueries(
 
         var prices = await priceHistory.GetAsync(assetIds, from, to, cancellationToken).ConfigureAwait(false);
 
+        // El mercado de cada activo es lo que permite deducir qué días no cotizó. El
+        // cierre anterior al rango permite arrastrarlo el primer día si cae en cerrado.
+        var catalogue = await context.Assets
+            .Where(asset => assetIds.Contains(asset.Id))
+            .Select(asset => new { asset.Id, asset.CanonicalSymbol, asset.Class })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var markets = catalogue.ToDictionary(
+            asset => asset.Id,
+            asset => Domain.Assets.Market.Of(asset.CanonicalSymbol, asset.Class));
+
+        var priorCloses = await priceHistory
+            .GetLastBeforeAsync(assetIds, from, cancellationToken)
+            .ConfigureAwait(false);
+
         return PortfolioHistory.Build(
-            PortfolioCalculationService.Value(transactions, transfers), prices, from, to);
+            PortfolioCalculationService.Value(transactions, transfers),
+            prices,
+            from,
+            to,
+            markets,
+            priorCloses);
     }
 
     /// <summary>

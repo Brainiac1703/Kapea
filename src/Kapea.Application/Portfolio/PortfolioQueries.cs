@@ -58,8 +58,12 @@ public interface IPortfolioQueries
     Task<IReadOnlyList<ManualDuplicateResponse>> ListManualDuplicatesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Evolución de la cartera entre dos fechas, con el reparto por clase.</summary>
+    /// <param name="from">
+    /// Desde cuándo. Sin valor, desde el primer día con movimientos: rellenar con años
+    /// anteriores aplasta contra un extremo la parte que tiene información.
+    /// </param>
     Task<PortfolioHistoryResponse> GetHistoryAsync(
-        DateOnly from,
+        DateOnly? from,
         DateOnly to,
         CancellationToken cancellationToken = default);
 
