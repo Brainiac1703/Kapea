@@ -404,12 +404,14 @@ public sealed record ClassHistoryDayResponse(DateOnly Date, IReadOnlyDictionary<
 
 /// <summary>Un día de la evolución de un activo. Sin precio, el valor viaja vacío.</summary>
 /// <param name="CarriedFrom">De qué día viene el precio, cuando no es del día valorado.</param>
+/// <param name="MarketClosed">Ese día no cotizó su mercado, así que no falta ningún dato.</param>
 public sealed record AssetHistoryDayResponse(
     DateOnly Date,
     decimal Quantity,
     decimal? PriceInEuros,
     decimal? ValueInEuros,
-    DateOnly? CarriedFrom = null);
+    DateOnly? CarriedFrom = null,
+    bool MarketClosed = false);
 
 /// <summary>La evolución de un activo con sus indicadores.</summary>
 public sealed record AssetHistoryResponse(

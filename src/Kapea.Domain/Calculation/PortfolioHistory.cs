@@ -41,12 +41,17 @@ public sealed record PortfolioDay(
 
 /// <summary>Un día de la serie de un solo activo.</summary>
 /// <param name="CarriedFrom">De qué día viene el precio, cuando no es del día valorado.</param>
+/// <param name="MarketClosed">
+/// Ese día no cotizó el mercado del activo. Distingue un festivo de una laguna: lo
+/// primero no tiene arreglo posible y lo segundo conviene rellenarlo.
+/// </param>
 public sealed record AssetHistoryDay(
     DateOnly Date,
     Quantity Quantity,
     Money? PriceInEuros,
     Money? ValueInEuros,
-    DateOnly? CarriedFrom = null);
+    DateOnly? CarriedFrom = null,
+    bool MarketClosed = false);
 
 /// <summary>Lo que valía cada clase de activo un día.</summary>
 /// <param name="ValueByClass">Valor por clase. Una clase sin posición ese día no aparece.</param>
@@ -76,9 +81,9 @@ public sealed record ClassHistoryDay(
 /// </remarks>
 public static class PortfolioHistory
 {
-    /// <param name="classes">
-    /// Clase de cada activo, para deducir qué días no cotizó su mercado. Sin ella no se
-    /// arrastra nada y la serie sale como antes.
+    /// <param name="markets">
+    /// Mercado de cada activo, para deducir qué días no cotizó. Sin él no se arrastra
+    /// nada y la serie sale como antes.
     /// </param>
     /// <param name="priorCloses">
     /// Último cierre de cada activo anterior al rango. Hace falta porque el primer día
@@ -89,7 +94,7 @@ public static class PortfolioHistory
         IReadOnlyDictionary<Guid, IReadOnlyList<DailyPrice>> prices,
         DateOnly from,
         DateOnly to,
-        IReadOnlyDictionary<Guid, Assets.AssetClass>? classes = null,
+        IReadOnlyDictionary<Guid, string>? markets = null,
         IReadOnlyDictionary<Guid, DailyPrice>? priorCloses = null)
     {
         ArgumentNullException.ThrowIfNull(transactions);
@@ -104,9 +109,9 @@ public static class PortfolioHistory
             entry => entry.Key,
             entry => entry.Value.ToDictionary(price => price.Date, price => price.PriceInEuros));
 
-        var closures = classes is null
+        var closures = markets is null
             ? MarketClosures.None
-            : MarketClosures.Of(prices, classes, from, to);
+            : MarketClosures.Of(prices, markets, from, to);
 
         // Lo último conocido de cada activo, que avanza según se recorren los días. Nace
         // con el cierre anterior al rango para que un primer día en sábado tenga de dónde
@@ -136,7 +141,7 @@ public static class PortfolioHistory
                 next++;
             }
 
-            days.Add(Day(day, quantities, byDay, contribution, closures, classes, last));
+            days.Add(Day(day, quantities, byDay, contribution, closures, markets, last));
         }
 
         return days;
@@ -156,10 +161,12 @@ public static class PortfolioHistory
     /// justamente donde hace falta para decidir si entrar.
     /// </remarks>
     /// <param name="quotes">Cotización por día, exista posición o no. Un día que falte no tiene precio.</param>
+    /// <param name="closedOn">Días en que no cotizó el mercado de este activo.</param>
     public static IReadOnlyList<AssetHistoryDay> ForAsset(
         IEnumerable<PortfolioDay> days,
         Guid assetId,
-        IReadOnlyDictionary<DateOnly, Money>? quotes = null)
+        IReadOnlyDictionary<DateOnly, Money>? quotes = null,
+        IReadOnlySet<DateOnly>? closedOn = null)
     {
         ArgumentNullException.ThrowIfNull(days);
 
@@ -179,7 +186,8 @@ public static class PortfolioHistory
                     held?.Quantity ?? Quantity.Zero,
                     quote,
                     held?.ValueInEuros,
-                    held?.CarriedFrom);
+                    held?.CarriedFrom,
+                    closedOn?.Contains(day.Date) ?? false);
             }),
         ];
     }
@@ -275,7 +283,7 @@ public static class PortfolioHistory
         Dictionary<Guid, Dictionary<DateOnly, decimal>> prices,
         Money contribution,
         MarketClosures closures,
-        IReadOnlyDictionary<Guid, Assets.AssetClass>? classes,
+        IReadOnlyDictionary<Guid, string>? markets,
         Dictionary<Guid, (DateOnly Date, decimal Price)> last)
     {
         var assets = new List<AssetDay>();
@@ -298,9 +306,9 @@ public static class PortfolioHistory
             // El mercado cerrado no es un dato que falte: la posición vale lo del último
             // cierre. Sin cierre anterior no hay nada que arrastrar, y el día queda
             // incompleto como cualquier otra laguna.
-            var closed = classes is not null
-                && classes.TryGetValue(assetId, out var assetClass)
-                && closures.WasClosed(assetClass, date);
+            var closed = markets is not null
+                && markets.TryGetValue(assetId, out var market)
+                && closures.WasClosed(market, date);
 
             if (closed && last.TryGetValue(assetId, out var previous))
             {
