@@ -38,6 +38,21 @@ public interface IPriceHistoryStore
         IReadOnlyCollection<Guid> assetIds,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Hasta dónde se ha pedido la serie de cada activo, o su ausencia si nunca se pidió.
+    /// </summary>
+    /// <remarks>
+    /// Va aparte del rango guardado porque responde a otra pregunta. El rango dice qué
+    /// días tienen precio; esto dice por cuáles se preguntó. Un tramo que se pidió y no
+    /// devolvió nada sólo aparece aquí, y es justo el que no hay que volver a pedir.
+    /// </remarks>
+    Task<IReadOnlyDictionary<Guid, PriceHistoryReach>> GetReachAsync(
+        IReadOnlyCollection<Guid> assetIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Deja constancia de un tramo pedido, ampliando el que ya hubiera.</summary>
+    Task RecordReachAsync(PriceHistoryReach reach, CancellationToken cancellationToken = default);
+
     /// <summary>Guarda una serie descargada. Un día ya guardado no se duplica.</summary>
     Task<int> UpsertAsync(IReadOnlyList<DailyPrice> prices, CancellationToken cancellationToken = default);
 }

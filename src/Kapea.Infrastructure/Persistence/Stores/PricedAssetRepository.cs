@@ -1,6 +1,7 @@
 using Kapea.Application.MarketData;
 using Kapea.Domain.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Kapea.Infrastructure.Persistence.Stores;
 
@@ -16,7 +17,9 @@ namespace Kapea.Infrastructure.Persistence.Stores;
 /// últimos son el motivo de que exista el seguimiento: sin precios no hay señales, y sin
 /// señales un sistema de entrada no sirve para decidir dónde entrar.
 /// </remarks>
-public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAssetRepository
+public sealed class PricedAssetRepository(
+    KapeaDbContext context,
+    IOptions<PriceHistoryOptions> options) : IPricedAssetRepository
 {
     public async Task<IReadOnlyList<PricedAsset>> ListAsync(CancellationToken cancellationToken = default)
     {
@@ -109,7 +112,12 @@ public sealed class PricedAssetRepository(KapeaDbContext context) : IPricedAsset
                     open.Contains(asset.Id) || watched.Contains(asset.Id) || !moved.ContainsKey(asset.Id)
                         ? null
                         : DateOnly.FromDateTime(moved[asset.Id].Last.UtcDateTime),
-                    asset.ProviderId))
+                    asset.ProviderId,
+
+                    // Hasta dónde interesa llegar. Lo de arriba sigue siendo el mínimo
+                    // que hay que cubrir; esto es el suelo, y se pide cuando lo urgente
+                    // ya está.
+                    options.Value.EarliestFrom))
                 .OrderBy(asset => asset.CanonicalSymbol, StringComparer.Ordinal),
         ];
     }

@@ -80,6 +80,7 @@ señaladas abajo.
 | `DataProtection:KeyUri` | — | Clave de Key Vault que cifra esas claves |
 | `DataProtection:KeysPath` | — | Directorio donde guardar las claves de sesión |
 | `Synchronization:Interval` | `06:00:00` | Cada cuánto sincroniza el proceso `sync` |
+| `PriceHistory:EarliestFrom` | `2000-01-01` | Desde cuándo se quiere el histórico de precios |
 | `MappingProposals:AzureOpenAi:Endpoint` | — | Punto de acceso del servicio de modelos |
 | `MappingProposals:AzureOpenAi:Deployment` | — | Despliegue del modelo |
 | `MappingProposals:AzureOpenAi:ApiKey` | — | Clave. Sin ella se usa la identidad del proceso |
@@ -293,7 +294,17 @@ No necesitan configuración ni claves.
 
 Los precios actuales se guardan un minuto en memoria para no repetir peticiones al
 cambiar de pantalla. El histórico se guarda en la base y lo completa el proceso de
-sincronización, hacia delante y hacia atrás hasta la primera compra de cada activo.
+sincronización: primero pone al día todos los activos y después rellena hacia atrás, para
+que el precio de hoy no espere a una descarga que puede durar horas.
+
+Se pide tanta historia como tengan las fuentes, hasta `PriceHistory:EarliestFrom`. Por
+debajo de eso se garantiza siempre lo que hace falta: desde la primera compra de cada
+activo y lo bastante atrás para evaluar los sistemas declarados. La primera pasada tras
+bajar esa fecha descarga años de golpe; las siguientes no piden nada.
+
+Cada activo recuerda hasta qué fecha se le ha pedido, y no sólo qué se ha guardado. Un
+activo que empezó a cotizar después de esa fecha no tiene historia anterior, y sin esa
+memoria su tramo vacío volvería a pedirse en cada vuelta.
 
 Un activo que ninguna fuente cotiza aparece *Sin precio*. Su valor no se suma al
 patrimonio y la pantalla lo avisa.
