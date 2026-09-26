@@ -290,6 +290,24 @@ internal sealed class DailyPriceConfiguration : IEntityTypeConfiguration<Domain.
     }
 }
 
+/// <summary>
+/// Hasta dónde se pidió la serie de cada activo. Una fila por activo: no interesa el
+/// historial de peticiones, sólo el tramo que entre todas ya abarcan.
+/// </summary>
+internal sealed class PriceHistoryReachConfiguration
+    : IEntityTypeConfiguration<Domain.MarketData.PriceHistoryReach>
+{
+    public void Configure(EntityTypeBuilder<Domain.MarketData.PriceHistoryReach> builder)
+    {
+        builder.ToTable("PriceHistoryReaches");
+        builder.HasKey(reach => reach.AssetId);
+
+        builder.Property(reach => reach.RequestedFrom).IsRequired();
+        builder.Property(reach => reach.RequestedTo).IsRequired();
+        builder.Property(reach => reach.RequestedWith).HasMaxLength(64);
+    }
+}
+
 /// <summary>Tipos publicados. La clave es divisa y fecha, que es lo que hace idempotente la reingesta.</summary>
 internal sealed class DailyRateConfiguration : IEntityTypeConfiguration<Domain.Exchange.DailyRate>
 {

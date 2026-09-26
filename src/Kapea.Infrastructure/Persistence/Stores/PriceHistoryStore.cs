@@ -75,6 +75,49 @@ public sealed class PriceHistoryStore(KapeaDbContext context) : IPriceHistorySto
             .ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, PriceHistoryReach>> GetReachAsync(
+        IReadOnlyCollection<Guid> assetIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(assetIds);
+
+        if (assetIds.Count == 0)
+        {
+            return new Dictionary<Guid, PriceHistoryReach>();
+        }
+
+        return await context.PriceHistoryReaches
+            .Where(reach => assetIds.Contains(reach.AssetId))
+            .ToDictionaryAsync(reach => reach.AssetId, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task RecordReachAsync(PriceHistoryReach reach, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(reach);
+
+        var stored = await context.PriceHistoryReaches
+            .SingleOrDefaultAsync(entry => entry.AssetId == reach.AssetId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (stored is null)
+        {
+            context.PriceHistoryReaches.Add(reach);
+        }
+        else
+        {
+            // Cuando se preguntó por otro activo del proveedor, lo anterior no dice nada
+            // de lo que ahora se pide: se reemplaza en lugar de ampliarse.
+            var merged = stored.AnswersFor(reach.RequestedWith)
+                ? stored.Including(reach.RequestedFrom, reach.RequestedTo)
+                : reach;
+
+            context.Entry(stored).CurrentValues.SetValues(merged);
+        }
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Guarda la serie descargada.
     /// </summary>

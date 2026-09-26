@@ -86,6 +86,14 @@ public class ClosingPricesTests
                     .GroupBy(price => price.AssetId)
                     .ToDictionary(group => group.Key, group => (IReadOnlyList<DailyPrice>)[.. group]));
 
+        public Task<IReadOnlyDictionary<Guid, PriceHistoryReach>> GetReachAsync(
+            IReadOnlyCollection<Guid> assetIds, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PriceHistoryReach>>(
+                new Dictionary<Guid, PriceHistoryReach>());
+
+        public Task RecordReachAsync(PriceHistoryReach reach, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
         public Task<IReadOnlyDictionary<Guid, StoredRange>> GetStoredRangeAsync(
             IReadOnlyCollection<Guid> assetIds, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyDictionary<Guid, StoredRange>>(

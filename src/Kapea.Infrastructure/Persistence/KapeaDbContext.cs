@@ -58,6 +58,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
     public DbSet<Domain.MarketData.DailyPrice> DailyPrices => Set<Domain.MarketData.DailyPrice>();
 
+    public DbSet<Domain.MarketData.PriceHistoryReach> PriceHistoryReaches => Set<Domain.MarketData.PriceHistoryReach>();
+
     public DbSet<Domain.Strategies.Strategy> Strategies => Set<Domain.Strategies.Strategy>();
 
     public DbSet<Domain.Strategies.EmittedSignal> EmittedSignals => Set<Domain.Strategies.EmittedSignal>();
@@ -91,7 +93,8 @@ public sealed class KapeaDbContext(DbContextOptions<KapeaDbContext> options, ICu
 
         // Filtro global de propiedad. Es una red de seguridad, no la única defensa: aun
         // así toda consulta debería filtrar, pero una que se olvide no devuelve datos
-        // ajenos. Assets, DailyRates y DailyPrices quedan fuera a propósito: son catálogos
+        // ajenos. Assets, DailyRates, DailyPrices y PriceHistoryReaches quedan fuera a
+        // propósito: son catálogos
         // globales sin información de nadie.
         modelBuilder.Entity<PlatformAccount>().HasQueryFilter(account => account.UserId == CurrentUserId);
         // Dos filtros con nombre en los movimientos, para poder quitar uno sin el otro. El

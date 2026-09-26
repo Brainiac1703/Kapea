@@ -1,5 +1,6 @@
 using Kapea.Application.Abstractions;
 using Kapea.Domain.Assets;
+using Kapea.Domain.MarketData;
 using Kapea.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
@@ -31,13 +32,31 @@ public interface IPricedAssetRepository
 /// Identificador con el que el proveedor conoce el activo, cuando se sabe. Vacío en lo
 /// que entró importando movimientos, que se resuelve por su símbolo.
 /// </param>
+/// <param name="DesiredFrom">
+/// Hasta dónde se quiere la serie, que es todo lo que el proveedor tenga.
+/// </param>
+/// <remarks>
+/// Dos fechas y no una porque responden a cosas distintas. <see cref="FirstHeldOn"/> es
+/// el mínimo que hay que cubrir para poder valorar lo que se tuvo y evaluar los sistemas
+/// declarados; <see cref="DesiredFrom"/> es hasta dónde interesa llegar. Lo primero
+/// corre prisa y lo segundo no, y por eso se piden en momentos distintos.
+///
+/// Sin <see cref="DesiredFrom"/>, no hay serie, se pide desde el mínimo, que es lo que
+/// se hacía antes de querer más historia.
+/// </remarks>
 public sealed record PricedAsset(
     Guid AssetId,
     string CanonicalSymbol,
     AssetClass Class,
     DateOnly FirstHeldOn,
     DateOnly? LastHeldOn = null,
-    string? ProviderId = null);
+    string? ProviderId = null,
+    DateOnly? DesiredFrom = null)
+{
+    /// <summary>El día más antiguo que se llegará a pedir, cubriendo siempre el mínimo.</summary>
+    public DateOnly Earliest =>
+        DesiredFrom is { } wanted && wanted < FirstHeldOn ? wanted : FirstHeldOn;
+}
 
 /// <summary>Lo que dejó una pasada del relleno.</summary>
 public sealed record PriceHistoryUpdate(int Assets, int DaysWritten, int AssetsWithoutCoverage);
@@ -71,30 +90,69 @@ public sealed class PriceHistoryUpdater(
     /// </remarks>
     private static readonly Currency Dollar = Currency.FromCode("USD");
 
-    /// <summary>Los tramos de días que la serie todavía no cubre.</summary>
-    private static IEnumerable<(DateOnly From, DateOnly To)> Missing(
+    /// <summary>Un tramo por pedir, y si es de los que corren prisa o de los que no.</summary>
+    /// <param name="IsBackfill">Historia antigua: interesa, pero puede esperar.</param>
+    private readonly record struct Gap(DateOnly From, DateOnly To, bool IsBackfill);
+
+    /// <summary>
+    /// Los tramos de días que todavía hay que pedir.
+    /// </summary>
+    /// <remarks>
+    /// Hacia atrás manda lo pedido y no lo guardado. Un activo que empezó a cotizar
+    /// después del suelo devuelve su primera cotización y nada antes; si el tramo
+    /// anterior se decidiera por lo guardado, seguiría pareciendo un hueco y volvería a
+    /// pedirse en cada vuelta, para siempre y sin que nada lo delatara.
+    ///
+    /// Hacia delante manda lo guardado, porque el cierre de hoy puede no existir todavía
+    /// cuando se pregunta: darlo por pedido dejaría la serie un día corta hasta mañana.
+    /// </remarks>
+    private static IEnumerable<Gap> Missing(
         PricedAsset asset,
         StoredRange? covered,
+        PriceHistoryReach? reach,
         DateOnly until)
     {
-        if (covered is null)
+        // Lo pedido con otro identificador no dice nada de lo que ahora se pide: se
+        // estaba preguntando por otro activo del proveedor.
+        var asked = reach is not null && reach.AnswersFor(asset.ProviderId) ? reach : null;
+        var lastKnown = covered?.Last ?? asked?.RequestedTo;
+        var earliestAsked = asked?.RequestedFrom ?? covered?.First;
+
+        if (lastKnown is null)
         {
+            // Nada todavía. El mínimo va primero y entero, para que el activo sirva ya.
             if (asset.FirstHeldOn <= until)
             {
-                yield return (asset.FirstHeldOn, until);
+                yield return new Gap(asset.FirstHeldOn, until, IsBackfill: false);
+            }
+
+            if (asset.Earliest < asset.FirstHeldOn)
+            {
+                yield return new Gap(asset.Earliest, asset.FirstHeldOn.AddDays(-1), IsBackfill: true);
             }
 
             yield break;
         }
 
-        if (asset.FirstHeldOn < covered.First)
+        if (earliestAsked is { } first)
         {
-            yield return (asset.FirstHeldOn, covered.First.AddDays(-1));
+            // Lo que falte del mínimo sigue corriendo prisa; lo de más atrás, no.
+            var covers = first < asset.FirstHeldOn ? first : asset.FirstHeldOn;
+
+            if (asset.FirstHeldOn < first)
+            {
+                yield return new Gap(asset.FirstHeldOn, first.AddDays(-1), IsBackfill: false);
+            }
+
+            if (asset.Earliest < covers)
+            {
+                yield return new Gap(asset.Earliest, covers.AddDays(-1), IsBackfill: true);
+            }
         }
 
-        if (covered.Last < until)
+        if (lastKnown.Value < until)
         {
-            yield return (covered.Last.AddDays(1), until);
+            yield return new Gap(lastKnown.Value.AddDays(1), until, IsBackfill: false);
         }
     }
 
@@ -109,52 +167,103 @@ public sealed class PriceHistoryUpdater(
 
         var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
+        // Desde el suelo y no desde el mínimo: sin el tipo del día, un precio en dólares
+        // no se puede convertir y ese día se queda fuera de la serie. Pedir los tipos más
+        // tarde que los precios cortaría la historia de todo lo que cotiza en dólares sin
+        // que el proveedor de precios tuviera nada que ver.
         await exchangeRates
-            .EnsureAsync(Dollar, priced.Min(asset => asset.FirstHeldOn), today, cancellationToken)
+            .EnsureAsync(Dollar, priced.Min(asset => asset.Earliest), today, cancellationToken)
             .ConfigureAwait(false);
 
-        var stored = await store
-            .GetStoredRangeAsync([.. priced.Select(asset => asset.AssetId)], cancellationToken)
-            .ConfigureAwait(false);
+        var ids = priced.Select(asset => asset.AssetId).ToList();
+        var stored = new Dictionary<Guid, StoredRange>(
+            await store.GetStoredRangeAsync(ids, cancellationToken).ConfigureAwait(false));
+        var reached = new Dictionary<Guid, PriceHistoryReach>(
+            await store.GetReachAsync(ids, cancellationToken).ConfigureAwait(false));
 
         var written = 0;
-        var uncovered = 0;
+        var backfilled = 0;
 
-        foreach (var asset in priced)
+        // Dos vueltas y no una: primero se pone al día todo y después se rellena hacia
+        // atrás. Hacer cada activo entero dejaría al último sin precio de hoy hasta
+        // terminar los anteriores, y sin ninguno si la cuota se agota antes. Lo urgente
+        // cabe siempre, y lo que se queda a medias es lo que puede esperar.
+        foreach (var backfilling in new[] { false, true })
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var covered = stored.GetValueOrDefault(asset.AssetId);
-            var until = asset.LastHeldOn is { } sold && sold < today ? sold : today;
-            var downloaded = 0;
-
-            // Dos tramos y no uno: lo que falta al final, que es lo habitual, y lo que
-            // falte al principio, que aparece cuando la serie se descargó con un
-            // proveedor que entonces no llegaba tan atrás.
-            foreach (var (from, to) in Missing(asset, covered, until))
+            foreach (var asset in priced)
             {
-                var prices = await provider
-                    .GetHistoryAsync(
-                        new PriceHistoryRequest(
-                            asset.AssetId, asset.CanonicalSymbol, asset.Class, from, to, asset.ProviderId),
-                        cancellationToken)
-                    .ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
 
-                downloaded += prices.Count;
-                written += await store.UpsertAsync([.. prices], cancellationToken).ConfigureAwait(false);
-            }
+                var until = asset.LastHeldOn is { } sold && sold < today ? sold : today;
+                var gaps = Missing(asset, stored.GetValueOrDefault(asset.AssetId), reached.GetValueOrDefault(asset.AssetId), until)
+                    .Where(gap => gap.IsBackfill == backfilling)
+                    .ToList();
 
-            // Sin cobertura es no tener ni un día, no que hoy todavía no haya cerrado:
-            // contar lo segundo haría parecer rota una serie que está al día.
-            if (downloaded == 0 && covered is null)
-            {
-                uncovered++;
+                foreach (var gap in gaps)
+                {
+                    var prices = await provider
+                        .GetHistoryAsync(
+                            new PriceHistoryRequest(
+                                asset.AssetId, asset.CanonicalSymbol, asset.Class, gap.From, gap.To, asset.ProviderId),
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                    var savedDays = await store.UpsertAsync([.. prices], cancellationToken).ConfigureAwait(false);
+                    written += savedDays;
+
+                    if (backfilling)
+                    {
+                        backfilled += savedDays;
+
+                        // La primera pasada dura horas y no se ve desde ninguna pantalla:
+                        // sin esto, saber por dónde va exige mirar la base de datos.
+                        logger.LogInformation(
+                            "Relleno de {Activo}: {Dias} días entre {Desde} y {Hasta}.",
+                            asset.CanonicalSymbol, savedDays, gap.From, gap.To);
+                    }
+
+                    // Se deja constancia aunque no haya venido nada: ese es justamente el
+                    // tramo que no hay que volver a pedir.
+                    var asked = reached.TryGetValue(asset.AssetId, out var previous)
+                        && previous.AnswersFor(asset.ProviderId)
+                        ? previous.Including(gap.From, gap.To)
+                        : PriceHistoryReach.Of(asset.AssetId, gap.From, gap.To, asset.ProviderId);
+
+                    await store.RecordReachAsync(asked, cancellationToken).ConfigureAwait(false);
+
+                    reached[asset.AssetId] = asked;
+
+                    if (prices.Count > 0)
+                    {
+                        var first = prices.Min(price => price.Date);
+                        var last = prices.Max(price => price.Date);
+
+                        stored[asset.AssetId] = stored.TryGetValue(asset.AssetId, out var range)
+                            ? new StoredRange(
+                                first < range.First ? first : range.First,
+                                last > range.Last ? last : range.Last)
+                            : new StoredRange(first, last);
+                    }
+                }
             }
         }
 
+        // Sin cobertura es no tener ni un día, no que falte historia antigua: un activo
+        // que empezó a cotizar después del suelo tiene toda la serie que puede tener.
+        var uncovered = priced.Count(asset => !stored.ContainsKey(asset.AssetId));
+
+        var pending = priced.Count(asset =>
+            Missing(
+                asset,
+                stored.GetValueOrDefault(asset.AssetId),
+                reached.GetValueOrDefault(asset.AssetId),
+                asset.LastHeldOn is { } sold && sold < today ? sold : today)
+            .Any(gap => gap.IsBackfill));
+
         logger.LogInformation(
-            "Histórico de precios al día: {Dias} días nuevos de {Activos} activos, {Sin} sin cobertura.",
-            written, priced.Count, uncovered);
+            "Histórico de precios al día: {Dias} días nuevos de {Activos} activos, "
+            + "{Relleno} de historia antigua, {Pendientes} activos con relleno pendiente, {Sin} sin cobertura.",
+            written, priced.Count, backfilled, pending, uncovered);
 
         return new PriceHistoryUpdate(priced.Count, written, uncovered);
     }

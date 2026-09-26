@@ -165,6 +165,188 @@ public class PriceHistoryUpdaterTests
         Assert.Single(store.Written);
     }
 
+    [Fact]
+    public async Task History_below_what_was_already_asked_for_is_asked_for_once()
+    {
+        // El caso que obliga a recordar lo pedido: se pide desde 2000, el proveedor sólo
+        // tiene desde 2026, y sin memoria el hueco de veintiséis años volvería a pedirse
+        // en cada vuelta sin que nada lo delatara.
+        var provider = new Provider();
+        var store = new Store();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
+        store.Reached[Bitcoin] = new PriceHistoryReach(
+            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10), null);
+
+        var updater = Wanting(provider, store, new DateOnly(2000, 1, 1));
+
+        await updater.UpdateAsync();
+
+        var first = Assert.Single(provider.Asked);
+
+        Assert.Equal(new DateOnly(2000, 1, 1), first.From);
+        Assert.Equal(new DateOnly(2026, 1, 19), first.To);
+
+        // Segunda vuelta: ya se pidió, aunque no viniera nada.
+        provider.Asked.Clear();
+        await Wanting(provider, store, new DateOnly(2000, 1, 1)).UpdateAsync();
+
+        Assert.Empty(provider.Asked);
+    }
+
+    [Fact]
+    public async Task Lowering_the_floor_again_only_asks_for_the_new_stretch()
+    {
+        var provider = new Provider();
+        var store = new Store();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
+        store.Reached[Bitcoin] = new PriceHistoryReach(
+            Bitcoin, new DateOnly(2020, 1, 1), new DateOnly(2026, 3, 10), null);
+
+        await Wanting(provider, store, new DateOnly(2010, 1, 1)).UpdateAsync();
+
+        var asked = Assert.Single(provider.Asked);
+
+        Assert.Equal(new DateOnly(2010, 1, 1), asked.From);
+        Assert.Equal(new DateOnly(2019, 12, 31), asked.To);
+    }
+
+    [Fact]
+    public async Task What_was_asked_for_with_another_provider_identifier_does_not_count()
+    {
+        // El identificador puede llegar después, al seguir el activo desde una búsqueda.
+        // Desde entonces se pregunta por otra cosa, así que lo pedido antes no dice nada.
+        var provider = new Provider();
+        var store = new Store();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
+        store.Reached[Bitcoin] = new PriceHistoryReach(
+            Bitcoin, new DateOnly(2000, 1, 1), new DateOnly(2026, 3, 10), "otro-identificador");
+
+        await Wanting(provider, store, new DateOnly(2000, 1, 1)).UpdateAsync();
+
+        Assert.Equal(new DateOnly(2000, 1, 1), Assert.Single(provider.Asked).From);
+    }
+
+    [Fact]
+    public async Task An_asset_whose_history_starts_later_is_not_counted_as_uncovered()
+    {
+        // Sin cobertura es no tener ni un día. Un activo que empezó a cotizar después
+        // del suelo tiene toda la serie que puede tener.
+        var provider = new Provider(new DateOnly(2026, 2, 1));
+        var store = new Store();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 2, 1), new DateOnly(2026, 3, 10));
+
+        var update = await Wanting(provider, store, new DateOnly(2000, 1, 1)).UpdateAsync();
+
+        Assert.Equal(0, update.AssetsWithoutCoverage);
+    }
+
+    [Fact]
+    public async Task An_asset_with_no_day_at_all_is_still_counted_as_uncovered()
+    {
+        var update = await Wanting(new Provider(), new Store(), new DateOnly(2000, 1, 1)).UpdateAsync();
+
+        Assert.Equal(1, update.AssetsWithoutCoverage);
+    }
+
+    [Fact]
+    public async Task Everything_is_brought_up_to_date_before_any_backfill_starts()
+    {
+        // Rellenar activo por activo dejaría al último sin precio de hoy hasta terminar
+        // los anteriores, y sin ninguno si la cuota se agota antes.
+        var provider = new Provider();
+        var store = new Store();
+        var second = Guid.NewGuid();
+
+        foreach (var asset in new[] { Bitcoin, second })
+        {
+            store.Covered[asset] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8));
+            store.Reached[asset] = new PriceHistoryReach(
+                asset, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8), null);
+        }
+
+        await new PriceHistoryUpdater(
+            new Assets(
+            [
+                Priced(Bitcoin, "BTC", new DateOnly(2000, 1, 1)),
+                Priced(second, "ETH", new DateOnly(2000, 1, 1)),
+            ]),
+            store,
+            provider,
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance).UpdateAsync();
+
+        // Las dos puestas al día primero, y sólo después los dos rellenos.
+        Assert.Equal(
+            [false, false, true, true],
+            provider.Asked.Select(request => request.From < new DateOnly(2026, 1, 20)));
+    }
+
+    [Fact]
+    public async Task A_provider_that_stops_responding_keeps_what_was_already_downloaded()
+    {
+        var store = new Store();
+        var second = Guid.NewGuid();
+
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8));
+        store.Reached[Bitcoin] = new PriceHistoryReach(
+            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 8), null);
+
+        var updater = new PriceHistoryUpdater(
+            new Assets(
+            [
+                Priced(Bitcoin, "BTC", new DateOnly(2000, 1, 1)),
+                Priced(second, "ETH", new DateOnly(2000, 1, 1)),
+            ]),
+            store,
+            new FailingProvider(second, new DateOnly(2026, 3, 9)),
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance);
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => updater.UpdateAsync());
+
+        // Lo del primer activo está guardado, y consta pedido para no repetirlo.
+        Assert.NotEmpty(store.Written);
+        Assert.True(store.Reached.ContainsKey(Bitcoin));
+    }
+
+    [Fact]
+    public async Task Exchange_rates_are_ensured_down_to_the_floor_and_not_to_the_minimum()
+    {
+        // Un precio en dólares sin el tipo de ese día se queda fuera de la serie. Pedir
+        // los tipos más tarde que los precios cortaría la historia de todo lo que cotiza
+        // en dólares, y parecería culpa del proveedor de precios.
+        var rates = new RecordingRates();
+
+        await new PriceHistoryUpdater(
+            new Assets([Priced(Bitcoin, "BTC", new DateOnly(2000, 1, 1))]),
+            new Store(),
+            new Provider(),
+            new ExchangeRateIngestion(rates, new NoRateStore(), NullLogger<ExchangeRateIngestion>.Instance),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance).UpdateAsync();
+
+        Assert.Equal(new DateOnly(2000, 1, 1), Assert.Single(rates.Asked).From);
+    }
+
+    /// <summary>El actualizador del activo de siempre, con un suelo al que llegar.</summary>
+    private static PriceHistoryUpdater Wanting(IPriceHistoryProvider provider, Store store, DateOnly from) =>
+        new(
+            new Assets([Priced(Bitcoin, "BTC", from)]),
+            store,
+            provider,
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance);
+
+    private static PricedAsset Priced(Guid id, string symbol, DateOnly wanted) =>
+        new(id, symbol, AssetClass.Crypto, new DateOnly(2026, 1, 20), null, null, wanted);
+
     private static FakeTimeProvider Clock()
     {
         var clock = new FakeTimeProvider();
@@ -203,6 +385,22 @@ public class PriceHistoryUpdaterTests
         public Task<IReadOnlyList<Kapea.Domain.Exchange.DailyRate>> FetchAsync(
             DateOnly from, DateOnly to, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Kapea.Domain.Exchange.DailyRate>>([]);
+    }
+
+    /// <summary>Fuente de tipos que apunta desde cuándo se le piden.</summary>
+    private sealed class RecordingRates : IExchangeRateSource
+    {
+        public string Name => "Prueba";
+
+        internal List<(DateOnly From, DateOnly To)> Asked { get; } = [];
+
+        public Task<IReadOnlyList<Kapea.Domain.Exchange.DailyRate>> FetchAsync(
+            DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+        {
+            Asked.Add((from, to));
+
+            return Task.FromResult<IReadOnlyList<Kapea.Domain.Exchange.DailyRate>>([]);
+        }
     }
 
     private sealed class NoRateStore : IExchangeRateStore
@@ -259,7 +457,20 @@ public class PriceHistoryUpdaterTests
     {
         internal Dictionary<Guid, StoredRange> Covered { get; } = [];
 
+        internal Dictionary<Guid, PriceHistoryReach> Reached { get; } = [];
+
         internal List<DailyPrice> Written { get; } = [];
+
+        public Task<IReadOnlyDictionary<Guid, PriceHistoryReach>> GetReachAsync(
+            IReadOnlyCollection<Guid> assetIds, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, PriceHistoryReach>>(Reached);
+
+        public Task RecordReachAsync(PriceHistoryReach reach, CancellationToken cancellationToken = default)
+        {
+            Reached[reach.AssetId] = reach;
+
+            return Task.CompletedTask;
+        }
 
         public Task<IReadOnlyList<DailyPrice>> GetAsync(
             Guid assetId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default) =>
