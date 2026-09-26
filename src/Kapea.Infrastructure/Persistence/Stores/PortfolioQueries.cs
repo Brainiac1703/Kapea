@@ -1026,7 +1026,7 @@ public sealed class PortfolioQueries(
 
     public async Task<AssetHistoryResponse?> GetAssetHistoryAsync(
         Guid assetId,
-        DateOnly from,
+        DateOnly? from,
         DateOnly to,
         int indicatorWindowDays,
         CancellationToken cancellationToken = default)
@@ -1040,8 +1040,24 @@ public sealed class PortfolioQueries(
             return null;
         }
 
+        // Sin fecha de inicio se enseña todo lo que hay. Se resuelve aquí y no en quien
+        // pregunta porque depende del activo: uno tiene veinte años y otro tres meses.
+        var desde = from ?? (await priceHistory
+            .GetStoredRangeAsync([assetId], cancellationToken)
+            .ConfigureAwait(false))
+            .GetValueOrDefault(assetId)?.First ?? to;
+
+        // La cotización se pide aparte de lo que alimenta la reconstrucción de la
+        // cartera. Ampliar aquella lista haría que consultar una gráfica cambiara el
+        // valor del patrimonio, que es lo último que nadie espera de mirar un gráfico.
+        var quotes = await priceHistory
+            .GetAsync(assetId, desde, to, cancellationToken)
+            .ConfigureAwait(false);
+
         var days = PortfolioHistory.ForAsset(
-            await DaysAsync(from, to, cancellationToken).ConfigureAwait(false), assetId);
+            await DaysAsync(desde, to, cancellationToken).ConfigureAwait(false),
+            assetId,
+            quotes.ToDictionary(price => price.Date, price => Money.Euros(price.PriceInEuros)));
 
         // Los indicadores se calculan solo sobre los días con precio: rellenar los huecos
         // daría una media de lo que dice el relleno, no de lo que hizo el mercado.

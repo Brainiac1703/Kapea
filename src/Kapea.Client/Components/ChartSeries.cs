@@ -30,3 +30,59 @@ public sealed record ChartLine(string Name, IReadOnlyList<ChartPoint> Points, st
     public static string SeriesAt(int index) =>
         index is >= 0 and < DistinctSeries ? $"series-{index}" : "series-other";
 }
+
+/// <summary>
+/// Cuántos puntos de una serie se llegan a dibujar.
+/// </summary>
+/// <remarks>
+/// El dibujo mide mil unidades de ancho, así que más de mil puntos se pisan entre sí.
+/// Sin tope, veintiséis años de una acción salían en más de mil polilíneas —una por cada
+/// fin de semana— y la pantalla tardaba decenas de segundos en responder para distinguir
+/// posiciones que no llegan a un píxel.
+///
+/// Se reduce lo que se pinta, nunca lo que se calcula ni lo que se lee al pasar el ratón:
+/// una media no puede cambiar porque la gráfica dibuje menos puntos.
+/// </remarks>
+public static class ChartSampling
+{
+    /// <summary>
+    /// Los puntos que se dibujan, agrupados por tramos consecutivos si son demasiados.
+    /// </summary>
+    /// <remarks>
+    /// De cada tramo sale un punto con valor, si lo hay. Un tramo entero sin valor sigue
+    /// siendo un hueco: así una serie que se interrumpió de verdad se ve cortada, y un
+    /// fin de semana suelto deja de partir la línea cuando se miran años.
+    /// </remarks>
+    public static IReadOnlyList<ChartPoint> Reduce(IReadOnlyList<ChartPoint> points, int maximum)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximum, 1);
+
+        if (points.Count <= maximum)
+        {
+            return points;
+        }
+
+        var step = (int)Math.Ceiling((double)points.Count / maximum);
+        var drawn = new List<ChartPoint>((points.Count / step) + 1);
+
+        for (var index = 0; index < points.Count; index += step)
+        {
+            var chosen = points[index];
+
+            for (var offset = 0; offset < step && index + offset < points.Count; offset++)
+            {
+                if (points[index + offset].Value is not null)
+                {
+                    chosen = points[index + offset];
+
+                    break;
+                }
+            }
+
+            drawn.Add(chosen);
+        }
+
+        return drawn;
+    }
+}

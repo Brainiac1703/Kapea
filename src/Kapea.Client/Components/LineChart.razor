@@ -172,11 +172,14 @@ else
             : Ui["Charts_NoValue"];
 
     /// <summary>Tramos continuos de una línea, en coordenadas del dibujo.</summary>
+    /// <summary>Cuántos puntos se llegan a dibujar de una línea. Ver <see cref="ChartSampling"/>.</summary>
+    private const int MaxDrawnPoints = Width;
+
     private IEnumerable<string> Segments(ChartLine line)
     {
         var segment = new List<string>();
 
-        foreach (var point in line.Points.OrderBy(point => point.Date))
+        foreach (var point in ChartSampling.Reduce([.. line.Points.OrderBy(point => point.Date)], MaxDrawnPoints))
         {
             if (point.Value is not { } value)
             {
