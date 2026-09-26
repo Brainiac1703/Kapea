@@ -381,11 +381,16 @@ public sealed record TransactionPageResponse(
 /// <summary>Un día de la evolución de la cartera.</summary>
 /// <param name="ContributionInEuros">Aportado menos retirado ese día, que no es rendimiento.</param>
 /// <param name="IsComplete">Falso cuando falta el precio de algún activo con posición.</param>
+/// <param name="HasCarriedPrices">
+/// Alguna posición se ha valorado con el cierre de un día anterior, porque su mercado
+/// no cotizó. El valor es correcto, pero no es un dato nuevo de ese día.
+/// </param>
 public sealed record PortfolioHistoryDayResponse(
     DateOnly Date,
     decimal ValueInEuros,
     decimal ContributionInEuros,
-    bool IsComplete);
+    bool IsComplete,
+    bool HasCarriedPrices = false);
 
 /// <summary>La evolución de la cartera en un periodo.</summary>
 /// <param name="IncompleteDays">Cuántos días les falta algún precio.</param>
@@ -398,11 +403,13 @@ public sealed record PortfolioHistoryResponse(
 public sealed record ClassHistoryDayResponse(DateOnly Date, IReadOnlyDictionary<string, decimal> ValueByClass);
 
 /// <summary>Un día de la evolución de un activo. Sin precio, el valor viaja vacío.</summary>
+/// <param name="CarriedFrom">De qué día viene el precio, cuando no es del día valorado.</param>
 public sealed record AssetHistoryDayResponse(
     DateOnly Date,
     decimal Quantity,
     decimal? PriceInEuros,
-    decimal? ValueInEuros);
+    decimal? ValueInEuros,
+    DateOnly? CarriedFrom = null);
 
 /// <summary>La evolución de un activo con sus indicadores.</summary>
 public sealed record AssetHistoryResponse(

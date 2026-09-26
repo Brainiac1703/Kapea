@@ -39,6 +39,19 @@ public interface IPriceHistoryStore
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// El último precio de cada activo anterior a una fecha, si lo hay.
+    /// </summary>
+    /// <remarks>
+    /// Hace falta para valorar un día de mercado cerrado que caiga al principio del
+    /// rango pedido: sin mirar antes de él no habría cierre del que tirar, y un rango
+    /// que empezara en sábado saldría incompleto sin motivo.
+    /// </remarks>
+    Task<IReadOnlyDictionary<Guid, DailyPrice>> GetLastBeforeAsync(
+        IReadOnlyCollection<Guid> assetIds,
+        DateOnly date,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Hasta dónde se ha pedido la serie de cada activo, o su ausencia si nunca se pidió.
     /// </summary>
     /// <remarks>

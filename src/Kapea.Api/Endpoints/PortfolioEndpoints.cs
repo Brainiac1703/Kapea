@@ -407,13 +407,16 @@ public static class PortfolioEndpoints
         api.MapGet("/portfolio/history", (
             DateOnly? from,
             DateOnly? to,
+            bool? all,
             IPortfolioQueries queries,
             TimeProvider time,
             CancellationToken token) =>
         {
             var (desde, hasta) = Range(from, to, time);
 
-            return queries.GetHistoryAsync(desde, hasta, token);
+            // Pedirlo todo no es pedir un número grande de días: cuánto hay depende de
+            // cuándo empezó la cartera, así que lo resuelve quien la conoce.
+            return queries.GetHistoryAsync(all == true ? null : desde, hasta, token);
         });
 
         api.MapGet("/portfolio/performance", (

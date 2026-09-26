@@ -998,11 +998,15 @@ public sealed class PortfolioQueries(
     /// que pueda quedarse vieja cuando entre una importación con fecha anterior.
     /// </remarks>
     public async Task<PortfolioHistoryResponse> GetHistoryAsync(
-        DateOnly from,
+        DateOnly? from,
         DateOnly to,
         CancellationToken cancellationToken = default)
     {
-        var days = await DaysAsync(from, to, cancellationToken).ConfigureAwait(false);
+        // Sin fecha de inicio se enseña desde el primer movimiento. Cuánto hay depende de
+        // la cartera, así que lo resuelve quien la conoce y no quien pregunta.
+        var desde = from ?? await FirstMovementAsync(to, cancellationToken).ConfigureAwait(false);
+
+        var days = await DaysAsync(desde, to, cancellationToken).ConfigureAwait(false);
 
         var classes = await context.Assets
             .ToDictionaryAsync(asset => asset.Id, asset => asset.Class, cancellationToken)
@@ -1014,7 +1018,8 @@ public sealed class PortfolioQueries(
                     day.Date,
                     day.ValueInEuros.Amount,
                     day.NetContributionInEuros.Amount,
-                    day.IsComplete)),
+                    day.IsComplete,
+                    day.HasCarriedPrices)),
             ],
             [
                 .. PortfolioHistory.ByClass(days, classes).Select(day => new ClassHistoryDayResponse(
@@ -1071,7 +1076,7 @@ public sealed class PortfolioQueries(
             asset.CanonicalSymbol,
             [
                 .. days.Select(day => new AssetHistoryDayResponse(
-                    day.Date, day.Quantity.Value, day.PriceInEuros?.Amount, day.ValueInEuros?.Amount)),
+                    day.Date, day.Quantity.Value, day.PriceInEuros?.Amount, day.ValueInEuros?.Amount, day.CarriedFrom)),
             ],
             Points(TechnicalIndicators.SimpleMovingAverage(series, indicatorWindowDays)),
             Points(TechnicalIndicators.ExponentialMovingAverage(series, indicatorWindowDays)),
@@ -1081,6 +1086,24 @@ public sealed class PortfolioQueries(
 
     private static IReadOnlyList<IndicatorPointResponse> Points(IReadOnlyList<IndicatorPoint> points) =>
         [.. points.Select(point => new IndicatorPointResponse(point.Date, point.Value))];
+
+    /// <summary>
+    /// El día del primer movimiento, o el final del rango si no hay ninguno.
+    /// </summary>
+    /// <remarks>
+    /// Sin movimientos no hay nada que enseñar, y devolver un solo día vacío lo dice sin
+    /// necesidad de un caso aparte en quien pregunta.
+    /// </remarks>
+    private async Task<DateOnly> FirstMovementAsync(DateOnly to, CancellationToken cancellationToken)
+    {
+        var first = await context.Transactions
+            .OrderBy(transaction => transaction.OccurredAt.Instant)
+            .Select(transaction => (DateTimeOffset?)transaction.OccurredAt.Instant)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return first is { } instant ? DateOnly.FromDateTime(instant.UtcDateTime) : to;
+    }
 
     private async Task<IReadOnlyList<PortfolioDay>> DaysAsync(
         DateOnly from,
@@ -1098,8 +1121,26 @@ public sealed class PortfolioQueries(
 
         var prices = await priceHistory.GetAsync(assetIds, from, to, cancellationToken).ConfigureAwait(false);
 
+        // La clase decide de qué mercado es cada activo, que es lo que permite deducir
+        // qué días no cotizó. El cierre anterior al rango permite arrastrarlo el primer
+        // día si cae en mercado cerrado.
+        var classes = await context.Assets
+            .Where(asset => assetIds.Contains(asset.Id))
+            .Select(asset => new { asset.Id, asset.Class })
+            .ToDictionaryAsync(asset => asset.Id, asset => asset.Class, cancellationToken)
+            .ConfigureAwait(false);
+
+        var priorCloses = await priceHistory
+            .GetLastBeforeAsync(assetIds, from, cancellationToken)
+            .ConfigureAwait(false);
+
         return PortfolioHistory.Build(
-            PortfolioCalculationService.Value(transactions, transfers), prices, from, to);
+            PortfolioCalculationService.Value(transactions, transfers),
+            prices,
+            from,
+            to,
+            classes,
+            priorCloses);
     }
 
     /// <summary>
