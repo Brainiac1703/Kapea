@@ -367,12 +367,17 @@ public sealed class KapeaApiClient(HttpClient http)
         return await ReadAsync<PortfolioResponse>(response, cancellationToken);
     }
 
-    /// <param name="days">Cuántos días atrás. Sin valor, el que decida el servidor.</param>
+    /// <param name="days">Cuántos días atrás. Sin valor y sin <paramref name="all"/>, el que decida el servidor.</param>
+    /// <param name="all">Desde el primer movimiento, sea cuando sea.</param>
     public async Task<PortfolioHistoryResponse> GetHistoryAsync(
         int? days = null,
+        bool all = false,
         CancellationToken cancellationToken = default)
     {
-        var response = await http.GetAsync(Range("api/portfolio/history", days), cancellationToken);
+        var path = Range("api/portfolio/history", all ? null : days);
+        var query = all ? $"{path}{(path.Contains('?', StringComparison.Ordinal) ? "&" : "?")}all=true" : path;
+
+        var response = await http.GetAsync(query, cancellationToken);
 
         return await ReadAsync<PortfolioHistoryResponse>(response, cancellationToken);
     }

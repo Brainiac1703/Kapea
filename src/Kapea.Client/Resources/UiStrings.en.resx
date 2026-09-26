@@ -838,6 +838,9 @@
   <data name="Evolution_ByClass" xml:space="preserve">
     <value>Split by asset class</value>
   </data>
+  <data name="Evolution_Carried" xml:space="preserve">
+    <value>On {0} days the market was closed, so positions are valued at their last close.</value>
+  </data>
   <data name="Evolution_Incomplete" xml:space="preserve">
     <value>{0} days are missing the price of some asset. Those days fall short.</value>
   </data>

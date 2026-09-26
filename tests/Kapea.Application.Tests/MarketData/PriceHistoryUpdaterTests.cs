@@ -461,6 +461,10 @@ public class PriceHistoryUpdaterTests
 
         internal List<DailyPrice> Written { get; } = [];
 
+        public Task<IReadOnlyDictionary<Guid, DailyPrice>> GetLastBeforeAsync(
+            IReadOnlyCollection<Guid> assetIds, DateOnly date, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, DailyPrice>>(new Dictionary<Guid, DailyPrice>());
+
         public Task<IReadOnlyDictionary<Guid, PriceHistoryReach>> GetReachAsync(
             IReadOnlyCollection<Guid> assetIds, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyDictionary<Guid, PriceHistoryReach>>(Reached);

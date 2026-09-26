@@ -75,6 +75,30 @@ public sealed class PriceHistoryStore(KapeaDbContext context) : IPriceHistorySto
             .ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, DailyPrice>> GetLastBeforeAsync(
+        IReadOnlyCollection<Guid> assetIds,
+        DateOnly date,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(assetIds);
+
+        if (assetIds.Count == 0)
+        {
+            return new Dictionary<Guid, DailyPrice>();
+        }
+
+        // Una fila por activo y no la serie entera: sólo interesa el cierre más reciente
+        // anterior a la fecha.
+        var last = await context.DailyPrices
+            .Where(price => assetIds.Contains(price.AssetId) && price.Date < date)
+            .GroupBy(price => price.AssetId)
+            .Select(group => group.OrderByDescending(price => price.Date).First())
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return last.ToDictionary(price => price.AssetId);
+    }
+
     public async Task<IReadOnlyDictionary<Guid, PriceHistoryReach>> GetReachAsync(
         IReadOnlyCollection<Guid> assetIds,
         CancellationToken cancellationToken = default)
