@@ -50,7 +50,15 @@ eso no sustituye a navegar después del despliegue sin volver a entrar.
 ## Observado de paso
 
 La API escribió 70.854 líneas en ocho horas, casi todas `Start processing HTTP
-request` de los monederos de Earn, que se piden uno a uno. No rompe nada, pero a
-ese ritmo Log Analytics cuesta dinero y encontrar un error de verdad ahí dentro
-es imposible. Conviene subir el nivel mínimo de `System.Net.Http.HttpClient` en
-producción.
+request` de los monederos de Earn —que se piden uno a uno— y `Executed DbCommand`
+de EF Core. No rompía nada, pero a ese ritmo Log Analytics cuesta dinero y
+encontrar un error de verdad ahí dentro es imposible.
+
+Arreglado bajando a `Warning` las dos categorías culpables,
+`System.Net.Http.HttpClient` y `Microsoft.EntityFrameworkCore.Database.Command`,
+en el `appsettings.json` de la API y del trabajador. Se devuelven a `Information`
+en el de desarrollo: en local esas dos son justo lo que se mira cuando algo no
+importa bien, y en producción son ruido que tapa los mensajes propios.
+
+Lo que cuenta la historia de una sincronización vive bajo `Kapea.*` y sigue en
+`Information`, así que la comprobación de arriba se podrá repetir igual.
