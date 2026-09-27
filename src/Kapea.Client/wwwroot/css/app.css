@@ -720,3 +720,43 @@ table.sample th {
     display: flex;
     min-height: 48px;
 }
+
+/* Los controles de las gráficas: botones cortos que quepan en una fila y, a la derecha,
+   los desplegables de lo que se cambia de vez en cuando. En una ventana estrecha la fila
+   salta de línea en lugar de desbordar. */
+.chart-controls {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+}
+
+.chart-controls fluent-button::part(control) {
+    min-width: 2.75rem;
+    padding-inline: 0.5rem;
+}
+
+.chart-controls fluent-select {
+    min-width: 8rem;
+}
+
+/* El recorrido del tramo. Verde y rojo con el mismo criterio que los importes: lo que
+   sube y lo que baja. El relleno translúcido deja ver la rejilla y las medias debajo. */
+.chart-candle-up {
+    fill: var(--kapea-positive);
+    stroke: var(--kapea-positive);
+}
+
+.chart-candle-down {
+    fill: var(--kapea-negative);
+    stroke: var(--kapea-negative);
+}
+
+/* Con muchos tramos la vela no se distingue, así que el recorrido se dibuja como una
+   banda: dice por dónde anduvo el precio sin competir con la línea del cierre.
+
+   Del color de la propia serie y no del de la rejilla: en tema oscuro la rejilla es casi
+   el fondo y la banda no se veía. */
+.chart-range {
+    fill: var(--kapea-series-1);
+    fill-opacity: 0.22;
+    stroke: none;
+}

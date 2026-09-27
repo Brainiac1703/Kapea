@@ -46,9 +46,18 @@
 }
 else
 {
+    @* Sin recorrido sólo se puede dibujar la línea, y conviene decir por qué en lugar
+       de dejar que parezca que la gráfica está a medias. *@
+    @if (!_history.HasRange)
+    {
+        <FluentMessageBar Intent="MessageIntent.Info" AllowDismiss="false">
+            @Ui["Asset_NoRange"]
+        </FluentMessageBar>
+    }
+
     @* El precio con sus medias encima: la media sola no dice nada, y el precio solo no
        deja ver la tendencia. *@
-    <LineChart Lines="@Price()" Title="@Ui["Asset_Price"]" />
+    <LineChart Lines="@Price()" Candles="@Candles()" Title="@Ui["Asset_Price"]" />
 
     <FluentLabel Typo="Typography.H4">@Ui["Asset_Strength"]</FluentLabel>
 
@@ -140,6 +149,30 @@ else
         new ChartLine(
             Ui["Asset_Exponential"], Points(_history.ExponentialMovingAverage), ChartLine.SeriesAt(2), Dashed: true),
     ];
+
+    /// <summary>
+    /// El recorrido de cada tramo, cuando el proveedor lo da.
+    /// </summary>
+    /// <remarks>
+    /// Un tramo al que le falte algún extremo se queda fuera en lugar de completarse con
+    /// el cierre: dibujaría una vela sin mechas que se leería como un día sin recorrido.
+    /// </remarks>
+    private IReadOnlyList<ChartCandle>? Candles() => _history!.HasRange
+        ?
+        [
+            .. _history.Days
+                .Where(day => day.OpenInEuros is not null
+                    && day.HighInEuros is not null
+                    && day.LowInEuros is not null
+                    && day.PriceInEuros is not null)
+                .Select(day => new ChartCandle(
+                    day.Date,
+                    day.OpenInEuros!.Value,
+                    day.HighInEuros!.Value,
+                    day.LowInEuros!.Value,
+                    day.PriceInEuros!.Value)),
+        ]
+        : null;
 
     private IReadOnlyList<ChartLine> Strength() =>
     [

@@ -931,6 +931,9 @@
   <data name="Asset_Strength" xml:space="preserve">
     <value>Relative strength</value>
   </data>
+  <data name="Asset_NoRange" xml:space="preserve">
+    <value>This asset has no highs or lows: its provider only gives each day’s close.</value>
+  </data>
   <data name="Asset_Window" xml:space="preserve">
     <value>Window</value>
   </data>

@@ -30,6 +30,29 @@ else
             }
             else
             {
+                @if (AsBand)
+                {
+                    @* Demasiadas velas para que se distingan: una banda dice por dónde
+                       anduvo el precio, y la línea del cierre va encima. *@
+                    <polygon points="@Band()" class="chart-range" />
+                }
+
+                @if (AsCandles)
+                {
+                    @foreach (var candle in Candles!)
+                    {
+                        <line x1="@N(X(candle.Date))" y1="@N(Y(candle.High))"
+                              x2="@N(X(candle.Date))" y2="@N(Y(candle.Low))"
+                              class="@(candle.Rose ? "chart-candle-up" : "chart-candle-down")" stroke-width="1" />
+
+                        @* Un cuerpo de altura cero no se vería, y un día que abre y
+                           cierra igual sí ocurrió: se dibuja como una raya. *@
+                        <rect x="@N(X(candle.Date) - (CandleWidth / 2))" y="@N(Body(candle).Top)"
+                              width="@N(CandleWidth)" height="@N(Body(candle).Height)"
+                              class="@(candle.Rose ? "chart-candle-up" : "chart-candle-down")" />
+                    }
+                }
+
                 @foreach (var line in Lines)
                 {
                     @* Cada tramo sin huecos va aparte: unir por encima de un día sin
@@ -51,7 +74,7 @@ else
                ratón llega en píxeles de pantalla y el dibujo se estira, así que
                calcular la fecha a partir de la posición señalaría otro día en cuanto
                cambiara el tamaño de la ventana. *@
-            @foreach (var band in _bounds.Bands(Left, Width - Right))
+            @foreach (var band in _bounds.Bands(Left, Width - Right, Dates))
             {
                 <rect x="@N(band.X)" y="0" width="@N(band.Width)" height="@(Height - Bottom)"
                       fill="transparent" @onmouseover="@(() => _hover = band.Date)" />
@@ -108,7 +131,34 @@ else
     [Parameter]
     public bool Stacked { get; set; }
 
-    protected override void OnParametersSet() => _bounds = Bounds.Of(Stacked ? Stack(Lines) : Lines);
+    /// <summary>
+    /// El recorrido de cada tramo, cuando se conoce.
+    /// </summary>
+    /// <remarks>
+    /// Con pocos tramos se dibujan velas. Con muchos, la vela se queda en una línea
+    /// vertical de un píxel y no aporta: se dibuja una banda que marca por dónde anduvo,
+    /// con la línea del cierre encima. Sin recorrido, la línea sola.
+    /// </remarks>
+    [Parameter]
+    public IReadOnlyList<ChartCandle>? Candles { get; set; }
+
+    /// <summary>
+    /// A partir de cuántos tramos la vela deja de aportar.
+    /// </summary>
+    /// <remarks>
+    /// El dibujo mide mil unidades de ancho: con más de ciento ochenta velas, cada una
+    /// baja de cinco unidades y el cuerpo desaparece.
+    /// </remarks>
+    private const int MaxCandles = 180;
+
+    /// <summary>Se dibujan velas: hay recorrido y caben.</summary>
+    private bool AsCandles => Candles is { Count: > 0 } and { Count: <= MaxCandles } && !Stacked;
+
+    /// <summary>Se dibuja la banda del recorrido bajo la línea: hay recorrido y no caben velas.</summary>
+    private bool AsBand => Candles is { Count: > MaxCandles } && !Stacked;
+
+    protected override void OnParametersSet() =>
+        _bounds = Bounds.Of(Stacked ? Stack(Lines) : Lines, Candles);
 
     /// <summary>
     /// Las series acumuladas una sobre otra.
@@ -174,6 +224,45 @@ else
     /// <summary>Tramos continuos de una línea, en coordenadas del dibujo.</summary>
     /// <summary>Cuántos puntos se llegan a dibujar de una línea. Ver <see cref="ChartSampling"/>.</summary>
     private const int MaxDrawnPoints = Width;
+
+    /// <summary>
+    /// Las fechas que la serie tiene de verdad, ordenadas y sin repetir.
+    /// </summary>
+    /// <remarks>
+    /// De aquí salen las bandas del cursor, para que posarse siempre caiga en un punto
+    /// que existe y la lectura diga algo.
+    /// </remarks>
+    private IReadOnlyList<DateOnly> Dates =>
+        [.. Lines.SelectMany(line => line.Points).Select(point => point.Date).Distinct().OrderBy(date => date)];
+
+    /// <summary>Lo ancho que se dibuja cada vela, dejando aire entre ellas.</summary>
+    private double CandleWidth => Math.Max(1.5, ((double)(Width - Left - Right) / Math.Max(1, Candles!.Count)) * 0.6);
+
+    /// <summary>El cuerpo de una vela: de la apertura al cierre, con un mínimo visible.</summary>
+    private (double Top, double Height) Body(ChartCandle candle)
+    {
+        var open = Y(candle.Open);
+        var close = Y(candle.Close);
+        var top = Math.Min(open, close);
+
+        return (top, Math.Max(1, Math.Abs(open - close)));
+    }
+
+    /// <summary>
+    /// La banda del recorrido: los máximos de ida y los mínimos de vuelta.
+    /// </summary>
+    private string Band()
+    {
+        var ordered = Candles!.OrderBy(candle => candle.Date).ToList();
+
+        var highs = ordered.Select(candle =>
+            string.Create(CultureInfo.InvariantCulture, $"{N(X(candle.Date))},{N(Y(candle.High))}"));
+
+        var lows = ordered.AsEnumerable().Reverse().Select(candle =>
+            string.Create(CultureInfo.InvariantCulture, $"{N(X(candle.Date))},{N(Y(candle.Low))}"));
+
+        return string.Join(' ', highs.Concat(lows));
+    }
 
     private IEnumerable<string> Segments(ChartLine line)
     {
@@ -249,7 +338,7 @@ else
         internal IReadOnlyList<decimal> GridLines =>
             [Lowest, Lowest + ((Highest - Lowest) / 2m), Highest];
 
-        internal static Bounds? Of(IReadOnlyList<ChartLine> lines)
+        internal static Bounds? Of(IReadOnlyList<ChartLine> lines, IReadOnlyList<ChartCandle>? candles = null)
         {
             var points = lines.SelectMany(line => line.Points).Where(point => point.Value is not null).ToList();
 
@@ -258,8 +347,15 @@ else
                 return null;
             }
 
-            var lowest = points.Min(point => point.Value!.Value);
-            var highest = points.Max(point => point.Value!.Value);
+            // Los extremos del dibujo tienen que abarcar los máximos y mínimos, o las
+            // mechas de las velas se saldrían por arriba y por abajo.
+            var lowest = Math.Min(
+                points.Min(point => point.Value!.Value),
+                candles is { Count: > 0 } ? candles.Min(candle => candle.Low) : decimal.MaxValue);
+
+            var highest = Math.Max(
+                points.Max(point => point.Value!.Value),
+                candles is { Count: > 0 } ? candles.Max(candle => candle.High) : decimal.MinValue);
 
             // Un suelo en cero hace comparable la altura entre gráficas y evita que una
             // variación del uno por ciento parezca un desplome.
@@ -271,23 +367,35 @@ else
         }
 
         /// <summary>
-        /// Las bandas sensibles al ratón, una por tramo del eje.
+        /// Las bandas sensibles al ratón, una por punto de la serie.
         /// </summary>
         /// <remarks>
-        /// Se agrupan en como mucho doscientas: una por día dejaría miles de elementos
-        /// en la pantalla para distinguir posiciones que ni siquiera llegan a un píxel.
+        /// Las fechas salen de la propia serie y no del calendario. Repartiendo días
+        /// entre los extremos, con la serie agrupada por semanas o meses el cursor caía
+        /// en fechas que no existen como punto y la lectura salía vacía; y con una serie
+        /// diaria con huecos, caía en los huecos.
+        ///
+        /// Se agrupan en como mucho doscientas: una por punto dejaría miles de elementos
+        /// para distinguir posiciones que ni siquiera llegan a un píxel.
         /// </remarks>
-        internal IEnumerable<(double X, double Width, DateOnly Date)> Bands(double left, double right)
+        internal IEnumerable<(double X, double Width, DateOnly Date)> Bands(
+            double left,
+            double right,
+            IReadOnlyList<DateOnly> dates)
         {
-            var days = To.DayNumber - From.DayNumber + 1;
-            var count = Math.Min(days, 200);
+            if (dates.Count == 0)
+            {
+                yield break;
+            }
+
+            var count = Math.Min(dates.Count, 200);
             var width = (right - left) / count;
 
             for (var index = 0; index < count; index++)
             {
-                var day = From.AddDays((int)Math.Round((double)index / count * (days - 1)));
+                var at = (int)Math.Round((double)index / Math.Max(1, count - 1) * (dates.Count - 1));
 
-                yield return (left + (index * width), width, day);
+                yield return (left + (index * width), width, dates[Math.Min(at, dates.Count - 1)]);
             }
         }
     }

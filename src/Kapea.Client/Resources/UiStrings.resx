@@ -931,6 +931,9 @@
   <data name="Asset_Strength" xml:space="preserve">
     <value>Fuerza relativa</value>
   </data>
+  <data name="Asset_NoRange" xml:space="preserve">
+    <value>Este activo no tiene máximos ni mínimos: su proveedor sólo da el cierre de cada día.</value>
+  </data>
   <data name="Asset_Window" xml:space="preserve">
     <value>Ventana</value>
   </data>

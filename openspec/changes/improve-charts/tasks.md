@@ -29,11 +29,11 @@
 
 ## 5. Dibujar mejor
 
-- [ ] 5.1 Dibujar velas cuando el activo tenga recorrido y los puntos sean pocos; verificar manualmente con tres meses de una acción
-- [ ] 5.2 Dibujar la línea del cierre con la banda del recorrido cuando los puntos sean muchos; verificar manualmente con cinco años
-- [ ] 5.3 Dibujar sólo la línea cuando el activo no tenga recorrido, diciendo por qué; verificar manualmente con POL, PEPE o TAO
-- [ ] 5.4 Implementar el cursor que recorre la gráfica y lee el valor y la fecha del punto, leyendo de la serie entera y no de la dibujada; verificar manualmente en días, semanas y meses
-- [ ] 5.5 Verificar con test que reducir o agregar para dibujar no cambia lo que el cursor lee ni lo que los indicadores calculan
+- [x] 5.1 Dibujar velas cuando el activo tenga recorrido y los puntos sean pocos; verificar manualmente con tres meses de una acción
+- [x] 5.2 Dibujar la línea del cierre con la banda del recorrido cuando los puntos sean muchos; verificar manualmente con cinco años
+- [x] 5.3 Dibujar sólo la línea cuando el activo no tenga recorrido, diciendo por qué; verificar manualmente con POL, PEPE o TAO
+- [x] 5.4 Implementar el cursor que recorre la gráfica y lee el valor y la fecha del punto, leyendo de la serie entera y no de la dibujada; verificar manualmente en días, semanas y meses
+- [x] 5.5 Verificar con test que reducir o agregar para dibujar no cambia lo que el cursor lee ni lo que los indicadores calculan
 
 ## 6. Las cifras junto a la gráfica
 

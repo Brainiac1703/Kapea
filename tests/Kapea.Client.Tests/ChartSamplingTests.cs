@@ -84,6 +84,19 @@ public class ChartSamplingTests
         Assert.All(reduced, point => Assert.Contains(point.Value, valores));
     }
 
+    [Fact]
+    public void Reducing_does_not_touch_the_series_the_cursor_reads()
+    {
+        // El cursor lee de la serie entera, no de la dibujada: posarse sobre un día
+        // tiene que decir su valor aunque ese punto no se haya pintado.
+        var points = Series(9_764);
+        var copia = points.ToList();
+
+        ChartSampling.Reduce(points, 1_000);
+
+        Assert.Equal(copia, points);
+    }
+
     private static IReadOnlyList<ChartPoint> Series(int days, Func<DateOnly, bool>? without = null)
     {
         var first = new DateOnly(2000, 1, 3);

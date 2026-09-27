@@ -153,8 +153,12 @@ public class AssetChartCoverageTests(KapeaApiFactory factory)
         Assert.Equal("Weekly", weekly!.Interval);
         Assert.True(weekly.Days.Count < daily.Days.Count);
 
-        // Agrupar para mirar no puede cambiar lo que el motor calcula.
-        Assert.Equal(daily.SimpleMovingAverage.Count, weekly.SimpleMovingAverage.Count);
+        // Agrupar para mirar no puede cambiar lo que el motor calcula: los indicadores
+        // salen de los días, no de los tramos. Una media de veinte semanas no es la
+        // misma que una de veinte días.
+        Assert.Equal(daily.SimpleMovingAverage, weekly.SimpleMovingAverage);
+        Assert.Equal(daily.RelativeStrengthIndex, weekly.RelativeStrengthIndex);
+        Assert.Equal(daily.Dispersion?.AverageRange, weekly.Dispersion?.AverageRange);
     }
 
     [Fact]
