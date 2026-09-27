@@ -87,8 +87,20 @@ public class DashboardFiguresTests
     [Fact]
     public void Ordinary_amounts_keep_their_two_decimals()
     {
-        Assert.Equal("66,44", Format.Compact(66.4412m));
-        Assert.Equal("1,2k", Format.Compact(1234m));
+        // Con la cultura fijada: el separador decimal depende de ella, y la integración
+        // continua no corre en español.
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("es-ES");
+
+        try
+        {
+            Assert.Equal("66,44", Format.Compact(66.4412m));
+            Assert.Equal("1,2k", Format.Compact(1234m));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
     }
 
     [Fact]
@@ -109,8 +121,20 @@ public class DashboardFiguresTests
     }
 
     [Fact]
-    public void An_ordinary_price_keeps_its_two_decimals() =>
-        Assert.Contains("66,44", Format.Price(66.4412m), StringComparison.Ordinal);
+    public void An_ordinary_price_keeps_its_two_decimals()
+    {
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("es-ES");
+
+        try
+        {
+            Assert.Contains("66,44", Format.Price(66.4412m), StringComparison.Ordinal);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
 }
 
 public class BrandingTests
