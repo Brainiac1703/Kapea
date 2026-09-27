@@ -9,6 +9,19 @@ namespace Kapea.Client.Components;
 /// </remarks>
 public sealed record ChartPoint(DateOnly Date, decimal? Value);
 
+/// <summary>
+/// Lo que se movió un activo en un tramo: dónde abrió, hasta dónde llegó y dónde cerró.
+/// </summary>
+/// <remarks>
+/// Sin esto sólo se sabe dónde acabó cada día. Un día que subió un ocho por ciento y
+/// volvió al punto de partida se dibuja igual que uno plano, y no lo es.
+/// </remarks>
+public sealed record ChartCandle(DateOnly Date, decimal Open, decimal High, decimal Low, decimal Close)
+{
+    /// <summary>Cerró por encima de donde abrió.</summary>
+    public bool Rose => Close >= Open;
+}
+
 /// <summary>Una línea de la gráfica, con su nombre y la serie que le da color.</summary>
 /// <param name="Series">
 /// Clase CSS de la serie. El color vive en la hoja de estilos y no aquí, porque cambia

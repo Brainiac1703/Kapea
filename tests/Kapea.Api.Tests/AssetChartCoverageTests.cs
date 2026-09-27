@@ -107,8 +107,194 @@ public class AssetChartCoverageTests(KapeaApiFactory factory)
         Assert.Equal(before.Groups.Count, after.Groups.Count);
     }
 
+    [Fact]
+    public async Task The_range_of_each_day_comes_with_the_series()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "WITHRANGE", days: 5, withRange: true);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-05");
+
+        Assert.True(history!.HasRange);
+        Assert.All(history.Days, day => Assert.NotNull(day.HighInEuros));
+    }
+
+    [Fact]
+    public async Task An_asset_whose_provider_gives_no_range_says_so()
+    {
+        // POL, PEPE y TAO sólo los cubre CoinGecko. La pantalla tiene que llevarlo bien
+        // en lugar de parecer rota.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "NORANGE", days: 5);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-05");
+
+        Assert.False(history!.HasRange);
+        Assert.All(history.Days, day => Assert.Null(day.HighInEuros));
+    }
+
+    [Fact]
+    public async Task The_series_can_be_grouped_by_weeks()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "BYWEEK", days: 21, withRange: true);
+
+        var daily = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-21&interval=daily");
+        var weekly = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-21&interval=weekly");
+
+        Assert.Equal("Daily", daily!.Interval);
+        Assert.Equal("Weekly", weekly!.Interval);
+        Assert.True(weekly.Days.Count < daily.Days.Count);
+
+        // Agrupar para mirar no puede cambiar lo que el motor calcula: los indicadores
+        // salen de los días, no de los tramos. Una media de veinte semanas no es la
+        // misma que una de veinte días.
+        Assert.Equal(daily.SimpleMovingAverage, weekly.SimpleMovingAverage);
+        Assert.Equal(daily.RelativeStrengthIndex, weekly.RelativeStrengthIndex);
+        Assert.Equal(daily.Dispersion?.AverageRange, weekly.Dispersion?.AverageRange);
+    }
+
+    [Fact]
+    public async Task An_unknown_interval_is_refused_instead_of_silently_ignored()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "BADINTV", days: 5);
+
+        var response = await client.GetAsync(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-05&interval=hourly");
+
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_long_period_is_grouped_without_being_asked()
+    {
+        // Cinco años en días son más puntos que píxeles. El periodo sugiere el intervalo.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "LONGSPAN", days: 40);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2020-03-01&to=2026-03-05");
+
+        Assert.Equal("Monthly", history!.Interval);
+    }
+
+    [Fact]
+    public async Task The_dispersion_comes_with_the_window_it_was_measured_over()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "DISPER", days: 40, withRange: true);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-04-09&window=5&interval=daily");
+
+        var dispersion = history!.Dispersion;
+
+        Assert.NotNull(dispersion);
+        Assert.Equal(5, dispersion.WindowDays);
+        Assert.NotEmpty(dispersion.Volatility);
+        Assert.NotEmpty(dispersion.AverageRange);
+        Assert.True(dispersion.AverageRangeFromDayRange);
+    }
+
+    [Fact]
+    public async Task Too_few_days_give_no_dispersion_instead_of_a_weaker_one()
+    {
+        // Una banda calculada sobre menos días parecería igual de firme y no lo sería.
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "TOOSHORT", days: 3, withRange: true);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-03&window=20&interval=daily");
+
+        Assert.Null(history!.Dispersion);
+    }
+
+    [Fact]
+    public async Task Without_a_range_the_average_says_it_was_measured_on_closes()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "CLOSEONLY", days: 40);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-04-09&window=5&interval=daily");
+
+        Assert.False(history!.Dispersion!.AverageRangeFromDayRange);
+    }
+
+    [Fact]
+    public async Task The_figures_answer_the_period_being_looked_at()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "FIGURES", days: 40, withRange: true);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-04-09&interval=daily");
+
+        var figures = history!.Figures;
+
+        Assert.NotNull(figures);
+
+        // Los precios van de 100 a 139, con el máximo cinco por encima del cierre.
+        Assert.Equal(139m, figures.Close);
+        Assert.Equal(144m, figures.High);
+        Assert.Equal(144m, figures.PeriodHigh);
+        Assert.Equal(98m, figures.PeriodLow);
+    }
+
+    [Fact]
+    public async Task The_period_figures_change_with_the_period_and_the_year_ones_do_not()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "TWOSPANS", days: 40, withRange: true);
+
+        var largo = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-04-09&interval=daily");
+        var corto = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-04-01&to=2026-04-09&interval=daily");
+
+        Assert.NotEqual(largo!.Figures!.PeriodLow, corto!.Figures!.PeriodLow);
+        Assert.Equal(largo.Figures.YearHigh, corto.Figures.YearHigh);
+    }
+
+    [Fact]
+    public async Task Without_a_range_the_figures_still_answer_with_the_closes()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "NOFIGRANGE", days: 10);
+
+        var figures = (await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-10&interval=daily"))!.Figures;
+
+        // Sin recorrido de verdad no se enseñan la apertura ni los extremos del tramo:
+        // saldrían de agregar cierres y contradirían el aviso.
+        Assert.NotNull(figures);
+        Assert.Null(figures.Open);
+        Assert.Null(figures.High);
+        Assert.Null(figures.Low);
+        Assert.NotNull(figures.Close);
+        Assert.Equal(109m, figures.PeriodHigh);
+        Assert.Equal(100m, figures.PeriodLow);
+    }
+
     /// <summary>Un activo del catálogo con cotizaciones y sin un solo movimiento.</summary>
-    private async Task<Guid> QuotedAssetAsync(Guid user, string symbol, int days, int? skip = null)
+    private async Task<Guid> QuotedAssetAsync(
+        Guid user, string symbol, int days, int? skip = null, bool withRange = false)
     {
         await using var context = factory.CreateContext(user);
 
@@ -124,7 +310,11 @@ public class AssetChartCoverageTests(KapeaApiFactory factory)
                 continue;
             }
 
-            context.DailyPrices.Add(new DailyPrice(asset.Id, date, 100m + day, "Prueba"));
+            var price = new DailyPrice(asset.Id, date, 100m + day, "Prueba");
+
+            context.DailyPrices.Add(withRange
+                ? price.WithRange(open: 99m + day, high: 105m + day, low: 98m + day)
+                : price);
         }
 
         await context.SaveChangesAsync();

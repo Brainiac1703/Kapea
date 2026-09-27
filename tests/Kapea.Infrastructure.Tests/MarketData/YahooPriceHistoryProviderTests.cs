@@ -56,6 +56,37 @@ public class YahooPriceHistoryProviderTests
     }
 
     [Fact]
+    public async Task The_range_of_the_day_comes_back_with_the_close()
+    {
+        // Sin apertura, máximo y mínimo sólo se sabe dónde acabó el día: uno que subió
+        // un ocho por ciento y volvió al punto de partida es indistinguible de uno plano.
+        var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-btc.json"));
+
+        var prices = await Provider(handler).GetHistoryAsync(Request());
+
+        Assert.True(prices[0].HasRange);
+        Assert.Equal(83210.96875m, prices[0].OpenInEuros);
+        Assert.Equal(86330.234375m, prices[0].HighInEuros);
+        Assert.Equal(83158.65625m, prices[0].LowInEuros);
+    }
+
+    [Fact]
+    public async Task The_range_is_converted_with_the_same_rate_as_the_close()
+    {
+        // Convertir sólo el cierre dejaría la vela con el cuerpo en euros y las mechas
+        // en dólares.
+        var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-dollars.json"));
+
+        var prices = await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("PAXG"));
+
+        Assert.Equal(100m, prices[0].PriceInEuros);
+        Assert.True(prices[0].HasRange);
+        Assert.Equal(105m, prices[0].HighInEuros);
+        Assert.Equal(95m, prices[0].LowInEuros);
+        Assert.Equal(98m, prices[0].OpenInEuros);
+    }
+
+    [Fact]
     public async Task A_symbol_yahoo_does_not_cover_is_not_a_failure()
     {
         // Responde 404. No es que el sistema falle: es que esta fuente no lo cubre, y

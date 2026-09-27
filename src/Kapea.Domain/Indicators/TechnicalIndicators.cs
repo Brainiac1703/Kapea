@@ -4,7 +4,17 @@ namespace Kapea.Domain.Indicators;
 public sealed record IndicatorPoint(DateOnly Date, decimal Value);
 
 /// <summary>Un día de la serie sobre la que se calculan los indicadores.</summary>
-public sealed record PricePoint(DateOnly Date, decimal PriceInEuros);
+/// <param name="HighInEuros">Mayor precio del día, si el proveedor lo da.</param>
+/// <param name="LowInEuros">Menor precio del día, si el proveedor lo da.</param>
+public sealed record PricePoint(
+    DateOnly Date,
+    decimal PriceInEuros,
+    decimal? HighInEuros = null,
+    decimal? LowInEuros = null)
+{
+    /// <summary>Se sabe cuánto se movió ese día, y no sólo dónde acabó.</summary>
+    public bool HasRange => HighInEuros is not null && LowInEuros is not null;
+}
 
 /// <summary>Un día del MACD.</summary>
 /// <param name="Distance">Línea menos señal. El cruce es el día en que cambia de signo.</param>
@@ -12,6 +22,15 @@ public sealed record MacdPoint(DateOnly Date, decimal Line, decimal Signal, deci
 
 /// <summary>Un día de las bandas de volatilidad.</summary>
 public sealed record BandPoint(DateOnly Date, decimal Middle, decimal Upper, decimal Lower);
+
+/// <summary>
+/// El recorrido medio, diciendo con qué se ha medido.
+/// </summary>
+/// <param name="FromDayRange">
+/// Medido con máximos y mínimos. Cuando es falso se ha medido de cierre a cierre, que
+/// se queda corto porque ignora lo que pasó dentro del día.
+/// </param>
+public sealed record RangeIndicator(IReadOnlyList<IndicatorPoint> Points, bool FromDayRange);
 
 /// <summary>
 /// Indicadores sobre una serie de precios.
@@ -231,27 +250,35 @@ public static class TechnicalIndicators
     /// número redondo: dos activos con el mismo capital asignado necesitan distancias
     /// distintas si uno se mueve el doble que el otro.
     ///
-    /// Se calcula sobre cierres porque la serie guardada solo tiene cierres. No todos los
-    /// proveedores dan el rango del día, y usarlo dejaría el indicador disponible para
-    /// unos activos y no para otros.
+    /// Cuando la serie trae máximo y mínimo se usan ésos, que es lo que el activo se
+    /// movió de verdad. Cuando no, se mide de un cierre al siguiente, que es lo único que
+    /// se sabe. Las dos formas no son comparables entre sí —la segunda se queda corta,
+    /// porque ignora todo lo que pasó dentro del día—, así que el resultado dice cuál se
+    /// ha usado en lugar de presentarlas igual.
     /// </remarks>
-    public static IReadOnlyList<IndicatorPoint> AverageDailyRange(IReadOnlyList<PricePoint> series, int days = 14)
+    public static RangeIndicator AverageDailyRange(IReadOnlyList<PricePoint> series, int days = 14)
     {
         ArgumentNullException.ThrowIfNull(series);
         ArgumentOutOfRangeException.ThrowIfLessThan(days, 2);
 
         var points = new List<IndicatorPoint>();
 
+        // O todos los días traen recorrido o ninguno cuenta: mezclar las dos medidas en
+        // una misma media daría una cifra que no es ni una cosa ni la otra.
+        var fromRange = series.Count > 0 && series.All(point => point.HasRange);
+
         if (series.Count <= days)
         {
-            return points;
+            return new RangeIndicator(points, fromRange);
         }
 
         var moves = new List<decimal>(series.Count - 1);
 
         for (var index = 1; index < series.Count; index++)
         {
-            moves.Add(Math.Abs(series[index].PriceInEuros - series[index - 1].PriceInEuros));
+            moves.Add(fromRange
+                ? series[index].HighInEuros!.Value - series[index].LowInEuros!.Value
+                : Math.Abs(series[index].PriceInEuros - series[index - 1].PriceInEuros));
         }
 
         // Suavizado de Wilder, igual que en la fuerza relativa, para que las dos cifras
@@ -266,7 +293,7 @@ public static class TechnicalIndicators
             points.Add(new IndicatorPoint(series[index + 1].Date, average));
         }
 
-        return points;
+        return new RangeIndicator(points, fromRange);
     }
 
     /// <summary>Una serie que solo sube vale 100; una que solo baja, 0.</summary>

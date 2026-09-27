@@ -389,12 +389,18 @@ public sealed class KapeaApiClient(HttpClient http)
         int? days = null,
         int? window = null,
         bool all = false,
+        string? interval = null,
         CancellationToken cancellationToken = default)
     {
         var path = Range($"api/portfolio/history/{assetId}", all ? null : days);
         var query = path;
 
-        foreach (var parameter in new[] { window is { } size ? $"window={size}" : null, all ? "all=true" : null })
+        foreach (var parameter in new[]
+        {
+            window is { } size ? $"window={size}" : null,
+            all ? "all=true" : null,
+            interval is not null ? $"interval={interval}" : null,
+        })
         {
             if (parameter is not null)
             {

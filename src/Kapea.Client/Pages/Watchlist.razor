@@ -1,4 +1,5 @@
 @page "/watchlist"
+@using Kapea.Client.Layout
 @inject KapeaApiClient Api
 @inject IToastService Toasts
 
@@ -87,7 +88,7 @@ else
                     TGridItem="WatchedAssetResponse"
                     GridTemplateColumns="1fr 1.6fr 0.9fr 1fr 1.1fr 1.1fr 90px">
         <TemplateColumn Title="@Ui["Common_Asset"]">
-            <FluentAnchor Href="@($"evolution?asset={context.AssetId}")" Appearance="Appearance.Hypertext">
+            <FluentAnchor Href="@Routes.AssetChart(context.AssetId)" Appearance="Appearance.Hypertext">
                 @context.Symbol
             </FluentAnchor>
         </TemplateColumn>

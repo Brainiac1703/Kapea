@@ -170,6 +170,6 @@ public static class SignalEngine
     /// </remarks>
     private static decimal? Range(IndicatorSet indicators, PricePoint point) =>
         indicators.Value(Term.Indicator(Operand.AverageDailyRange, 14), point.Date)
-        ?? TechnicalIndicators.AverageDailyRange(indicators.Series)
+        ?? TechnicalIndicators.AverageDailyRange(indicators.Series).Points
             .FirstOrDefault(value => value.Date == point.Date)?.Value;
 }

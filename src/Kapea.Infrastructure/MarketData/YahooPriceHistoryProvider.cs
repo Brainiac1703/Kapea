@@ -139,9 +139,18 @@ public sealed class YahooPriceHistoryProvider(
                 continue;
             }
 
+            // El recorrido se convierte con el mismo tipo que el cierre. Convertir sólo
+            // el cierre dejaría los extremos en la divisa original, y la vela saldría
+            // con el cuerpo en euros y las mechas en dólares.
+            decimal? ToEuros(decimal? amount) =>
+                amount is { } value ? rate.ToEuros(new Money(value, currency)).Amount : null;
+
             converted.Add(close with
             {
                 PriceInEuros = rate.ToEuros(new Money(close.PriceInEuros, currency)).Amount,
+                OpenInEuros = ToEuros(close.OpenInEuros),
+                HighInEuros = ToEuros(close.HighInEuros),
+                LowInEuros = ToEuros(close.LowInEuros),
                 Source = ConvertedSource,
             });
         }
@@ -220,9 +229,23 @@ public sealed class YahooPriceHistoryProvider(
                 continue;
             }
 
-            prices.Add(new DailyPrice(request.AssetId, day, close, "Yahoo"));
+            // El recorrido viene en el mismo bloque que el cierre. Si falta o no se
+            // sostiene, el día se queda con su cierre: perderlo entero por un extremo
+            // mal traído sería peor que quedarse sin dibujar la vela.
+            prices.Add(new DailyPrice(request.AssetId, day, close, "Yahoo")
+                .WithRange(At(quotes[0], "open", index), At(quotes[0], "high", index), At(quotes[0], "low", index)));
         }
 
         return prices;
     }
+
+    /// <summary>Un número de una de las series paralelas de Yahoo, si está.</summary>
+    private static decimal? At(JsonElement quote, string name, int index) =>
+        quote.TryGetProperty(name, out var series)
+        && series.ValueKind == JsonValueKind.Array
+        && index < series.GetArrayLength()
+        && series[index].ValueKind == JsonValueKind.Number
+        && series[index].TryGetDecimal(out var value)
+            ? value
+            : null;
 }

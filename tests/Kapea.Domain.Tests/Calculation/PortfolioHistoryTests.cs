@@ -307,8 +307,10 @@ public class AssetAndClassHistoryTests
         Assert.Null(sinQuotes[0].PriceInEuros);
     }
 
-    private static Dictionary<DateOnly, Money> Quotes(params (int Day, decimal Price)[] quotes) =>
-        quotes.ToDictionary(quote => new DateOnly(2026, 3, quote.Day), quote => Money.Euros(quote.Price));
+    private static Dictionary<DateOnly, DailyPrice> Quotes(params (int Day, decimal Price)[] quotes) =>
+        quotes.ToDictionary(
+            quote => new DateOnly(2026, 3, quote.Day),
+            quote => new DailyPrice(Bitcoin, new DateOnly(2026, 3, quote.Day), quote.Price, "Prueba"));
 
     [Fact]
     public void Each_class_adds_up_on_its_own()

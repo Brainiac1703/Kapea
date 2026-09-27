@@ -405,15 +405,26 @@ public sealed record ClassHistoryDayResponse(DateOnly Date, IReadOnlyDictionary<
 /// <summary>Un día de la evolución de un activo. Sin precio, el valor viaja vacío.</summary>
 /// <param name="CarriedFrom">De qué día viene el precio, cuando no es del día valorado.</param>
 /// <param name="MarketClosed">Ese día no cotizó su mercado, así que no falta ningún dato.</param>
+/// <param name="OpenInEuros">Primer precio del día o del tramo. Vacío si el proveedor no lo da.</param>
+/// <param name="HighInEuros">Mayor precio del día o del tramo.</param>
+/// <param name="LowInEuros">Menor precio del día o del tramo.</param>
 public sealed record AssetHistoryDayResponse(
     DateOnly Date,
     decimal Quantity,
     decimal? PriceInEuros,
     decimal? ValueInEuros,
     DateOnly? CarriedFrom = null,
-    bool MarketClosed = false);
+    bool MarketClosed = false,
+    decimal? OpenInEuros = null,
+    decimal? HighInEuros = null,
+    decimal? LowInEuros = null);
 
 /// <summary>La evolución de un activo con sus indicadores.</summary>
+/// <param name="Interval">Cada cuánto se agrupa la serie: Daily, Weekly o Monthly.</param>
+/// <param name="HasRange">
+/// El proveedor de este activo da el recorrido de cada día. Cuando es falso sólo hay
+/// cierres, y la pantalla no puede dibujar máximos ni mínimos.
+/// </param>
 public sealed record AssetHistoryResponse(
     Guid AssetId,
     string AssetSymbol,
@@ -421,10 +432,59 @@ public sealed record AssetHistoryResponse(
     IReadOnlyList<IndicatorPointResponse> SimpleMovingAverage,
     IReadOnlyList<IndicatorPointResponse> ExponentialMovingAverage,
     IReadOnlyList<IndicatorPointResponse> RelativeStrengthIndex,
-    int IndicatorWindowDays);
+    int IndicatorWindowDays,
+    string Interval = "Daily",
+    bool HasRange = false,
+    DispersionResponse? Dispersion = null,
+    ChartFiguresResponse? Figures = null);
 
 /// <summary>Un valor de un indicador con el día al que corresponde.</summary>
 public sealed record IndicatorPointResponse(DateOnly Date, decimal Value);
+
+/// <summary>
+/// Las cifras que acompañan a la gráfica, para no tener que estimarlas a ojo.
+/// </summary>
+/// <param name="Open">Apertura del último tramo con dato.</param>
+/// <param name="High">Máximo del último tramo.</param>
+/// <param name="Low">Mínimo del último tramo.</param>
+/// <param name="Close">Cierre del último tramo.</param>
+/// <param name="PeriodHigh">Mayor precio del periodo que se está mirando.</param>
+/// <param name="PeriodLow">Menor precio del periodo.</param>
+/// <param name="PeriodChange">Cuánto ha cambiado el precio en el periodo, en tanto por uno.</param>
+/// <param name="YearHigh">Máximo de las últimas cincuenta y dos semanas, mire lo que mire.</param>
+/// <param name="YearLow">Mínimo de las últimas cincuenta y dos semanas.</param>
+public sealed record ChartFiguresResponse(
+    decimal? Open,
+    decimal? High,
+    decimal? Low,
+    decimal? Close,
+    decimal? PeriodHigh,
+    decimal? PeriodLow,
+    decimal? PeriodChange,
+    decimal? YearHigh,
+    decimal? YearLow);
+
+/// <summary>Los tres valores de una banda un día.</summary>
+public sealed record BandPointResponse(DateOnly Date, decimal Middle, decimal Upper, decimal Lower);
+
+/// <summary>
+/// Cuánto se ha movido un activo, para poder dibujarlo sobre su serie.
+/// </summary>
+/// <remarks>
+/// Describe lo ya ocurrido. No es un pronóstico ni la probabilidad de que el precio esté
+/// dentro de la banda: que haya estado el noventa por ciento del tiempo no dice que vaya
+/// a estarlo el noventa por ciento de las veces.
+/// </remarks>
+/// <param name="WindowDays">Sobre cuántos días se han calculado.</param>
+/// <param name="AverageRangeFromDayRange">
+/// El recorrido medio se ha medido con máximos y mínimos. Cuando es falso se ha medido de
+/// cierre a cierre, que se queda corto, y las dos medidas no son comparables.
+/// </param>
+public sealed record DispersionResponse(
+    IReadOnlyList<BandPointResponse> Volatility,
+    IReadOnlyList<IndicatorPointResponse> AverageRange,
+    int WindowDays,
+    bool AverageRangeFromDayRange);
 
 /// <summary>Rendimiento y riesgo de un periodo, con su referencia.</summary>
 /// <param name="TimeWeightedReturn">Rentabilidad que juzga las decisiones, en tanto por uno.</param>

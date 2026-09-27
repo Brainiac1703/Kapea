@@ -7,12 +7,14 @@
 <FluentLabel Typo="Typography.PageTitle">@Ui["Evolution_Heading"]</FluentLabel>
 <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Evolution_Intro"]</FluentLabel>
 
-<FluentToolbar>
-    <FluentLabel Typo="Typography.Body">@Ui["Evolution_Period"]</FluentLabel>
-    @foreach (var period in Periods)
+@* Sin rótulo y con etiquetas cortas, como en la pantalla de un activo: nueve periodos
+   con su nombre entero ocupaban media pantalla. El nombre largo sale al posarse. *@
+<FluentToolbar Class="chart-controls">
+    @foreach (var period in ChartPeriods.Scale(Today))
     {
-        <FluentButton Appearance="@(period.Days == _days ? Appearance.Accent : Appearance.Neutral)"
-                      OnClick="@(() => ChangeAsync(period.Days))">
+        <FluentButton Appearance="@(period.Label == _period ? Appearance.Accent : Appearance.Neutral)"
+                      Title="@Ui[$"{period.Label}_Long"]"
+                      OnClick="@(() => ChangeAsync(period))">
             @Ui[period.Label]
         </FluentButton>
     }
@@ -127,15 +129,14 @@ else
 }
 
 @code {
-    private static readonly (string Label, int? Days)[] Periods =
-    [
-        ("Evolution_Period_Month", 30),
-        ("Evolution_Period_Quarter", 90),
-        ("Evolution_Period_Year", 365),
-        // «Todo» no es un número de días: cuánto hay depende de cuándo empezó la
-        // cartera, y rellenar con años anteriores aplasta la línea contra un extremo.
-        ("Evolution_Period_All", null),
-    ];
+    /// <summary>
+    /// La misma escala que la pantalla de un activo. «Todo» no es un número de días:
+    /// cuánto hay depende de cuándo empezó la cartera, y rellenar con años anteriores
+    /// aplasta la línea contra un extremo.
+    /// </summary>
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);
+
+    private string _period = "Evolution_Period_Year";
 
     /// <summary>Cuántos días se han valorado con el cierre de un día anterior.</summary>
     private int CarriedDays() => _history?.Days.Count(day => day.HasCarriedPrices) ?? 0;
@@ -146,9 +147,10 @@ else
 
     protected override Task OnInitializedAsync() => ReloadAsync();
 
-    private async Task ChangeAsync(int? days)
+    private async Task ChangeAsync(ChartPeriod period)
     {
-        _days = days;
+        _period = period.Label;
+        _days = period.Days;
 
         await ReloadAsync();
     }

@@ -92,7 +92,8 @@ public sealed class PriceHistoryUpdater(
 
     /// <summary>Un tramo por pedir, y si es de los que corren prisa o de los que no.</summary>
     /// <param name="IsBackfill">Historia antigua: interesa, pero puede esperar.</param>
-    private readonly record struct Gap(DateOnly From, DateOnly To, bool IsBackfill);
+    /// <param name="ForRange">Se pide para completar el recorrido de días que ya están.</param>
+    private readonly record struct Gap(DateOnly From, DateOnly To, bool IsBackfill, bool ForRange = false);
 
     /// <summary>
     /// Los tramos de días que todavía hay que pedir.
@@ -117,6 +118,14 @@ public sealed class PriceHistoryUpdater(
         var asked = reach is not null && reach.AnswersFor(asset.ProviderId) ? reach : null;
         var lastKnown = covered?.Last ?? asked?.RequestedTo;
         var earliestAsked = asked?.RequestedFrom ?? covered?.First;
+
+        // Lo ya descargado pudo entrar sin recorrido, antes de que se guardara. Se
+        // vuelve a pedir una vez, y la marca evita repetirlo en cada vuelta: el tramo
+        // consta pedido, pero lo que se pide ahora no es lo mismo que se pidió entonces.
+        if (asked is { RangeRequested: false } && covered is not null)
+        {
+            yield return new Gap(covered.First, covered.Last, IsBackfill: true, ForRange: true);
+        }
 
         if (lastKnown is null)
         {
@@ -228,6 +237,11 @@ public sealed class PriceHistoryUpdater(
                         && previous.AnswersFor(asset.ProviderId)
                         ? previous.Including(gap.From, gap.To)
                         : PriceHistoryReach.Of(asset.AssetId, gap.From, gap.To, asset.ProviderId);
+
+                    if (gap.ForRange)
+                    {
+                        asked = asked with { RangeRequested = true };
+                    }
 
                     await store.RecordReachAsync(asked, cancellationToken).ConfigureAwait(false);
 

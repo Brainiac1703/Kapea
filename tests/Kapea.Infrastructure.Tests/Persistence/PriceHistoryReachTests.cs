@@ -116,6 +116,51 @@ public class PriceHistoryReachTests(SqlServerFixture fixture)
         Assert.Equal(new DateOnly(1999, 12, 31), asset.Earliest);
     }
 
+    [Fact]
+    public async Task Once_the_range_has_been_asked_for_it_stays_asked_for()
+    {
+        // Quedarse con la marca del guardado descartaría la de la petición que acaba de
+        // completarlo, y el relleno del recorrido se repetiría en cada vuelta.
+        var owner = new UserId(Guid.NewGuid());
+        var asset = Guid.NewGuid();
+
+        await using var context = fixture.CreateContext(owner);
+        var store = new PriceHistoryStore(context);
+
+        await store.RecordReachAsync(
+            new PriceHistoryReach(asset, new DateOnly(2020, 1, 1), new DateOnly(2026, 1, 1), null));
+
+        await store.RecordReachAsync(
+            new PriceHistoryReach(
+                asset, new DateOnly(2020, 1, 1), new DateOnly(2026, 1, 1), null, RangeRequested: true));
+
+        var reach = Assert.Single(await store.GetReachAsync([asset]));
+
+        Assert.True(reach.Value.RangeRequested);
+    }
+
+    [Fact]
+    public async Task Asking_for_more_history_does_not_unset_the_range_mark()
+    {
+        var owner = new UserId(Guid.NewGuid());
+        var asset = Guid.NewGuid();
+
+        await using var context = fixture.CreateContext(owner);
+        var store = new PriceHistoryStore(context);
+
+        await store.RecordReachAsync(
+            new PriceHistoryReach(
+                asset, new DateOnly(2020, 1, 1), new DateOnly(2026, 1, 1), null, RangeRequested: true));
+
+        await store.RecordReachAsync(
+            new PriceHistoryReach(asset, new DateOnly(2010, 1, 1), new DateOnly(2026, 3, 1), null));
+
+        var reach = Assert.Single(await store.GetReachAsync([asset]));
+
+        Assert.True(reach.Value.RangeRequested);
+        Assert.Equal(new DateOnly(2010, 1, 1), reach.Value.RequestedFrom);
+    }
+
     private async Task<Guid> AssetWithPricesAsync(UserId owner, string symbol, string? providerId)
     {
         await using var context = fixture.CreateContext(owner);

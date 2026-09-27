@@ -45,13 +45,23 @@ public sealed record PortfolioDay(
 /// Ese día no cotizó el mercado del activo. Distingue un festivo de una laguna: lo
 /// primero no tiene arreglo posible y lo segundo conviene rellenarlo.
 /// </param>
+/// <param name="OpenInEuros">Primer precio del día o del tramo.</param>
+/// <param name="HighInEuros">Mayor precio del día o del tramo.</param>
+/// <param name="LowInEuros">Menor precio del día o del tramo.</param>
 public sealed record AssetHistoryDay(
     DateOnly Date,
     Quantity Quantity,
     Money? PriceInEuros,
     Money? ValueInEuros,
     DateOnly? CarriedFrom = null,
-    bool MarketClosed = false);
+    bool MarketClosed = false,
+    Money? OpenInEuros = null,
+    Money? HighInEuros = null,
+    Money? LowInEuros = null)
+{
+    /// <summary>Se conoce lo que se movió, y no sólo dónde acabó.</summary>
+    public bool HasRange => OpenInEuros is not null && HighInEuros is not null && LowInEuros is not null;
+}
 
 /// <summary>Lo que valía cada clase de activo un día.</summary>
 /// <param name="ValueByClass">Valor por clase. Una clase sin posición ese día no aparece.</param>
@@ -160,12 +170,15 @@ public static class PortfolioHistory
     /// vigila. Eso vaciaba la gráfica de casi todo lo que el usuario sigue, que es
     /// justamente donde hace falta para decidir si entrar.
     /// </remarks>
-    /// <param name="quotes">Cotización por día, exista posición o no. Un día que falte no tiene precio.</param>
+    /// <param name="quotes">
+    /// Cotización por día, exista posición o no, con su recorrido si el proveedor lo da.
+    /// Un día que falte no tiene precio.
+    /// </param>
     /// <param name="closedOn">Días en que no cotizó el mercado de este activo.</param>
     public static IReadOnlyList<AssetHistoryDay> ForAsset(
         IEnumerable<PortfolioDay> days,
         Guid assetId,
-        IReadOnlyDictionary<DateOnly, Money>? quotes = null,
+        IReadOnlyDictionary<DateOnly, DailyPrice>? quotes = null,
         IReadOnlySet<DateOnly>? closedOn = null)
     {
         ArgumentNullException.ThrowIfNull(days);
@@ -178,8 +191,10 @@ public static class PortfolioHistory
 
                 // La posición manda sobre la cotización cuando la hay: es la que entra en
                 // el valor de la cartera, y la serie tiene que decir lo mismo que el total.
+                var quoted = quotes is not null && quotes.TryGetValue(day.Date, out var found) ? found : null;
+
                 var quote = held?.PriceInEuros
-                    ?? (quotes is not null && quotes.TryGetValue(day.Date, out var price) ? price : null);
+                    ?? (quoted is null ? null : Money.Euros(quoted.PriceInEuros));
 
                 return new AssetHistoryDay(
                     day.Date,
@@ -187,7 +202,13 @@ public static class PortfolioHistory
                     quote,
                     held?.ValueInEuros,
                     held?.CarriedFrom,
-                    closedOn?.Contains(day.Date) ?? false);
+                    closedOn?.Contains(day.Date) ?? false,
+
+                    // El recorrido es del mercado, así que viene de la cotización y no
+                    // de la posición: existe se tenga el activo o no.
+                    quoted?.OpenInEuros is { } open ? Money.Euros(open) : null,
+                    quoted?.HighInEuros is { } high ? Money.Euros(high) : null,
+                    quoted?.LowInEuros is { } low ? Money.Euros(low) : null);
             }),
         ];
     }

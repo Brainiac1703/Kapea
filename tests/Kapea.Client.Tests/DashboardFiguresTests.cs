@@ -74,6 +74,67 @@ public class DashboardFiguresTests
 
     private static PortfolioHistoryDayResponse Day(int day, decimal value, bool complete = true, decimal contribution = 0m) =>
         new(new DateOnly(2026, 9, day), value, contribution, complete);
+
+    [Fact]
+    public void A_tiny_price_is_not_rounded_to_nothing()
+    {
+        // PEPE vale 0,00000382 € y el eje entero decía «0»: no se distinguía una altura
+        // de otra.
+        Assert.NotEqual("0", Format.Compact(0.00000382m));
+        Assert.Contains("382", Format.Compact(0.00000382m), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ordinary_amounts_keep_their_two_decimals()
+    {
+        // Con la cultura fijada: el separador decimal depende de ella, y la integración
+        // continua no corre en español.
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("es-ES");
+
+        try
+        {
+            Assert.Equal("66,44", Format.Compact(66.4412m));
+            Assert.Equal("1,2k", Format.Compact(1234m));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    [Fact]
+    public void Zero_is_still_zero() => Assert.Equal("0", Format.Compact(0m));
+
+    [Fact]
+    public void A_tiny_negative_price_keeps_its_sign() =>
+        Assert.StartsWith("-", Format.Compact(-0.0000042m), StringComparison.Ordinal);
+
+    [Fact]
+    public void A_price_below_a_cent_is_not_shown_as_zero_euros()
+    {
+        // Las cifras bajo la gráfica de PEPE decían «0,00 €» las nueve.
+        // No basta con que no empiece por «0,00»: «0,00000382 €» lo contiene y está
+        // bien. Lo que no puede pasar es que la cifra se quede en cero.
+        Assert.NotEqual(Format.Price(0m), Format.Price(0.00000382m));
+        Assert.Contains("382", Format.Price(0.00000382m), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_ordinary_price_keeps_its_two_decimals()
+    {
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("es-ES");
+
+        try
+        {
+            Assert.Contains("66,44", Format.Price(66.4412m), StringComparison.Ordinal);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
 }
 
 public class BrandingTests
@@ -113,4 +174,5 @@ public class BrandingTests
         Assert.Equal("series-4", ChartLine.SeriesAt(ChartLine.DistinctSeries - 1));
         Assert.Equal("series-other", ChartLine.SeriesAt(ChartLine.DistinctSeries));
     }
+
 }

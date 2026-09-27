@@ -460,6 +460,9 @@
   <data name="Charts_Empty" xml:space="preserve">
     <value>No hay datos para dibujar en este periodo.</value>
   </data>
+  <data name="Charts_Range" xml:space="preserve">
+    <value>Recorrido</value>
+  </data>
   <data name="Charts_NoValue" xml:space="preserve">
     <value>Sin dato</value>
   </data>
@@ -848,16 +851,70 @@
     <value>Periodo</value>
   </data>
   <data name="Evolution_Period_Month" xml:space="preserve">
-    <value>1 mes</value>
+    <value>1M</value>
   </data>
   <data name="Evolution_Period_Quarter" xml:space="preserve">
-    <value>3 meses</value>
+    <value>3M</value>
   </data>
   <data name="Evolution_Period_Year" xml:space="preserve">
-    <value>1 año</value>
+    <value>1A</value>
   </data>
   <data name="Evolution_Period_FiveYears" xml:space="preserve">
+    <value>5A</value>
+  </data>
+  <data name="Evolution_Period_Week" xml:space="preserve">
+    <value>1S</value>
+  </data>
+  <data name="Evolution_Period_HalfYear" xml:space="preserve">
+    <value>6M</value>
+  </data>
+  <data name="Evolution_Period_YearToDate" xml:space="preserve">
+    <value>Año</value>
+  </data>
+  <data name="Evolution_Period_TwoYears" xml:space="preserve">
+    <value>2A</value>
+  </data>
+  <data name="Evolution_Interval" xml:space="preserve">
+    <value>Intervalo</value>
+  </data>
+  <data name="Evolution_Interval_Daily" xml:space="preserve">
+    <value>Días</value>
+  </data>
+  <data name="Evolution_Interval_Weekly" xml:space="preserve">
+    <value>Semanas</value>
+  </data>
+  <data name="Evolution_Interval_Monthly" xml:space="preserve">
+    <value>Meses</value>
+  </data>
+  <data name="Evolution_Period_Week_Long" xml:space="preserve">
+    <value>1 semana</value>
+  </data>
+  <data name="Evolution_Period_Month_Long" xml:space="preserve">
+    <value>1 mes</value>
+  </data>
+  <data name="Evolution_Period_Quarter_Long" xml:space="preserve">
+    <value>3 meses</value>
+  </data>
+  <data name="Evolution_Period_HalfYear_Long" xml:space="preserve">
+    <value>6 meses</value>
+  </data>
+  <data name="Evolution_Period_YearToDate_Long" xml:space="preserve">
+    <value>Año en curso</value>
+  </data>
+  <data name="Evolution_Period_Year_Long" xml:space="preserve">
+    <value>1 año</value>
+  </data>
+  <data name="Evolution_Period_TwoYears_Long" xml:space="preserve">
+    <value>2 años</value>
+  </data>
+  <data name="Evolution_Period_FiveYears_Long" xml:space="preserve">
     <value>5 años</value>
+  </data>
+  <data name="Evolution_Period_All_Long" xml:space="preserve">
+    <value>Todo el histórico</value>
+  </data>
+  <data name="Asset_WindowOption" xml:space="preserve">
+    <value>Ventana: {0}</value>
   </data>
   <data name="Evolution_Period_All" xml:space="preserve">
     <value>Todo</value>
@@ -876,6 +933,39 @@
   </data>
   <data name="Asset_Strength" xml:space="preserve">
     <value>Fuerza relativa</value>
+  </data>
+  <data name="Asset_NoRange" xml:space="preserve">
+    <value>Este activo no tiene máximos ni mínimos: su proveedor sólo da el cierre de cada día.</value>
+  </data>
+  <data name="Asset_Figure_Open" xml:space="preserve">
+    <value>Apertura</value>
+  </data>
+  <data name="Asset_Figure_High" xml:space="preserve">
+    <value>Máximo del tramo</value>
+  </data>
+  <data name="Asset_Figure_Low" xml:space="preserve">
+    <value>Mínimo del tramo</value>
+  </data>
+  <data name="Asset_Figure_Close" xml:space="preserve">
+    <value>Cierre</value>
+  </data>
+  <data name="Asset_Figure_PeriodHigh" xml:space="preserve">
+    <value>Máximo del periodo</value>
+  </data>
+  <data name="Asset_Figure_PeriodLow" xml:space="preserve">
+    <value>Mínimo del periodo</value>
+  </data>
+  <data name="Asset_Figure_PeriodChange" xml:space="preserve">
+    <value>Variación del periodo</value>
+  </data>
+  <data name="Asset_Figure_YearHigh" xml:space="preserve">
+    <value>Máximo de 52 semanas</value>
+  </data>
+  <data name="Asset_Figure_YearLow" xml:space="preserve">
+    <value>Mínimo de 52 semanas</value>
+  </data>
+  <data name="Asset_StrengthNote" xml:space="preserve">
+    <value>Mide si el activo lleva subiendo o bajando con fuerza últimamente. Por encima de 70 se considera muy comprado y por debajo de 30 muy vendido; no dice hacia dónde irá.</value>
   </data>
   <data name="Asset_Window" xml:space="preserve">
     <value>Ventana</value>

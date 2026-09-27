@@ -85,11 +85,13 @@ public interface IPortfolioQueries
     /// Desde cuándo. Sin valor, desde la primera cotización guardada de ese activo: no
     /// hay que saber de antemano desde cuándo hay para poder pedirlo todo.
     /// </param>
+    /// <param name="interval">Cada cuánto se agrupa la serie. Sin valor, el que sugiere el periodo.</param>
     Task<AssetHistoryResponse?> GetAssetHistoryAsync(
         Guid assetId,
         DateOnly? from,
         DateOnly to,
         int indicatorWindowDays,
+        Domain.Calculation.SeriesInterval? interval = null,
         CancellationToken cancellationToken = default);
 
     Task<TaxYearResultsResponse> GetTaxYearResultsAsync(int taxYear, CancellationToken cancellationToken = default);

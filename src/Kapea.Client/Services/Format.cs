@@ -69,8 +69,26 @@ public static class Format
     {
         >= 1_000_000m => (amount / 1_000_000m).ToString("0.#M", CultureInfo.CurrentCulture),
         >= 1_000m => (amount / 1_000m).ToString("0.#k", CultureInfo.CurrentCulture),
-        _ => amount.ToString("0.##", CultureInfo.CurrentCulture),
+        >= 1m or 0m => amount.ToString("0.##", CultureInfo.CurrentCulture),
+
+        // Por debajo del euro, dos decimales lo dejan todo en cero: PEPE vale
+        // 0,00000382 € y su eje entero decía «0». Se enseñan cifras significativas, que
+        // es lo que permite distinguir una altura de otra.
+        _ => amount.ToString(Significant(amount), CultureInfo.CurrentCulture),
     };
+
+    /// <summary>Un formato con tres cifras significativas para un importe menor que uno.</summary>
+    private static string Significant(decimal amount)
+    {
+        var decimals = 2;
+
+        for (var scaled = Math.Abs(amount); scaled < 1m && decimals < 12; scaled *= 10m)
+        {
+            decimals++;
+        }
+
+        return "0." + new string('#', decimals);
+    }
 
     /// <summary>Peso sobre el total. Ausente cuando no se puede calcular, nunca cero.</summary>
     public static string Percent(decimal? weight, string whenMissing) =>

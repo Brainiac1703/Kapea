@@ -1034,6 +1034,7 @@ public sealed class PortfolioQueries(
         DateOnly? from,
         DateOnly to,
         int indicatorWindowDays,
+        Domain.Calculation.SeriesInterval? interval = null,
         CancellationToken cancellationToken = default)
     {
         var asset = await context.Assets
@@ -1064,18 +1065,27 @@ public sealed class PortfolioQueries(
         // día que le faltara parecería fiesta.
         var closedOn = await ClosuresAsync(asset, desde, to, cancellationToken).ConfigureAwait(false);
 
-        var days = PortfolioHistory.ForAsset(
+        var daily = PortfolioHistory.ForAsset(
             await DaysAsync(desde, to, cancellationToken).ConfigureAwait(false),
             assetId,
-            quotes.ToDictionary(price => price.Date, price => Money.Euros(price.PriceInEuros)),
+            quotes.ToDictionary(price => price.Date),
             closedOn);
 
-        // Los indicadores se calculan solo sobre los días con precio: rellenar los huecos
-        // daría una media de lo que dice el relleno, no de lo que hizo el mercado.
-        var series = days
+        // Los indicadores se calculan sobre los días y no sobre lo agregado: una media
+        // de veinte semanas no es la misma que una de veinte días, y agrupar para mirar
+        // no puede cambiar lo que el motor evalúa. Sólo sobre los días con precio,
+        // además: rellenar los huecos daría la media del relleno.
+        var series = daily
             .Where(day => day.PriceInEuros is not null)
-            .Select(day => new PricePoint(day.Date, day.PriceInEuros!.Value.Amount))
+            .Select(day => new PricePoint(
+                day.Date,
+                day.PriceInEuros!.Value.Amount,
+                day.HighInEuros?.Amount,
+                day.LowInEuros?.Amount))
             .ToList();
+
+        var grouped = interval ?? Domain.Calculation.SeriesAggregation.Suggested(to.DayNumber - desde.DayNumber + 1);
+        var days = Domain.Calculation.SeriesAggregation.By(daily, grouped);
 
         return new AssetHistoryResponse(
             assetId,
@@ -1087,16 +1097,97 @@ public sealed class PortfolioQueries(
                     day.PriceInEuros?.Amount,
                     day.ValueInEuros?.Amount,
                     day.CarriedFrom,
-                    day.MarketClosed)),
+                    day.MarketClosed,
+                    day.OpenInEuros?.Amount,
+                    day.HighInEuros?.Amount,
+                    day.LowInEuros?.Amount)),
             ],
             Points(TechnicalIndicators.SimpleMovingAverage(series, indicatorWindowDays)),
             Points(TechnicalIndicators.ExponentialMovingAverage(series, indicatorWindowDays)),
             Points(TechnicalIndicators.RelativeStrengthIndex(series, indicatorWindowDays)),
-            indicatorWindowDays);
+            indicatorWindowDays,
+            grouped.ToString(),
+            daily.Any(day => day.HasRange),
+            Dispersion(series, indicatorWindowDays),
+            Figures(days, daily, to));
     }
 
     private static IReadOnlyList<IndicatorPointResponse> Points(IReadOnlyList<IndicatorPoint> points) =>
         [.. points.Select(point => new IndicatorPointResponse(point.Date, point.Value))];
+
+    /// <summary>
+    /// Las cifras que acompañan a la gráfica.
+    /// </summary>
+    /// <remarks>
+    /// Las del periodo salen de lo que se está mirando, porque son la respuesta a lo que
+    /// se está mirando: puesto en cinco años, el máximo del último día no interesa. Las
+    /// de cincuenta y dos semanas son la referencia estándar y no dependen del periodo,
+    /// así que salen de la serie diaria.
+    /// </remarks>
+    private static ChartFiguresResponse? Figures(
+        IReadOnlyList<AssetHistoryDay> shown,
+        IReadOnlyList<AssetHistoryDay> daily,
+        DateOnly to)
+    {
+        var withPrice = shown.Where(day => day.PriceInEuros is not null).ToList();
+
+        if (withPrice.Count == 0)
+        {
+            return null;
+        }
+
+        var last = withPrice[^1];
+        var first = withPrice[0];
+        var year = daily
+            .Where(day => day.PriceInEuros is not null && day.Date > to.AddDays(-365))
+            .ToList();
+
+        // Sin recorrido de verdad, la apertura y los extremos del último tramo salen de
+        // agregar cierres: enseñarlos contradiría el aviso de que este activo no los
+        // tiene, y harían creer que se sabe lo que pasó dentro del día.
+        var real = daily.Any(day => day.HasRange);
+
+        return new ChartFiguresResponse(
+            real ? last.OpenInEuros?.Amount : null,
+            real ? last.HighInEuros?.Amount : null,
+            real ? last.LowInEuros?.Amount : null,
+            last.PriceInEuros!.Value.Amount,
+            withPrice.Max(day => (day.HighInEuros ?? day.PriceInEuros)!.Value.Amount),
+            withPrice.Min(day => (day.LowInEuros ?? day.PriceInEuros)!.Value.Amount),
+
+            // Sin precio de partida no hay variación que calcular, y cero diría que no
+            // se movió, que es distinto.
+            first.PriceInEuros!.Value.Amount == 0m
+                ? null
+                : (last.PriceInEuros.Value.Amount - first.PriceInEuros.Value.Amount)
+                    / first.PriceInEuros.Value.Amount,
+            year.Count == 0 ? null : year.Max(day => (day.HighInEuros ?? day.PriceInEuros)!.Value.Amount),
+            year.Count == 0 ? null : year.Min(day => (day.LowInEuros ?? day.PriceInEuros)!.Value.Amount));
+    }
+
+    /// <summary>
+    /// Cuánto se ha movido el activo, para dibujarlo sobre su serie.
+    /// </summary>
+    /// <remarks>
+    /// Sin días suficientes para la ventana no se devuelve nada, en lugar de una banda
+    /// calculada sobre menos días: parecería igual de firme y no lo sería.
+    /// </remarks>
+    private static DispersionResponse? Dispersion(IReadOnlyList<PricePoint> series, int window)
+    {
+        var bands = TechnicalIndicators.BollingerBands(series, window);
+        var range = TechnicalIndicators.AverageDailyRange(series, window);
+
+        if (bands.Count == 0 && range.Points.Count == 0)
+        {
+            return null;
+        }
+
+        return new DispersionResponse(
+            [.. bands.Select(band => new BandPointResponse(band.Date, band.Middle, band.Upper, band.Lower))],
+            Points(range.Points),
+            window,
+            range.FromDayRange);
+    }
 
     /// <summary>Los días en que no cotizó el mercado de un activo.</summary>
     /// <remarks>
