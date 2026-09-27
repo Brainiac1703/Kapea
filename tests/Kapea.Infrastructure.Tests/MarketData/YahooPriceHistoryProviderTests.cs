@@ -34,7 +34,7 @@ public class YahooPriceHistoryProviderTests
     {
         var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-btc.json"));
 
-        var prices = await Provider(handler).GetHistoryAsync(Request());
+        var prices = (await Provider(handler).GetHistoryAsync(Request())).Prices;
 
         Assert.NotEmpty(prices);
         Assert.All(prices, price => Assert.Equal(Asset, price.AssetId));
@@ -50,7 +50,7 @@ public class YahooPriceHistoryProviderTests
         // una línea plana que nadie cotizó.
         var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-btc.json"));
 
-        var prices = await Provider(handler).GetHistoryAsync(Request());
+        var prices = (await Provider(handler).GetHistoryAsync(Request())).Prices;
 
         Assert.DoesNotContain(prices, price => price.Date == new DateOnly(2025, 5, 3));
     }
@@ -62,7 +62,7 @@ public class YahooPriceHistoryProviderTests
         // un ocho por ciento y volvió al punto de partida es indistinguible de uno plano.
         var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-btc.json"));
 
-        var prices = await Provider(handler).GetHistoryAsync(Request());
+        var prices = (await Provider(handler).GetHistoryAsync(Request())).Prices;
 
         Assert.True(prices[0].HasRange);
         Assert.Equal(83210.96875m, prices[0].OpenInEuros);
@@ -77,7 +77,7 @@ public class YahooPriceHistoryProviderTests
         // en dólares.
         var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-dollars.json"));
 
-        var prices = await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("PAXG"));
+        var prices = (await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("PAXG"))).Prices;
 
         Assert.Equal(100m, prices[0].PriceInEuros);
         Assert.True(prices[0].HasRange);
@@ -97,7 +97,7 @@ public class YahooPriceHistoryProviderTests
             .Respond(_ => NotFound())
             .Respond(_ => NotFound());
 
-        Assert.Empty(await Provider(handler).GetHistoryAsync(Request("B2M")));
+        Assert.Empty((await Provider(handler).GetHistoryAsync(Request("B2M"))).Prices);
     }
 
     [Fact]
@@ -107,7 +107,45 @@ public class YahooPriceHistoryProviderTests
             .RespondWithStatus(System.Net.HttpStatusCode.ServiceUnavailable)
             .RespondWithStatus(System.Net.HttpStatusCode.ServiceUnavailable);
 
-        Assert.Empty(await Provider(handler).GetHistoryAsync(Request()));
+        Assert.Empty((await Provider(handler).GetHistoryAsync(Request())).Prices);
+    }
+
+    [Fact]
+    public async Task A_provider_that_fails_says_it_could_not_answer()
+    {
+        // Es lo que separa un hueco de un día de uno para siempre: sin esto, el tramo
+        // consta preguntado y no se vuelve a pedir.
+        var handler = new RecordedResponseHandler()
+            .RespondWithStatus(System.Net.HttpStatusCode.Unauthorized)
+            .RespondWithStatus(System.Net.HttpStatusCode.Unauthorized);
+
+        Assert.False((await Provider(handler).GetHistoryAsync(Request())).Answered);
+    }
+
+    [Fact]
+    public async Task A_symbol_yahoo_does_not_know_is_an_answer_and_not_a_failure()
+    {
+        var handler = new RecordedResponseHandler()
+            .Respond(_ => NotFound())
+            .Respond(_ => NotFound());
+
+        Assert.True((await Provider(handler).GetHistoryAsync(Request("B2M"))).Answered);
+    }
+
+    [Fact]
+    public async Task A_failure_against_the_euro_does_not_spend_another_request_against_the_dollar()
+    {
+        // El precio de un token pequeño se busca contra el dólar si no lo hay contra el
+        // euro. Insistir con el proveedor que acaba de rechazar la petición gasta cuota
+        // y taparía el fallo con un segundo vacío.
+        var handler = new RecordedResponseHandler()
+            .RespondWithStatus(System.Net.HttpStatusCode.Unauthorized)
+            .RespondWithFile(Recorded("yahoo-history-btc.json"));
+
+        var result = await Provider(handler).GetHistoryAsync(Request());
+
+        Assert.False(result.Answered);
+        Assert.Single(handler.Requests);
     }
 
     [Fact]
@@ -135,7 +173,7 @@ public class YahooPriceHistoryProviderTests
             .Respond(_ => NotFound())
             .RespondWithFile(Recorded("yahoo-history-dollars.json"));
 
-        var prices = await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("B2M"));
+        var prices = (await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("B2M"))).Prices;
 
         Assert.Equal(2, handler.Requests.Count);
         Assert.Contains("B2M-EUR", handler.Requests[0].RequestUri!.ToString(), StringComparison.Ordinal);
@@ -151,7 +189,7 @@ public class YahooPriceHistoryProviderTests
         // movimientos, y el origen lo dice para no confundirlo con un precio cotizado.
         var handler = new RecordedResponseHandler().RespondWithFile(Recorded("yahoo-history-dollars.json"));
 
-        var prices = await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("PAXG"));
+        var prices = (await Provider(handler, new FixedRate(1.10m)).GetHistoryAsync(Request("PAXG"))).Prices;
 
 
         Assert.Equal(100m, prices[0].PriceInEuros);
@@ -166,7 +204,7 @@ public class YahooPriceHistoryProviderTests
             .RespondWithFile(Recorded("yahoo-history-dollars.json"))
             .RespondWithFile(Recorded("yahoo-history-dollars.json"));
 
-        Assert.Empty(await Provider(handler).GetHistoryAsync(Request("PAXG")));
+        Assert.Empty((await Provider(handler).GetHistoryAsync(Request("PAXG"))).Prices);
     }
 
     private static HttpResponseMessage NotFound() =>

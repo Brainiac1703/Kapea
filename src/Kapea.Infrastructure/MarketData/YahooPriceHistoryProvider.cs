@@ -27,7 +27,7 @@ public sealed class YahooPriceHistoryProvider(
 
     public string Name => "Yahoo";
 
-    public async Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
+    public async Task<PriceHistoryResult> GetHistoryAsync(
         PriceHistoryRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -35,27 +35,31 @@ public sealed class YahooPriceHistoryProvider(
 
         if (request.To < request.From)
         {
-            return [];
+            return PriceHistoryResult.Nothing;
         }
 
         var symbol = YahooSymbols.ToYahoo(request.CanonicalSymbol, request.Class);
-        var prices = await SeriesAsync(symbol, request, cancellationToken).ConfigureAwait(false);
+        var result = await SeriesAsync(symbol, request, cancellationToken).ConfigureAwait(false);
 
         // Yahoo no cotiza contra el euro los tokens pequeños, y es la única fuente que
         // llega más atrás de un año. Si no hay serie en euros se prueba contra el dólar
         // y se convierte; mejor un precio convertido y dicho que un hueco de meses.
-        if (prices.Count == 0 && request.Class == Domain.Assets.AssetClass.Crypto)
+        //
+        // Sólo se prueba si la primera petición llegó a contestar. Reintentar en el acto
+        // lo que acaba de fallar gasta otra petición en el proveedor que ya no responde,
+        // y encima taparía el fallo con un segundo vacío.
+        if (result is { Answered: true, Prices.Count: 0 } && request.Class == Domain.Assets.AssetClass.Crypto)
         {
-            prices = await SeriesAsync(
+            result = await SeriesAsync(
                 YahooSymbols.ToYahoo(request.CanonicalSymbol, Domain.Assets.AssetClass.Crypto, "USD"),
                 request,
                 cancellationToken).ConfigureAwait(false);
         }
 
-        return prices;
+        return result;
     }
 
-    private async Task<IReadOnlyList<DailyPrice>> SeriesAsync(
+    private async Task<PriceHistoryResult> SeriesAsync(
         string symbol,
         PriceHistoryRequest request,
         CancellationToken cancellationToken)
@@ -76,7 +80,7 @@ public sealed class YahooPriceHistoryProvider(
             // es un activo que esta fuente no cubre.
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                return [];
+                return PriceHistoryResult.Nothing;
             }
 
             response.EnsureSuccessStatusCode();
@@ -88,23 +92,24 @@ public sealed class YahooPriceHistoryProvider(
 
             if (currency is null)
             {
-                return [];
+                return PriceHistoryResult.Nothing;
             }
 
             var closes = Read(document, request);
 
-            return currency.Value.IsEuro
+            return PriceHistoryResult.Of(currency.Value.IsEuro
                 ? closes
-                : await ToEurosAsync(closes, currency.Value, cancellationToken).ConfigureAwait(false);
+                : await ToEurosAsync(closes, currency.Value, cancellationToken).ConfigureAwait(false));
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or TaskCanceledException)
         {
-            // Lo ya descargado de otros activos se conserva; este se reintenta en la
-            // siguiente vuelta. Un hueco es preferible a una serie inventada.
+            // Lo ya descargado de otros activos se conserva y este tramo queda sin
+            // contestar, que es lo que hace que se vuelva a pedir. Devolverlo como serie
+            // vacía lo daría por preguntado y el hueco sería para siempre.
             logger.LogWarning(
                 exception, "Yahoo no ha devuelto el histórico de {Simbolo}; se reintentará.", symbol);
 
-            return [];
+            return PriceHistoryResult.Failed;
         }
     }
 

@@ -19,7 +19,7 @@ public class CoinGeckoPriceHistoryProviderTests
         // daría el precio de la madrugada en lugar del cierre.
         var handler = new RecordedResponseHandler().RespondWithFile(Recorded("coingecko-history-btc.json"));
 
-        var prices = await Provider(handler).GetHistoryAsync(Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25)));
+        var prices = (await Provider(handler).GetHistoryAsync(Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25)))).Prices;
 
         Assert.NotEmpty(prices);
         Assert.Equal(prices.Select(price => price.Date).Distinct().Count(), prices.Count);
@@ -31,7 +31,7 @@ public class CoinGeckoPriceHistoryProviderTests
     {
         var handler = new RecordedResponseHandler().RespondWithFile(Recorded("coingecko-history-btc.json"));
 
-        var prices = await Provider(handler).GetHistoryAsync(Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 24)));
+        var prices = (await Provider(handler).GetHistoryAsync(Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 24)))).Prices;
 
         Assert.Equal([.. prices.Select(price => price.Date).Order()], [.. prices.Select(price => price.Date)]);
         Assert.All(prices, price => Assert.InRange(price.Date, new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 24)));
@@ -44,8 +44,8 @@ public class CoinGeckoPriceHistoryProviderTests
         // recibir un error no ayuda a nadie, y no es un fallo: es falta de cobertura.
         var handler = new RecordedResponseHandler();
 
-        var prices = await Provider(handler).GetHistoryAsync(
-            Request(new DateOnly(2024, 1, 1), new DateOnly(2024, 3, 1)));
+        var prices = (await Provider(handler).GetHistoryAsync(
+            Request(new DateOnly(2024, 1, 1), new DateOnly(2024, 3, 1)))).Prices;
 
         Assert.Empty(prices);
         Assert.Empty(handler.Requests);
@@ -69,8 +69,8 @@ public class CoinGeckoPriceHistoryProviderTests
     {
         var handler = new RecordedResponseHandler();
 
-        Assert.Empty(await Provider(handler).GetHistoryAsync(
-            Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25), "INVENTADO")));
+        Assert.Empty((await Provider(handler).GetHistoryAsync(
+            Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25), "INVENTADO"))).Prices);
 
         Assert.Empty(handler.Requests);
     }
@@ -80,8 +80,39 @@ public class CoinGeckoPriceHistoryProviderTests
     {
         var handler = new RecordedResponseHandler().RespondWithStatus(System.Net.HttpStatusCode.TooManyRequests);
 
-        Assert.Empty(await Provider(handler).GetHistoryAsync(
-            Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25))));
+        Assert.Empty((await Provider(handler).GetHistoryAsync(
+            Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25)))).Prices);
+    }
+
+    [Fact]
+    public async Task A_provider_that_fails_says_it_could_not_answer()
+    {
+        var handler = new RecordedResponseHandler().RespondWithStatus(System.Net.HttpStatusCode.TooManyRequests);
+
+        Assert.False((await Provider(handler).GetHistoryAsync(
+            Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25)))).Answered);
+    }
+
+    [Fact]
+    public async Task An_asset_coingecko_does_not_know_is_an_answer_and_not_a_failure()
+    {
+        // Los dos casos dejan la serie vacía y no son lo mismo: por mucho que se
+        // insista, aquí no va a aparecer nunca, así que el tramo queda preguntado.
+        var handler = new RecordedResponseHandler();
+
+        Assert.True((await Provider(handler).GetHistoryAsync(
+            Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25), "INVENTADO"))).Answered);
+    }
+
+    [Fact]
+    public async Task A_range_older_than_the_free_window_is_an_answer_and_not_a_failure()
+    {
+        var handler = new RecordedResponseHandler();
+
+        Assert.True((await Provider(handler).GetHistoryAsync(
+            Request(new DateOnly(2020, 1, 1), new DateOnly(2020, 6, 1)))).Answered);
+
+        Assert.Empty(handler.Requests);
     }
 
     private static string Recorded(string fileName) => Path.Combine("MarketData", "Recorded", fileName);
@@ -106,7 +137,7 @@ public class CoinGeckoPriceHistoryProviderTests
         // es lo que hay, y se distingue de un recorrido de cero.
         var handler = new RecordedResponseHandler().RespondWithFile(Recorded("coingecko-history-btc.json"));
 
-        var prices = await Provider(handler).GetHistoryAsync(Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25)));
+        var prices = (await Provider(handler).GetHistoryAsync(Request(new DateOnly(2026, 8, 23), new DateOnly(2026, 8, 25)))).Prices;
 
         Assert.NotEmpty(prices);
         Assert.All(prices, price => Assert.False(price.HasRange));

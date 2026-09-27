@@ -91,19 +91,53 @@ public sealed record PriceHistoryRequest(
     string? ProviderId = null);
 
 /// <summary>
+/// Lo que un proveedor devuelve al pedirle un tramo de serie.
+/// </summary>
+/// <remarks>
+/// No basta con la lista de precios. Una lista vacía significaba a la vez «aquí no hay
+/// nada» y «no he podido preguntar», y quien decide si un tramo hay que volver a pedirlo
+/// necesita distinguirlas: lo primero es una respuesta y no se repite, lo segundo es un
+/// fallo pasajero que sí. Confundirlas convertía un 401 de un momento en un hueco
+/// permanente.
+///
+/// Es un tipo y no un booleano suelto para que quepa el motivo del fallo el día que haga
+/// falta, sin volver a tocar la firma del puerto.
+/// </remarks>
+/// <param name="Prices">Los días que el proveedor ha entregado, que pueden ser ninguno.</param>
+/// <param name="Answered">
+/// El proveedor pudo contestar. Falso sólo cuando falló: que conteste que no tiene nada
+/// es una respuesta.
+/// </param>
+public sealed record PriceHistoryResult(IReadOnlyList<DailyPrice> Prices, bool Answered)
+{
+    /// <summary>Lo que el proveedor ha entregado, habiendo podido contestar.</summary>
+    public static PriceHistoryResult Of(IReadOnlyList<DailyPrice> prices) => new(prices, Answered: true);
+
+    /// <summary>El proveedor ha contestado que no tiene nada de este tramo.</summary>
+    public static PriceHistoryResult Nothing { get; } = new([], Answered: true);
+
+    /// <summary>El proveedor no ha podido contestar. El tramo sigue sin preguntar.</summary>
+    public static PriceHistoryResult Failed { get; } = new([], Answered: false);
+}
+
+/// <summary>
 /// Proveedor capaz de entregar el cierre diario de un activo entre dos fechas.
 /// </summary>
 /// <remarks>
 /// Va aparte del precio de ahora porque la cobertura no coincide: hay proveedores que
 /// dan el precio actual de un token pequeño y no su historia, y al revés. Un proveedor
-/// que no cubra un activo devuelve una serie vacía, nunca un error.
+/// que no cubra un activo contesta con una serie vacía, nunca con un error.
+///
+/// Caerse es otra cosa, y para eso está <see cref="PriceHistoryResult.Answered"/>: el
+/// fallo se declara en el resultado y no propagando la excepción, porque una petición
+/// que se cae no puede tumbar la pasada de los demás activos.
 /// </remarks>
 public interface IPriceHistoryProvider
 {
     /// <summary>Nombre con el que queda anotado el origen de cada precio.</summary>
     string Name { get; }
 
-    Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
+    Task<PriceHistoryResult> GetHistoryAsync(
         PriceHistoryRequest request,
         CancellationToken cancellationToken = default);
 }
