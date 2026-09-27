@@ -57,13 +57,36 @@ else
 
     @* El precio con sus medias encima: la media sola no dice nada, y el precio solo no
        deja ver la tendencia. *@
-    <LineChart Lines="@Price()" Candles="@Candles()" Title="@Ui["Asset_Price"]" />
+    <LineChart Lines="@Price()" Candles="@Candles()" Title="@Ui["Asset_Price"]"
+               Formatter="@(value => Format.Price(value))" />
+
+    @* Las cifras debajo, para no tener que estimarlas a ojo sobre el dibujo. *@
+    @if (_history.Figures is { } figures)
+    {
+        <div class="chart-figures">
+            @Figure("Asset_Figure_Open", figures.Open)
+            @Figure("Asset_Figure_High", figures.High)
+            @Figure("Asset_Figure_Low", figures.Low)
+            @Figure("Asset_Figure_Close", figures.Close)
+            @Figure("Asset_Figure_PeriodHigh", figures.PeriodHigh)
+            @Figure("Asset_Figure_PeriodLow", figures.PeriodLow)
+            @Change("Asset_Figure_PeriodChange", figures.PeriodChange)
+            @Figure("Asset_Figure_YearHigh", figures.YearHigh)
+            @Figure("Asset_Figure_YearLow", figures.YearLow)
+        </div>
+    }
 
     <FluentLabel Typo="Typography.H4">@Ui["Asset_Strength"]</FluentLabel>
 
     @* La fuerza relativa va aparte porque su escala es de cero a cien: dibujarla junto
        al precio la dejaría pegada al suelo o aplastaría el precio. *@
-    <LineChart Lines="@Strength()" Title="@Ui["Asset_Strength"]" Formatter="@(value => Format.Compact(value))" />
+    @* Treinta y setenta son los umbrales con los que se lee: sin ellos la línea sube y
+       baja sin que nada diga cuándo es mucho. *@
+    <LineChart Lines="@Strength()" Title="@Ui["Asset_Strength"]"
+               Reference="@(new decimal[] { 30m, 70m })"
+               Formatter="@(value => Format.Compact(value))" />
+
+    <FluentLabel Typo="Typography.Body" Class="chart-note">@Ui["Asset_StrengthNote"]</FluentLabel>
 }
 
 @code {
@@ -173,6 +196,30 @@ else
                     day.PriceInEuros!.Value)),
         ]
         : null;
+
+    /// <summary>Una cifra con su nombre, o dicho que no la hay.</summary>
+    private RenderFragment Figure(string label, decimal? amount) => builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "chart-figure");
+        builder.AddContent(2, Ui[label].Value);
+        builder.OpenElement(3, "strong");
+        builder.AddContent(4, Format.Price(amount, Ui["Charts_NoValue"].Value));
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private RenderFragment Change(string label, decimal? ratio) => builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "chart-figure");
+        builder.AddContent(2, Ui[label].Value);
+        builder.OpenElement(3, "strong");
+        builder.AddAttribute(4, "class", ratio is null ? null : ratio >= 0m ? "gain" : "loss");
+        builder.AddContent(5, Format.Percent(ratio, Ui["Charts_NoValue"].Value));
+        builder.CloseElement();
+        builder.CloseElement();
+    };
 
     private IReadOnlyList<ChartLine> Strength() =>
     [

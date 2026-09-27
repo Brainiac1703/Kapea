@@ -1108,11 +1108,62 @@ public sealed class PortfolioQueries(
             indicatorWindowDays,
             grouped.ToString(),
             daily.Any(day => day.HasRange),
-            Dispersion(series, indicatorWindowDays));
+            Dispersion(series, indicatorWindowDays),
+            Figures(days, daily, to));
     }
 
     private static IReadOnlyList<IndicatorPointResponse> Points(IReadOnlyList<IndicatorPoint> points) =>
         [.. points.Select(point => new IndicatorPointResponse(point.Date, point.Value))];
+
+    /// <summary>
+    /// Las cifras que acompañan a la gráfica.
+    /// </summary>
+    /// <remarks>
+    /// Las del periodo salen de lo que se está mirando, porque son la respuesta a lo que
+    /// se está mirando: puesto en cinco años, el máximo del último día no interesa. Las
+    /// de cincuenta y dos semanas son la referencia estándar y no dependen del periodo,
+    /// así que salen de la serie diaria.
+    /// </remarks>
+    private static ChartFiguresResponse? Figures(
+        IReadOnlyList<AssetHistoryDay> shown,
+        IReadOnlyList<AssetHistoryDay> daily,
+        DateOnly to)
+    {
+        var withPrice = shown.Where(day => day.PriceInEuros is not null).ToList();
+
+        if (withPrice.Count == 0)
+        {
+            return null;
+        }
+
+        var last = withPrice[^1];
+        var first = withPrice[0];
+        var year = daily
+            .Where(day => day.PriceInEuros is not null && day.Date > to.AddDays(-365))
+            .ToList();
+
+        // Sin recorrido de verdad, la apertura y los extremos del último tramo salen de
+        // agregar cierres: enseñarlos contradiría el aviso de que este activo no los
+        // tiene, y harían creer que se sabe lo que pasó dentro del día.
+        var real = daily.Any(day => day.HasRange);
+
+        return new ChartFiguresResponse(
+            real ? last.OpenInEuros?.Amount : null,
+            real ? last.HighInEuros?.Amount : null,
+            real ? last.LowInEuros?.Amount : null,
+            last.PriceInEuros!.Value.Amount,
+            withPrice.Max(day => (day.HighInEuros ?? day.PriceInEuros)!.Value.Amount),
+            withPrice.Min(day => (day.LowInEuros ?? day.PriceInEuros)!.Value.Amount),
+
+            // Sin precio de partida no hay variación que calcular, y cero diría que no
+            // se movió, que es distinto.
+            first.PriceInEuros!.Value.Amount == 0m
+                ? null
+                : (last.PriceInEuros.Value.Amount - first.PriceInEuros.Value.Amount)
+                    / first.PriceInEuros.Value.Amount,
+            year.Count == 0 ? null : year.Max(day => (day.HighInEuros ?? day.PriceInEuros)!.Value.Amount),
+            year.Count == 0 ? null : year.Min(day => (day.LowInEuros ?? day.PriceInEuros)!.Value.Amount));
+    }
 
     /// <summary>
     /// Cuánto se ha movido el activo, para dibujarlo sobre su serie.

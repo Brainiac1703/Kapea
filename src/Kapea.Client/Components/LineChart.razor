@@ -65,6 +65,12 @@ else
                 }
             }
 
+            @foreach (var level in Reference ?? [])
+            {
+                <line x1="@Left" y1="@N(Y(level))" x2="@(Width - Right)" y2="@N(Y(level))" class="chart-reference" />
+                @Label(Width - Right - 2, Y(level) - 4, Format.Compact(level), "end")
+            }
+
             @if (_hover is { } hover)
             {
                 <line x1="@N(X(hover))" y1="0" x2="@N(X(hover))" y2="@(Height - Bottom)" class="chart-cursor" />
@@ -84,26 +90,49 @@ else
             @Label(Width - Right, Height - 4, Moment(_bounds.To), "end")
         </svg>
 
-        @if (_hover is { } day)
-        {
-            <div class="chart-readout">
+        @* La leyenda está siempre, no sólo al posarse: sin ella hay tres cosas
+           superpuestas y nada dice cuál es cuál. Al recorrer la gráfica se le añaden la
+           fecha y los valores de ese punto. *@
+        <div class="chart-readout">
+            @if (_hover is { } day)
+            {
                 <span class="chart-readout-date">@Moment(day)</span>
-                @foreach (var line in Lines)
-                {
-                    <span class="chart-readout-line">
-                        <span class="chart-readout-dot @line.Series"></span>
-                        @line.Name
-                        <strong>@Reading(line, day)</strong>
-                    </span>
-                }
-            </div>
-        }
+            }
+
+            @if (AsCandles || AsBand)
+            {
+                <span class="chart-readout-line">
+                    <span class="chart-readout-dot chart-readout-range"></span>
+                    @Ui["Charts_Range"]
+                    @if (_hover is { } withRange)
+                    {
+                        <strong>@RangeReading(withRange)</strong>
+                    }
+                </span>
+            }
+
+            @foreach (var line in Lines)
+            {
+                <span class="chart-readout-line">
+                    <span class="chart-readout-dot @line.Series"></span>
+                    @line.Name
+                    @if (_hover is { } at)
+                    {
+                        <strong>@Reading(line, at)</strong>
+                    }
+                </span>
+            }
+        </div>
     </div>
 }
 
 @code {
     private const int Width = 1000;
-    private const int Height = 320;
+    /// <summary>
+    /// Alto del dibujo. Cuanto más plano, menos se distingue un movimiento del ruido:
+    /// con trescientos veinte el precio y sus medias se pisaban.
+    /// </summary>
+    private const int Height = 420;
     private const int Left = 56;
     private const int Right = 8;
     private const int Bottom = 20;
@@ -141,6 +170,16 @@ else
     /// </remarks>
     [Parameter]
     public IReadOnlyList<ChartCandle>? Candles { get; set; }
+
+    /// <summary>
+    /// Alturas de referencia, dibujadas de punto.
+    /// </summary>
+    /// <remarks>
+    /// Una fuerza relativa sin el treinta y el setenta es una línea que sube y baja sin
+    /// que nada diga cuándo es mucho: los umbrales son la mitad de lo que significa.
+    /// </remarks>
+    [Parameter]
+    public IReadOnlyList<decimal>? Reference { get; set; }
 
     /// <summary>
     /// A partir de cuántos tramos la vela deja de aportar.
@@ -215,6 +254,12 @@ else
             yield return (string.Join(' ', points), stacked[index].Series);
         }
     }
+
+    /// <summary>De dónde a dónde se movió ese tramo, para leerlo junto al precio.</summary>
+    private string RangeReading(DateOnly date) =>
+        Candles?.FirstOrDefault(candle => candle.Date == date) is { } candle
+            ? $"{(Formatter ?? Format.Euros)(candle.Low)} – {(Formatter ?? Format.Euros)(candle.High)}"
+            : Ui["Charts_NoValue"];
 
     private string Reading(ChartLine line, DateOnly date) =>
         line.Points.FirstOrDefault(point => point.Date == date)?.Value is { } value
@@ -335,8 +380,15 @@ else
     /// <summary>Los extremos de la serie y las alturas de la rejilla.</summary>
     private sealed record Bounds(DateOnly From, DateOnly To, decimal Lowest, decimal Highest)
     {
+        /// <summary>
+        /// Las alturas con su valor escrito.
+        /// </summary>
+        /// <remarks>
+        /// Cinco y no tres: con tres, leer una altura intermedia obliga a estimar a ojo
+        /// justo lo que la gráfica debería decir.
+        /// </remarks>
         internal IReadOnlyList<decimal> GridLines =>
-            [Lowest, Lowest + ((Highest - Lowest) / 2m), Highest];
+            [.. Enumerable.Range(0, 5).Select(step => Lowest + ((Highest - Lowest) * step / 4m))];
 
         internal static Bounds? Of(IReadOnlyList<ChartLine> lines, IReadOnlyList<ChartCandle>? candles = null)
         {

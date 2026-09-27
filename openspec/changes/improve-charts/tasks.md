@@ -37,10 +37,10 @@
 
 ## 6. Las cifras junto a la gráfica
 
-- [ ] 6.1 Calcular y entregar el bloque de cifras: apertura, máximo y mínimo del último día; máximo, mínimo y variación del periodo; y máximo y mínimo de 52 semanas; verificar con tests de integración de la API
-- [ ] 6.2 Verificar con test que las cifras del periodo cambian al cambiar el periodo, y que las de 52 semanas no
-- [ ] 6.3 Mostrar el bloque bajo la gráfica, con las cifras que falten dichas como tales; verificar manualmente con un activo con recorrido y otro sin él
-- [ ] 6.4 Mostrar las bandas de dispersión rotuladas como descripción del recorrido pasado, nunca como probabilidad; verificar manualmente que el rótulo no sugiere pronóstico
+- [x] 6.1 Calcular y entregar el bloque de cifras: apertura, máximo y mínimo del último día; máximo, mínimo y variación del periodo; y máximo y mínimo de 52 semanas; verificar con tests de integración de la API
+- [x] 6.2 Verificar con test que las cifras del periodo cambian al cambiar el periodo, y que las de 52 semanas no
+- [x] 6.3 Mostrar el bloque bajo la gráfica, con las cifras que falten dichas como tales; verificar manualmente con un activo con recorrido y otro sin él
+- [x] 6.4 Mostrar las bandas de dispersión rotuladas como descripción del recorrido pasado, nunca como probabilidad; verificar manualmente que el rótulo no sugiere pronóstico
 
 ## 7. Comprobación con los datos reales
 

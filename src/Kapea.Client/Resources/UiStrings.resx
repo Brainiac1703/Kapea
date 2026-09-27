@@ -460,6 +460,9 @@
   <data name="Charts_Empty" xml:space="preserve">
     <value>No hay datos para dibujar en este periodo.</value>
   </data>
+  <data name="Charts_Range" xml:space="preserve">
+    <value>Recorrido</value>
+  </data>
   <data name="Charts_NoValue" xml:space="preserve">
     <value>Sin dato</value>
   </data>
@@ -933,6 +936,36 @@
   </data>
   <data name="Asset_NoRange" xml:space="preserve">
     <value>Este activo no tiene máximos ni mínimos: su proveedor sólo da el cierre de cada día.</value>
+  </data>
+  <data name="Asset_Figure_Open" xml:space="preserve">
+    <value>Apertura</value>
+  </data>
+  <data name="Asset_Figure_High" xml:space="preserve">
+    <value>Máximo del tramo</value>
+  </data>
+  <data name="Asset_Figure_Low" xml:space="preserve">
+    <value>Mínimo del tramo</value>
+  </data>
+  <data name="Asset_Figure_Close" xml:space="preserve">
+    <value>Cierre</value>
+  </data>
+  <data name="Asset_Figure_PeriodHigh" xml:space="preserve">
+    <value>Máximo del periodo</value>
+  </data>
+  <data name="Asset_Figure_PeriodLow" xml:space="preserve">
+    <value>Mínimo del periodo</value>
+  </data>
+  <data name="Asset_Figure_PeriodChange" xml:space="preserve">
+    <value>Variación del periodo</value>
+  </data>
+  <data name="Asset_Figure_YearHigh" xml:space="preserve">
+    <value>Máximo de 52 semanas</value>
+  </data>
+  <data name="Asset_Figure_YearLow" xml:space="preserve">
+    <value>Mínimo de 52 semanas</value>
+  </data>
+  <data name="Asset_StrengthNote" xml:space="preserve">
+    <value>Mide si el activo lleva subiendo o bajando con fuerza últimamente. Por encima de 70 se considera muy comprado y por debajo de 30 muy vendido; no dice hacia dónde irá.</value>
   </data>
   <data name="Asset_Window" xml:space="preserve">
     <value>Ventana</value>

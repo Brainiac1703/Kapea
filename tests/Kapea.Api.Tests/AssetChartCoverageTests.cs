@@ -234,6 +234,64 @@ public class AssetChartCoverageTests(KapeaApiFactory factory)
         Assert.False(history!.Dispersion!.AverageRangeFromDayRange);
     }
 
+    [Fact]
+    public async Task The_figures_answer_the_period_being_looked_at()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "FIGURES", days: 40, withRange: true);
+
+        var history = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-04-09&interval=daily");
+
+        var figures = history!.Figures;
+
+        Assert.NotNull(figures);
+
+        // Los precios van de 100 a 139, con el máximo cinco por encima del cierre.
+        Assert.Equal(139m, figures.Close);
+        Assert.Equal(144m, figures.High);
+        Assert.Equal(144m, figures.PeriodHigh);
+        Assert.Equal(98m, figures.PeriodLow);
+    }
+
+    [Fact]
+    public async Task The_period_figures_change_with_the_period_and_the_year_ones_do_not()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "TWOSPANS", days: 40, withRange: true);
+
+        var largo = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-04-09&interval=daily");
+        var corto = await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-04-01&to=2026-04-09&interval=daily");
+
+        Assert.NotEqual(largo!.Figures!.PeriodLow, corto!.Figures!.PeriodLow);
+        Assert.Equal(largo.Figures.YearHigh, corto.Figures.YearHigh);
+    }
+
+    [Fact]
+    public async Task Without_a_range_the_figures_still_answer_with_the_closes()
+    {
+        var user = Guid.NewGuid();
+        var client = factory.CreateClientFor(user);
+        var asset = await QuotedAssetAsync(user, "NOFIGRANGE", days: 10);
+
+        var figures = (await client.GetFromJsonAsync<AssetHistoryResponse>(
+            $"/api/portfolio/history/{asset}?from=2026-03-01&to=2026-03-10&interval=daily"))!.Figures;
+
+        // Sin recorrido de verdad no se enseñan la apertura ni los extremos del tramo:
+        // saldrían de agregar cierres y contradirían el aviso.
+        Assert.NotNull(figures);
+        Assert.Null(figures.Open);
+        Assert.Null(figures.High);
+        Assert.Null(figures.Low);
+        Assert.NotNull(figures.Close);
+        Assert.Equal(109m, figures.PeriodHigh);
+        Assert.Equal(100m, figures.PeriodLow);
+    }
+
     /// <summary>Un activo del catálogo con cotizaciones y sin un solo movimiento.</summary>
     private async Task<Guid> QuotedAssetAsync(
         Guid user, string symbol, int days, int? skip = null, bool withRange = false)

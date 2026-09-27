@@ -760,3 +760,54 @@ table.sample th {
     fill-opacity: 0.22;
     stroke: none;
 }
+
+/* Las cifras bajo la gráfica: una rejilla que se reparte sola y no obliga a leer en
+   zigzag. Cada una con su nombre encima y el valor destacado. */
+.chart-figures {
+    display: grid;
+    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.5rem 1rem;
+    margin: 0.75rem 0 0.25rem;
+}
+
+.chart-figure {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    color: var(--kapea-ink-muted);
+}
+
+.chart-figure strong {
+    font-size: 1rem;
+}
+
+/* El color sólo para las cifras que no dicen ya si suben o bajan: sin la excepción,
+   esta regla pisaba el verde y el rojo de la variación por ser más específica. */
+.chart-figure strong:not(.gain):not(.loss) {
+    color: var(--kapea-ink);
+}
+
+/* Los umbrales con los que se lee un indicador. De punto y tenues: son referencia, no
+   dato, y competir con la línea sería justo lo contrario de ayudar. */
+.chart-reference {
+    stroke: var(--kapea-ink-muted);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+    opacity: 0.7;
+}
+
+/* La explicación de un indicador, para no tener que saberse qué mide. */
+.chart-note {
+    display: block;
+    max-width: 60ch;
+    margin-top: 0.25rem;
+    color: var(--kapea-ink-muted);
+}
+
+/* El recorrido en la leyenda: el mismo gris translúcido con el que se dibuja la banda,
+   para que el punto y lo dibujado se reconozcan como lo mismo. */
+.chart-readout-dot.chart-readout-range {
+    background: var(--kapea-series-1);
+    opacity: 0.35;
+}

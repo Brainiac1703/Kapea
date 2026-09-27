@@ -435,10 +435,34 @@ public sealed record AssetHistoryResponse(
     int IndicatorWindowDays,
     string Interval = "Daily",
     bool HasRange = false,
-    DispersionResponse? Dispersion = null);
+    DispersionResponse? Dispersion = null,
+    ChartFiguresResponse? Figures = null);
 
 /// <summary>Un valor de un indicador con el día al que corresponde.</summary>
 public sealed record IndicatorPointResponse(DateOnly Date, decimal Value);
+
+/// <summary>
+/// Las cifras que acompañan a la gráfica, para no tener que estimarlas a ojo.
+/// </summary>
+/// <param name="Open">Apertura del último tramo con dato.</param>
+/// <param name="High">Máximo del último tramo.</param>
+/// <param name="Low">Mínimo del último tramo.</param>
+/// <param name="Close">Cierre del último tramo.</param>
+/// <param name="PeriodHigh">Mayor precio del periodo que se está mirando.</param>
+/// <param name="PeriodLow">Menor precio del periodo.</param>
+/// <param name="PeriodChange">Cuánto ha cambiado el precio en el periodo, en tanto por uno.</param>
+/// <param name="YearHigh">Máximo de las últimas cincuenta y dos semanas, mire lo que mire.</param>
+/// <param name="YearLow">Mínimo de las últimas cincuenta y dos semanas.</param>
+public sealed record ChartFiguresResponse(
+    decimal? Open,
+    decimal? High,
+    decimal? Low,
+    decimal? Close,
+    decimal? PeriodHigh,
+    decimal? PeriodLow,
+    decimal? PeriodChange,
+    decimal? YearHigh,
+    decimal? YearLow);
 
 /// <summary>Los tres valores de una banda un día.</summary>
 public sealed record BandPointResponse(DateOnly Date, decimal Middle, decimal Upper, decimal Lower);

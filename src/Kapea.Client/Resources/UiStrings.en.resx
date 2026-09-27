@@ -460,6 +460,9 @@
   <data name="Charts_Empty" xml:space="preserve">
     <value>No data to plot for this period.</value>
   </data>
+  <data name="Charts_Range" xml:space="preserve">
+    <value>Range</value>
+  </data>
   <data name="Charts_NoValue" xml:space="preserve">
     <value>No data</value>
   </data>
@@ -933,6 +936,36 @@
   </data>
   <data name="Asset_NoRange" xml:space="preserve">
     <value>This asset has no highs or lows: its provider only gives each day’s close.</value>
+  </data>
+  <data name="Asset_Figure_Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Asset_Figure_High" xml:space="preserve">
+    <value>Range high</value>
+  </data>
+  <data name="Asset_Figure_Low" xml:space="preserve">
+    <value>Range low</value>
+  </data>
+  <data name="Asset_Figure_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Asset_Figure_PeriodHigh" xml:space="preserve">
+    <value>Period high</value>
+  </data>
+  <data name="Asset_Figure_PeriodLow" xml:space="preserve">
+    <value>Period low</value>
+  </data>
+  <data name="Asset_Figure_PeriodChange" xml:space="preserve">
+    <value>Period change</value>
+  </data>
+  <data name="Asset_Figure_YearHigh" xml:space="preserve">
+    <value>52-week high</value>
+  </data>
+  <data name="Asset_Figure_YearLow" xml:space="preserve">
+    <value>52-week low</value>
+  </data>
+  <data name="Asset_StrengthNote" xml:space="preserve">
+    <value>Measures whether the asset has been rising or falling strongly of late. Above 70 it is considered overbought and below 30 oversold; it does not say where it will go.</value>
   </data>
   <data name="Asset_Window" xml:space="preserve">
     <value>Window</value>
