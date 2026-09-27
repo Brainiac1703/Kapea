@@ -7,11 +7,13 @@
 <FluentLabel Typo="Typography.PageTitle">@Ui["Evolution_Heading"]</FluentLabel>
 <FluentLabel Typo="Typography.Body" Class="intro">@Ui["Evolution_Intro"]</FluentLabel>
 
-<FluentToolbar>
-    <FluentLabel Typo="Typography.Body">@Ui["Evolution_Period"]</FluentLabel>
+@* Sin rótulo y con etiquetas cortas, como en la pantalla de un activo: nueve periodos
+   con su nombre entero ocupaban media pantalla. El nombre largo sale al posarse. *@
+<FluentToolbar Class="chart-controls">
     @foreach (var period in ChartPeriods.Scale(Today))
     {
         <FluentButton Appearance="@(period.Label == _period ? Appearance.Accent : Appearance.Neutral)"
+                      Title="@Ui[$"{period.Label}_Long"]"
                       OnClick="@(() => ChangeAsync(period))">
             @Ui[period.Label]
         </FluentButton>

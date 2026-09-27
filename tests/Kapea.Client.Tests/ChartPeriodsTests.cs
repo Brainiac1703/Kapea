@@ -72,6 +72,58 @@ public class ChartPeriodsTests
     public void Each_interval_has_its_own_text() =>
         Assert.Equal("Evolution_Interval_Weekly", ChartPeriods.Label("Weekly"));
 
+    [Fact]
+    public void Every_period_has_a_long_name_besides_its_short_one()
+    {
+        // Los botones llevan la etiqueta corta para caber en una fila; el nombre entero
+        // sale al posarse encima, y tiene que existir para cada uno.
+        var resources = System.IO.File.ReadAllText(Resource("UiStrings.resx"));
+
+        Assert.All(ChartPeriods.Scale(Today), period =>
+            Assert.Contains($"name=\"{period.Label}_Long\"", resources, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_short_labels_are_short()
+    {
+        // Nueve periodos con su nombre entero ocupaban media pantalla.
+        var resources = System.IO.File.ReadAllText(Resource("UiStrings.resx"));
+
+        Assert.All(ChartPeriods.Scale(Today), period =>
+        {
+            var value = System.Text.RegularExpressions.Regex.Match(
+                resources,
+                $"<data name=\"{period.Label}\"[^>]*>\\s*<value>(?<text>[^<]*)</value>").Groups["text"].Value;
+
+            Assert.InRange(value.Length, 1, 5);
+        });
+    }
+
+    [Fact]
+    public void Both_languages_name_the_same_periods()
+    {
+        var spanish = System.IO.File.ReadAllText(Resource("UiStrings.resx"));
+        var english = System.IO.File.ReadAllText(Resource("UiStrings.en.resx"));
+
+        Assert.All(ChartPeriods.Scale(Today), period =>
+        {
+            Assert.Contains($"name=\"{period.Label}\"", spanish, StringComparison.Ordinal);
+            Assert.Contains($"name=\"{period.Label}\"", english, StringComparison.Ordinal);
+        });
+    }
+
+    private static string Resource(string name)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "src")))
+        {
+            directory = directory.Parent;
+        }
+
+        return Path.Combine(directory!.FullName, "src", "Kapea.Client", "Resources", name);
+    }
+
     private static int? Days(DateOnly today, string label) =>
         ChartPeriods.Scale(today).Single(period => period.Label == label).Days;
 }

@@ -8,39 +8,36 @@
     @Ui["Asset_Title"] @(_history?.AssetSymbol ?? string.Empty)
 </FluentLabel>
 
-<FluentToolbar>
-    <FluentLabel Typo="Typography.Body">@Ui["Evolution_Period"]</FluentLabel>
+@* Una sola fila: el periodo es lo que más se toca, así que va en botones; el intervalo
+   y la ventana, que se cambian de vez en cuando, en desplegables que ocupan lo suyo y
+   no nueve anchos de botón. *@
+<FluentToolbar Class="chart-controls">
     @foreach (var period in ChartPeriods.Scale(Today))
     {
         <FluentButton Appearance="@(period.Label == _period ? Appearance.Accent : Appearance.Neutral)"
+                      Title="@Ui[$"{period.Label}_Long"]"
                       OnClick="@(() => ChangePeriodAsync(period))">
             @Ui[period.Label]
         </FluentButton>
     }
-</FluentToolbar>
 
-@* El intervalo va aparte del periodo: uno dice cuánto se mira y el otro cada cuánto se
-   agrupa lo que se mira. Sin elegir, manda el que el servidor sugiere para el periodo. *@
-<FluentToolbar>
-    <FluentLabel Typo="Typography.Body">@Ui["Evolution_Interval"]</FluentLabel>
-    @foreach (var interval in ChartPeriods.Intervals)
-    {
-        <FluentButton Appearance="@(interval == Using(interval) ? Appearance.Accent : Appearance.Neutral)"
-                      OnClick="@(() => ChangeIntervalAsync(interval))">
-            @Ui[ChartPeriods.Label(interval)]
-        </FluentButton>
-    }
-</FluentToolbar>
+    <FluentSpacer />
 
-<FluentToolbar>
-    <FluentLabel Typo="Typography.Body">@Ui["Asset_Window"]</FluentLabel>
-    @foreach (var window in Windows)
-    {
-        <FluentButton Appearance="@(window == _window ? Appearance.Accent : Appearance.Neutral)"
-                      OnClick="@(() => ChangeAsync(window))">
-            @window
-        </FluentButton>
-    }
+    <FluentSelect TOption="string"
+                  Items="@ChartPeriods.Intervals"
+                  OptionValue="@(interval => interval)"
+                  OptionText="@(interval => Ui[ChartPeriods.Label(interval)])"
+                  Value="@Applied"
+                  ValueChanged="ChangeIntervalAsync"
+                  AriaLabel="@Ui["Evolution_Interval"]" />
+
+    <FluentSelect TOption="int"
+                  Items="@Windows"
+                  OptionValue="@(window => window.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                  OptionText="@(window => string.Format(System.Globalization.CultureInfo.CurrentCulture, Ui["Asset_WindowOption"].Value, window))"
+                  Value="@_window.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                  ValueChanged="ChangeWindowAsync"
+                  AriaLabel="@Ui["Asset_Window"]" />
 </FluentToolbar>
 
 @if (_history is null)
@@ -85,16 +82,16 @@ else
     /// Lo dice la respuesta y no una copia de la regla aquí: duplicarla haría que un día
     /// la pantalla marcara uno y el servidor devolviera otro.
     /// </remarks>
-    private string Using(string interval) => _interval ?? _history?.Interval ?? "Daily";
+    private string Applied => _interval ?? _history?.Interval ?? "Daily";
 
     [Parameter]
     public Guid AssetId { get; set; }
 
     protected override Task OnParametersSetAsync() => ReloadAsync();
 
-    private async Task ChangeAsync(int window)
+    private async Task ChangeWindowAsync(string window)
     {
-        _window = window;
+        _window = int.Parse(window, System.Globalization.CultureInfo.InvariantCulture);
 
         await ReloadAsync();
     }
@@ -117,6 +114,7 @@ else
 
         await ReloadAsync();
     }
+
 
     private async Task ReloadAsync()
     {

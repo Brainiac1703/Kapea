@@ -848,28 +848,28 @@
     <value>Periodo</value>
   </data>
   <data name="Evolution_Period_Month" xml:space="preserve">
-    <value>1 mes</value>
+    <value>1M</value>
   </data>
   <data name="Evolution_Period_Quarter" xml:space="preserve">
-    <value>3 meses</value>
+    <value>3M</value>
   </data>
   <data name="Evolution_Period_Year" xml:space="preserve">
-    <value>1 año</value>
+    <value>1A</value>
   </data>
   <data name="Evolution_Period_FiveYears" xml:space="preserve">
-    <value>5 años</value>
+    <value>5A</value>
   </data>
   <data name="Evolution_Period_Week" xml:space="preserve">
-    <value>1 semana</value>
+    <value>1S</value>
   </data>
   <data name="Evolution_Period_HalfYear" xml:space="preserve">
-    <value>6 meses</value>
+    <value>6M</value>
   </data>
   <data name="Evolution_Period_YearToDate" xml:space="preserve">
-    <value>Año en curso</value>
+    <value>Año</value>
   </data>
   <data name="Evolution_Period_TwoYears" xml:space="preserve">
-    <value>2 años</value>
+    <value>2A</value>
   </data>
   <data name="Evolution_Interval" xml:space="preserve">
     <value>Intervalo</value>
@@ -882,6 +882,36 @@
   </data>
   <data name="Evolution_Interval_Monthly" xml:space="preserve">
     <value>Meses</value>
+  </data>
+  <data name="Evolution_Period_Week_Long" xml:space="preserve">
+    <value>1 semana</value>
+  </data>
+  <data name="Evolution_Period_Month_Long" xml:space="preserve">
+    <value>1 mes</value>
+  </data>
+  <data name="Evolution_Period_Quarter_Long" xml:space="preserve">
+    <value>3 meses</value>
+  </data>
+  <data name="Evolution_Period_HalfYear_Long" xml:space="preserve">
+    <value>6 meses</value>
+  </data>
+  <data name="Evolution_Period_YearToDate_Long" xml:space="preserve">
+    <value>Año en curso</value>
+  </data>
+  <data name="Evolution_Period_Year_Long" xml:space="preserve">
+    <value>1 año</value>
+  </data>
+  <data name="Evolution_Period_TwoYears_Long" xml:space="preserve">
+    <value>2 años</value>
+  </data>
+  <data name="Evolution_Period_FiveYears_Long" xml:space="preserve">
+    <value>5 años</value>
+  </data>
+  <data name="Evolution_Period_All_Long" xml:space="preserve">
+    <value>Todo el histórico</value>
+  </data>
+  <data name="Asset_WindowOption" xml:space="preserve">
+    <value>Ventana: {0}</value>
   </data>
   <data name="Evolution_Period_All" xml:space="preserve">
     <value>Todo</value>
