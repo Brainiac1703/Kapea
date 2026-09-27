@@ -41,11 +41,46 @@ tiene:
 | Cognitive Services OpenAI User | `oai-kapea` |
 | AcrPull | `acrkapea` |
 
-## 6.3 · Pendiente
+## 6.3 · La sesión sobrevive a una publicación · 2026-09-27
 
-Exige estar dentro cuando se publica. La pieza que lo sostiene ya está en su
-sitio —contenedor de blobs, clave de cifrado y los dos permisos de arriba—, pero
-eso no sustituye a navegar después del despliegue sin volver a entrar.
+Con la sesión abierta se fusionó el arreglo del registro y se aprobó el
+despliegue. Se publicaron `ca-kapea-api--0000010` (15:11:51) y
+`ca-kapea-sync--0000009` (15:12:07), las dos en marcha y con todo el tráfico. El
+usuario siguió navegando sin volver a identificarse.
+
+Es lo que tenía que pasar: las claves que cifran la cookie viven en el
+contenedor `data-protection` y no en el sistema de ficheros de la revisión, así
+que una revisión nueva las encuentra donde las dejó la anterior.
+
+## Lo que el despliegue trajo consigo
+
+La sincronización posterior dejó el histórico de producción al día: **50.708 días
+nuevos de 23 activos**, 36.232 de ellos de historia antigua, 0 activos con
+relleno pendiente y 0 sin cobertura. Las dos cuentas se importaron sin fallos y
+sin duplicados nuevos.
+
+El ruido del registro desapareció: en el tramo posterior a la revisión, 323
+líneas útiles y **1 sola** de `HttpClient` o `DbCommand`, frente a las 72.556 de
+las seis horas anteriores.
+
+## Pendiente, y no de este cambio
+
+Al final del relleno **Yahoo empezó a devolver 401**: tres veces la cotización
+del día —«las acciones se mostrarán sin valor de mercado»— y una el histórico de
+USDG-USD. No es un bloqueo de Azure: desde el portátil, a la misma hora, Yahoo
+devolvía 429. Es límite de peticiones después de descargar cincuenta mil días de
+golpe, y la degradación fue la que la especificación pide: la pantalla siguió en
+pie.
+
+Lo que sí merece mirarse aparte es una consecuencia que el despliegue ha dejado
+a la vista. `YahooPriceHistoryProvider` traga el fallo, devuelve una serie vacía
+y anota «se reintentará»; pero `PriceHistoryUpdater` registra el alcance del
+tramo **aunque no haya venido nada**, que es justo lo que impide volver a
+pedirlo. Hacia delante da igual, porque el último día conocido sale de lo
+guardado. Hacia atrás no: el tramo de relleno que falló por un 401 queda marcado
+como pedido y no se repite nunca. Un fallo del proveedor y un tramo
+genuinamente vacío son hoy indistinguibles, y el comentario del proveedor
+promete un reintento que el alcance no deja ocurrir.
 
 ## Observado de paso
 
