@@ -44,7 +44,7 @@
 
 ## 7. Comprobación con los datos reales
 
-- [ ] 7.1 Comprobar en la aplicación los nueve periodos y los tres intervalos sobre MSTR.US, que tiene 6.723 cotizaciones desde 2000, midiendo lo que tarda cada combinación y dejándolo escrito en el cambio
-- [ ] 7.2 Comprobar que POL, PEPE y TAO se ven bien sin recorrido y que la pantalla explica por qué
-- [ ] 7.3 Comprobar cuántos de los 23 activos tienen recorrido tras el relleno y dejarlo escrito
-- [ ] 7.4 Comprobar que el patrimonio, el coste, el resultado realizado, el efectivo y los dos ejercicios fiscales siguen saliendo idénticos a las cifras registradas en la validación con datos reales
+- [x] 7.1 Comprobar en la aplicación los nueve periodos y los tres intervalos sobre MSTR.US, que tiene 6.723 cotizaciones desde 2000, midiendo lo que tarda cada combinación y dejándolo escrito en el cambio
+- [x] 7.2 Comprobar que POL, PEPE y TAO se ven bien sin recorrido y que la pantalla explica por qué
+- [x] 7.3 Comprobar cuántos de los 23 activos tienen recorrido tras el relleno y dejarlo escrito
+- [x] 7.4 Comprobar que el patrimonio, el coste, el resultado realizado, el efectivo y los dos ejercicios fiscales siguen saliendo idénticos a las cifras registradas en la validación con datos reales
