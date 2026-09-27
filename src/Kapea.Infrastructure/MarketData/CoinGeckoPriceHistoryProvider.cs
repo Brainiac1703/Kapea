@@ -29,16 +29,18 @@ public sealed class CoinGeckoPriceHistoryProvider(
 
     public string Name => "CoinGecko";
 
-    public async Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
+    public async Task<PriceHistoryResult> GetHistoryAsync(
         PriceHistoryRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        // No cubrir un activo es una respuesta, no un fallo: por mucho que se insista,
+        // aquí no va a aparecer nunca. El tramo queda preguntado.
         if (request.Class != AssetClass.Crypto
             || !TryResolve(request, out var coinId))
         {
-            return [];
+            return PriceHistoryResult.Nothing;
         }
 
         // Pedir fuera de la ventana gratuita no devuelve nada, así que se recorta antes
@@ -48,7 +50,7 @@ public sealed class CoinGeckoPriceHistoryProvider(
 
         if (request.To < from)
         {
-            return [];
+            return PriceHistoryResult.Nothing;
         }
 
         var query = $"api/v3/coins/{Uri.EscapeDataString(coinId)}/market_chart/range?vs_currency=eur" +
@@ -62,16 +64,18 @@ public sealed class CoinGeckoPriceHistoryProvider(
             await using var content = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var document = await JsonDocument.ParseAsync(content, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            return Read(document, request, from);
+            return PriceHistoryResult.Of(Read(document, request, from));
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or TaskCanceledException)
         {
+            // Sin contestar, para que el tramo no cuente como preguntado y vuelva a
+            // pedirse. No es lo mismo que los vacíos de arriba, que sí son respuestas.
             logger.LogWarning(
                 exception,
                 "CoinGecko no ha devuelto el histórico de {Simbolo}; se reintentará.",
                 request.CanonicalSymbol);
 
-            return [];
+            return PriceHistoryResult.Failed;
         }
     }
 

@@ -186,13 +186,16 @@ public sealed class WatchlistService(
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            return series.Count > 0;
+            // Un proveedor caído no es lo mismo que un activo sin cobertura, y el
+            // resultado ya los distingue, pero aquí se responde igual a las dos: lo que
+            // el usuario ve en ese momento es que no hay precios. La distinción importa
+            // donde decide si un tramo hay que volver a pedirlo, no en un aviso.
+            return series.Prices.Count > 0;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            // Un proveedor caído no es lo mismo que un activo sin cobertura, pero desde
-            // aquí no se distinguen. Se dice que no hay precios, que es lo que el usuario
-            // va a ver, y se deja constancia de por qué.
+            // Queda el fallo que ningún proveedor llegue a declarar, por ejemplo uno que
+            // lance antes de responder. Se dice que no hay precios y se deja constancia.
             logger.LogWarning(exception, "No se ha podido comprobar la cobertura de {Activo}.", asset.CanonicalSymbol);
 
             return false;

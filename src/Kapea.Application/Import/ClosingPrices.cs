@@ -43,11 +43,12 @@ public sealed class ClosingPrices(
             return stored;
         }
 
-        var downloaded = await provider
+        var downloaded = (await provider
             .GetHistoryAsync(
                     new PriceHistoryRequest(asset.Id, asset.CanonicalSymbol, asset.Class, day, day, asset.ProviderId),
                     cancellationToken)
-            .ConfigureAwait(false);
+            .ConfigureAwait(false))
+            .Prices;
 
         if (downloaded.Count == 0)
         {

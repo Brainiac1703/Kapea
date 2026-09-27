@@ -59,7 +59,19 @@ public sealed record PricedAsset(
 }
 
 /// <summary>Lo que dejó una pasada del relleno.</summary>
-public sealed record PriceHistoryUpdate(int Assets, int DaysWritten, int AssetsWithoutCoverage);
+/// <param name="AssetsLeftUnanswered">
+/// Activos con algún tramo que el proveedor no pudo contestar.
+/// </param>
+/// <remarks>
+/// El recuento de fallos va aparte de <paramref name="AssetsWithoutCoverage"/> y hace
+/// falta: sin él, una pasada que falla entera y otra perfecta se leen igual, que es la
+/// razón de que un proveedor rechazando peticiones tardara meses en verse.
+/// </remarks>
+public sealed record PriceHistoryUpdate(
+    int Assets,
+    int DaysWritten,
+    int AssetsWithoutCoverage,
+    int AssetsLeftUnanswered = 0);
 
 /// <summary>
 /// Completa la serie de precios de cada activo con posición.
@@ -192,6 +204,7 @@ public sealed class PriceHistoryUpdater(
 
         var written = 0;
         var backfilled = 0;
+        var unanswered = new HashSet<Guid>();
 
         // Dos vueltas y no una: primero se pone al día todo y después se rellena hacia
         // atrás. Hacer cada activo entero dejaría al último sin precio de hoy hasta
@@ -210,13 +223,17 @@ public sealed class PriceHistoryUpdater(
 
                 foreach (var gap in gaps)
                 {
-                    var prices = await provider
+                    var answer = await provider
                         .GetHistoryAsync(
                             new PriceHistoryRequest(
                                 asset.AssetId, asset.CanonicalSymbol, asset.Class, gap.From, gap.To, asset.ProviderId),
                             cancellationToken)
                         .ConfigureAwait(false);
 
+                    var prices = answer.Prices;
+
+                    // Lo que haya llegado se guarda pase lo que pase, también cuando el
+                    // tramo se quedó a medias: tirarlo obligaría a descargarlo otra vez.
                     var savedDays = await store.UpsertAsync([.. prices], cancellationToken).ConfigureAwait(false);
                     written += savedDays;
 
@@ -231,8 +248,20 @@ public sealed class PriceHistoryUpdater(
                             asset.CanonicalSymbol, savedDays, gap.From, gap.To);
                     }
 
-                    // Se deja constancia aunque no haya venido nada: ese es justamente el
-                    // tramo que no hay que volver a pedir.
+                    if (!answer.Answered)
+                    {
+                        // Sin anotar el alcance: es lo único que hace que el tramo vuelva
+                        // a salir como hueco en la siguiente vuelta. Darlo por preguntado
+                        // aquí convertía un fallo de un momento en un hueco permanente,
+                        // y hacia atrás no había forma de recuperarlo.
+                        unanswered.Add(asset.AssetId);
+
+                        continue;
+                    }
+
+                    // Se deja constancia aunque no haya venido nada: contestar que no hay
+                    // nada es una respuesta, y ese es justamente el tramo que no hay que
+                    // volver a pedir.
                     var asked = reached.TryGetValue(asset.AssetId, out var previous)
                         && previous.AnswersFor(asset.ProviderId)
                         ? previous.Including(gap.From, gap.To)
@@ -276,9 +305,10 @@ public sealed class PriceHistoryUpdater(
 
         logger.LogInformation(
             "Histórico de precios al día: {Dias} días nuevos de {Activos} activos, "
-            + "{Relleno} de historia antigua, {Pendientes} activos con relleno pendiente, {Sin} sin cobertura.",
-            written, priced.Count, backfilled, pending, uncovered);
+            + "{Relleno} de historia antigua, {Pendientes} activos con relleno pendiente, "
+            + "{Sin} sin cobertura, {Fallidos} con algún tramo sin contestar.",
+            written, priced.Count, backfilled, pending, uncovered, unanswered.Count);
 
-        return new PriceHistoryUpdate(priced.Count, written, uncovered);
+        return new PriceHistoryUpdate(priced.Count, written, uncovered, unanswered.Count);
     }
 }

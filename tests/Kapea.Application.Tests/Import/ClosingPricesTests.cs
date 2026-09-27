@@ -58,15 +58,15 @@ public class ClosingPricesTests
 
         public string Name => "contador";
 
-        public Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
+        public Task<PriceHistoryResult> GetHistoryAsync(
             PriceHistoryRequest request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
             Calls++;
 
-            return Task.FromResult<IReadOnlyList<DailyPrice>>(price is { } value
-                ? [new DailyPrice(request.AssetId, request.From, value, Name)]
-                : []);
+            return Task.FromResult(price is { } value
+                ? PriceHistoryResult.Of([new DailyPrice(request.AssetId, request.From, value, Name)])
+                : PriceHistoryResult.Nothing);
         }
     }
 

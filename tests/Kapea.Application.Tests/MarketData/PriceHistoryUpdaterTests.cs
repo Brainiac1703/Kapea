@@ -380,6 +380,127 @@ public class PriceHistoryUpdaterTests
             Clock(),
             NullLogger<PriceHistoryUpdater>.Instance);
 
+    [Fact]
+    public async Task A_gap_the_provider_could_not_answer_is_not_recorded_as_asked()
+    {
+        var store = new Store();
+        var provider = new UnansweringProvider(Bitcoin);
+
+        await Updater(provider, store, stored: null).UpdateAsync();
+
+        Assert.Empty(store.Reached);
+        Assert.Empty(store.Written);
+    }
+
+    [Fact]
+    public async Task A_gap_the_provider_could_not_answer_is_asked_for_again()
+    {
+        // El defecto que esto corrige: el tramo constaba preguntado y no se volvía a
+        // pedir nunca, así que un 401 de un momento se llevaba la historia para siempre.
+        var store = new Store();
+        var provider = new UnansweringProvider(Bitcoin);
+
+        await Updater(provider, store, stored: null).UpdateAsync();
+        await Updater(provider, store, stored: null).UpdateAsync();
+
+        Assert.Equal(2, provider.Asked.Count);
+        Assert.Equal(provider.Asked[0].From, provider.Asked[1].From);
+        Assert.Equal(provider.Asked[0].To, provider.Asked[1].To);
+    }
+
+    [Fact]
+    public async Task A_backfill_that_fails_leaves_the_old_history_pending()
+    {
+        // La serie ya llega hasta hoy, así que lo único que se pide es hacia atrás, que
+        // es justo la dirección que no tenía forma de recuperarse.
+        var store = new Store();
+        store.Covered[Bitcoin] = new StoredRange(new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10));
+        store.Reached[Bitcoin] = new PriceHistoryReach(
+            Bitcoin, new DateOnly(2026, 1, 20), new DateOnly(2026, 3, 10), null, RangeRequested: true);
+
+        var provider = new UnansweringProvider(Bitcoin);
+        var updater = new PriceHistoryUpdater(
+            new Assets([Priced(Bitcoin, "BTC", new DateOnly(2000, 1, 1))]),
+            store,
+            provider,
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance);
+
+        await updater.UpdateAsync();
+
+        // El alcance no se ha estirado hacia atrás, que es lo que dejaría el hueco
+        // marcado como preguntado.
+        Assert.Equal(new DateOnly(2026, 1, 20), store.Reached[Bitcoin].RequestedFrom);
+
+        await updater.UpdateAsync();
+
+        Assert.Equal(2, provider.Asked.Count);
+        Assert.All(provider.Asked, asked => Assert.Equal(new DateOnly(2000, 1, 1), asked.From));
+    }
+
+    [Fact]
+    public async Task An_asset_whose_first_download_fails_keeps_both_directions_pending()
+    {
+        // El caso peor: sin nada guardado, el último día conocido salía de lo pedido, así
+        // que un primer fallo mataba también la puesta al día.
+        var store = new Store();
+        var provider = new UnansweringProvider(Bitcoin);
+        var updater = new PriceHistoryUpdater(
+            new Assets([Priced(Bitcoin, "BTC", new DateOnly(2000, 1, 1))]),
+            store,
+            provider,
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance);
+
+        await updater.UpdateAsync();
+        provider.Asked.Clear();
+
+        await updater.UpdateAsync();
+
+        Assert.Contains(provider.Asked, asked =>
+            asked.From == new DateOnly(2026, 1, 20) && asked.To == new DateOnly(2026, 3, 10));
+        Assert.Contains(provider.Asked, asked => asked.From == new DateOnly(2000, 1, 1));
+    }
+
+    [Fact]
+    public async Task A_gap_answered_with_nothing_is_still_recorded_as_asked()
+    {
+        // La protección original sigue en pie: contestar que no hay nada es contestar, y
+        // sin esto volvería el relleno que se repite indefinidamente.
+        var store = new Store();
+        var provider = new Provider();
+
+        await Updater(provider, store, stored: null).UpdateAsync();
+
+        Assert.True(store.Reached.ContainsKey(Bitcoin));
+        Assert.Empty(store.Written);
+    }
+
+    [Fact]
+    public async Task A_pass_says_how_many_assets_were_left_unanswered()
+    {
+        var other = Guid.NewGuid();
+        var store = new Store();
+
+        var updater = new PriceHistoryUpdater(
+            new Assets([
+                new PricedAsset(Bitcoin, "BTC", AssetClass.Crypto, new DateOnly(2026, 1, 20)),
+                new PricedAsset(other, "ETH", AssetClass.Crypto, new DateOnly(2026, 1, 20)),
+            ]),
+            store,
+            new UnansweringProvider(other, new DateOnly(2026, 3, 10)),
+            Ingestion(),
+            Clock(),
+            NullLogger<PriceHistoryUpdater>.Instance);
+
+        var update = await updater.UpdateAsync();
+
+        Assert.Equal(1, update.AssetsLeftUnanswered);
+        Assert.NotEmpty(store.Written);
+    }
+
     private static PricedAsset Priced(Guid id, string symbol, DateOnly wanted) =>
         new(id, symbol, AssetClass.Crypto, new DateOnly(2026, 1, 20), null, null, wanted);
 
@@ -465,14 +586,37 @@ public class PriceHistoryUpdaterTests
 
         internal List<PriceHistoryRequest> Asked { get; } = [];
 
-        public Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
+        public Task<PriceHistoryResult> GetHistoryAsync(
             PriceHistoryRequest request,
             CancellationToken cancellationToken = default)
         {
             Asked.Add(request);
 
-            return Task.FromResult<IReadOnlyList<DailyPrice>>(
-                [.. days.Select(day => new DailyPrice(request.AssetId, day, 100m, "Prueba"))]);
+            return Task.FromResult(PriceHistoryResult.Of(
+                [.. days.Select(day => new DailyPrice(request.AssetId, day, 100m, "Prueba"))]));
+        }
+    }
+
+    /// <summary>
+    /// Declara que no ha podido contestar, que es lo que hace un proveedor real cuando
+    /// se cae. No lanza: lanzar es el otro camino, el del contrato incumplido.
+    /// </summary>
+    private sealed class UnansweringProvider(Guid failFor, params DateOnly[] days) : IPriceHistoryProvider
+    {
+        public string Name => "Prueba";
+
+        internal List<PriceHistoryRequest> Asked { get; } = [];
+
+        public Task<PriceHistoryResult> GetHistoryAsync(
+            PriceHistoryRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            Asked.Add(request);
+
+            return Task.FromResult(request.AssetId == failFor
+                ? PriceHistoryResult.Failed
+                : PriceHistoryResult.Of(
+                    [.. days.Select(day => new DailyPrice(request.AssetId, day, 100m, "Prueba"))]));
         }
     }
 
@@ -480,13 +624,13 @@ public class PriceHistoryUpdaterTests
     {
         public string Name => "Prueba";
 
-        public Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
+        public Task<PriceHistoryResult> GetHistoryAsync(
             PriceHistoryRequest request,
             CancellationToken cancellationToken = default) =>
             request.AssetId == failFor
                 ? throw new HttpRequestException("El proveedor ha dejado de responder.")
-                : Task.FromResult<IReadOnlyList<DailyPrice>>(
-                    [.. days.Select(day => new DailyPrice(request.AssetId, day, 100m, "Prueba"))]);
+                : Task.FromResult(PriceHistoryResult.Of(
+                    [.. days.Select(day => new DailyPrice(request.AssetId, day, 100m, "Prueba"))]));
     }
 
     private sealed class Store : IPriceHistoryStore

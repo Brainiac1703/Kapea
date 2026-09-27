@@ -15,6 +15,11 @@ namespace Kapea.Infrastructure.MarketData;
 ///
 /// Un activo que ninguno cubra devuelve serie vacía. No es un fallo: la posición se
 /// mostrará sin valor esos días, que es como está hoy.
+///
+/// Caerse sí lo es, y aquí se compone con Y lógica: el rango se da por contestado sólo
+/// si ninguno de los proveedores a los que se llegó a preguntar falló. Darlo por bueno
+/// porque otro trajo algo dejaría el tramo del que falló marcado como preguntado y
+/// perdido para siempre, que es el mismo error un nivel más arriba.
 /// </remarks>
 public sealed class PriceHistoryDispatcher(
     IEnumerable<IPriceHistoryProvider> providers,
@@ -22,13 +27,14 @@ public sealed class PriceHistoryDispatcher(
 {
     public string Name => "Kapea";
 
-    public async Task<IReadOnlyList<DailyPrice>> GetHistoryAsync(
+    public async Task<PriceHistoryResult> GetHistoryAsync(
         PriceHistoryRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         var byDay = new Dictionary<DateOnly, DailyPrice>();
+        var answered = true;
 
         foreach (var provider in providers)
         {
@@ -36,12 +42,16 @@ public sealed class PriceHistoryDispatcher(
 
             if (missing is null)
             {
+                // Ya está el rango entero: a los siguientes no se les pregunta, y no
+                // haber preguntado no es haber fallado.
                 break;
             }
 
-            var prices = await provider.GetHistoryAsync(missing, cancellationToken).ConfigureAwait(false);
+            var result = await provider.GetHistoryAsync(missing, cancellationToken).ConfigureAwait(false);
 
-            foreach (var price in prices)
+            answered = answered && result.Answered;
+
+            foreach (var price in result.Prices)
             {
                 // El primero que dé un día se queda con él: el orden de los proveedores
                 // es la preferencia, y reescribir haría que el pasado cambiara de valor.
@@ -49,14 +59,14 @@ public sealed class PriceHistoryDispatcher(
             }
         }
 
-        if (byDay.Count == 0)
+        if (byDay.Count == 0 && answered)
         {
             logger.LogInformation(
                 "Ningún proveedor cubre {Simbolo} entre {Desde} y {Hasta}.",
                 request.CanonicalSymbol, request.From, request.To);
         }
 
-        return [.. byDay.Values.OrderBy(price => price.Date)];
+        return new PriceHistoryResult([.. byDay.Values.OrderBy(price => price.Date)], answered);
     }
 
     /// <summary>
