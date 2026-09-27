@@ -10,11 +10,24 @@
 
 <FluentToolbar>
     <FluentLabel Typo="Typography.Body">@Ui["Evolution_Period"]</FluentLabel>
-    @foreach (var period in Periods)
+    @foreach (var period in ChartPeriods.Scale(Today))
     {
-        <FluentButton Appearance="@(period.Days == _days ? Appearance.Accent : Appearance.Neutral)"
-                      OnClick="@(() => ChangePeriodAsync(period.Days))">
+        <FluentButton Appearance="@(period.Label == _period ? Appearance.Accent : Appearance.Neutral)"
+                      OnClick="@(() => ChangePeriodAsync(period))">
             @Ui[period.Label]
+        </FluentButton>
+    }
+</FluentToolbar>
+
+@* El intervalo va aparte del periodo: uno dice cuánto se mira y el otro cada cuánto se
+   agrupa lo que se mira. Sin elegir, manda el que el servidor sugiere para el periodo. *@
+<FluentToolbar>
+    <FluentLabel Typo="Typography.Body">@Ui["Evolution_Interval"]</FluentLabel>
+    @foreach (var interval in ChartPeriods.Intervals)
+    {
+        <FluentButton Appearance="@(interval == Using(interval) ? Appearance.Accent : Appearance.Neutral)"
+                      OnClick="@(() => ChangeIntervalAsync(interval))">
+            @Ui[ChartPeriods.Label(interval)]
         </FluentButton>
     }
 </FluentToolbar>
@@ -54,18 +67,25 @@ else
     /// Los periodos que se ofrecen. «Todo» no es un número de días porque cuánto hay
     /// depende del activo: uno tiene veinte años de cotizaciones y otro tres meses.
     /// </summary>
-    private static readonly (string Label, int? Days)[] Periods =
-    [
-        ("Evolution_Period_Quarter", 90),
-        ("Evolution_Period_Year", 365),
-        ("Evolution_Period_FiveYears", 1825),
-        ("Evolution_Period_All", null),
-    ];
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);
 
+    private string _period = "Evolution_Period_Year";
     private int? _days = 365;
+
+    /// <summary>Intervalo elegido a mano. Sin él manda el que sugiere el periodo.</summary>
+    private string? _interval;
 
     private AssetHistoryResponse? _history;
     private int _window = 20;
+
+    /// <summary>
+    /// Qué intervalo está en uso: el elegido, o el que el servidor dice haber aplicado.
+    /// </summary>
+    /// <remarks>
+    /// Lo dice la respuesta y no una copia de la regla aquí: duplicarla haría que un día
+    /// la pantalla marcara uno y el servidor devolviera otro.
+    /// </remarks>
+    private string Using(string interval) => _interval ?? _history?.Interval ?? "Daily";
 
     [Parameter]
     public Guid AssetId { get; set; }
@@ -79,9 +99,21 @@ else
         await ReloadAsync();
     }
 
-    private async Task ChangePeriodAsync(int? days)
+    private async Task ChangePeriodAsync(ChartPeriod period)
     {
-        _days = days;
+        _period = period.Label;
+        _days = period.Days;
+
+        // El periodo vuelve a mandar sobre el intervalo: al pasar de cinco años a una
+        // semana, seguir en meses dejaría un solo punto.
+        _interval = null;
+
+        await ReloadAsync();
+    }
+
+    private async Task ChangeIntervalAsync(string interval)
+    {
+        _interval = interval;
 
         await ReloadAsync();
     }
@@ -91,7 +123,7 @@ else
         try
         {
             _history = await Api.GetAssetHistoryAsync(
-                AssetId, days: _days, window: _window, all: _days is null);
+                AssetId, days: _days, window: _window, all: _days is null, interval: _interval);
         }
         catch (KapeaApiException exception)
         {

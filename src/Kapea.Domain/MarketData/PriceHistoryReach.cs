@@ -32,7 +32,23 @@ public sealed record PriceHistoryReach(
     string? RequestedWith,
     bool RangeRequested = false)
 {
-    /// <summary>Extiende lo pedido con un tramo nuevo, sin encoger nunca lo que ya abarcaba.</summary>
+    /// <summary>
+    /// Extiende lo pedido con otra petición, sin encoger nunca lo que ya abarcaba.
+    /// </summary>
+    /// <remarks>
+    /// La marca del recorrido se conserva si la tenía cualquiera de los dos. Quedarse con
+    /// la del guardado descartaría la de la petición que acaba de completarlo, y el
+    /// relleno del recorrido se repetiría en cada vuelta.
+    /// </remarks>
+    public PriceHistoryReach Including(PriceHistoryReach other) =>
+        this with
+        {
+            RequestedFrom = other.RequestedFrom < RequestedFrom ? other.RequestedFrom : RequestedFrom,
+            RequestedTo = other.RequestedTo > RequestedTo ? other.RequestedTo : RequestedTo,
+            RangeRequested = RangeRequested || other.RangeRequested,
+        };
+
+    /// <summary>Extiende lo pedido con un tramo nuevo.</summary>
     public PriceHistoryReach Including(DateOnly from, DateOnly to) =>
         this with
         {

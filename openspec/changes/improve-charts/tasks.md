@@ -22,10 +22,10 @@
 
 ## 4. La escala de periodos
 
-- [ ] 4.1 Sustituir el selector de la pantalla de un activo por la escala completa —1 semana, 1 mes, 3 meses, 6 meses, año en curso, 1 año, 2 años, 5 años y todo—; verificar manualmente con un activo largo y otro corto
-- [ ] 4.2 Añadir el selector de intervalo —días, semanas, meses— con el que sugiere el periodo; verificar manualmente que cambiar el periodo cambia la sugerencia y que se puede llevar la contraria
-- [ ] 4.3 Llevar la misma escala a la pantalla de evolución del patrimonio; verificar manualmente
-- [ ] 4.4 Añadir los textos a los recursos es-ES y en, sin literales en el marcado; verificar que el escáner de localización pasa
+- [x] 4.1 Sustituir el selector de la pantalla de un activo por la escala completa —1 semana, 1 mes, 3 meses, 6 meses, año en curso, 1 año, 2 años, 5 años y todo—; verificar manualmente con un activo largo y otro corto
+- [x] 4.2 Añadir el selector de intervalo —días, semanas, meses— con el que sugiere el periodo; verificar manualmente que cambiar el periodo cambia la sugerencia y que se puede llevar la contraria
+- [x] 4.3 Llevar la misma escala a la pantalla de evolución del patrimonio; verificar manualmente
+- [x] 4.4 Añadir los textos a los recursos es-ES y en, sin literales en el marcado; verificar que el escáner de localización pasa
 
 ## 5. Dibujar mejor
 

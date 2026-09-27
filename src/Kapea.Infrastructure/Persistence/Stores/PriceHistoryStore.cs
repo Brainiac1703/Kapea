@@ -132,9 +132,7 @@ public sealed class PriceHistoryStore(KapeaDbContext context) : IPriceHistorySto
         {
             // Cuando se preguntó por otro activo del proveedor, lo anterior no dice nada
             // de lo que ahora se pide: se reemplaza en lugar de ampliarse.
-            var merged = stored.AnswersFor(reach.RequestedWith)
-                ? stored.Including(reach.RequestedFrom, reach.RequestedTo)
-                : reach;
+            var merged = stored.AnswersFor(reach.RequestedWith) ? stored.Including(reach) : reach;
 
             context.Entry(stored).CurrentValues.SetValues(merged);
         }

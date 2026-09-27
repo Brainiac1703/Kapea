@@ -859,6 +859,30 @@
   <data name="Evolution_Period_FiveYears" xml:space="preserve">
     <value>5 years</value>
   </data>
+  <data name="Evolution_Period_Week" xml:space="preserve">
+    <value>1 week</value>
+  </data>
+  <data name="Evolution_Period_HalfYear" xml:space="preserve">
+    <value>6 months</value>
+  </data>
+  <data name="Evolution_Period_YearToDate" xml:space="preserve">
+    <value>Year to date</value>
+  </data>
+  <data name="Evolution_Period_TwoYears" xml:space="preserve">
+    <value>2 years</value>
+  </data>
+  <data name="Evolution_Interval" xml:space="preserve">
+    <value>Interval</value>
+  </data>
+  <data name="Evolution_Interval_Daily" xml:space="preserve">
+    <value>Days</value>
+  </data>
+  <data name="Evolution_Interval_Weekly" xml:space="preserve">
+    <value>Weeks</value>
+  </data>
+  <data name="Evolution_Interval_Monthly" xml:space="preserve">
+    <value>Months</value>
+  </data>
   <data name="Evolution_Period_All" xml:space="preserve">
     <value>All</value>
   </data>
