@@ -1735,6 +1735,9 @@
   <data name="Profiles_SheetHelp" xml:space="preserve">
     <value>Name of the workbook sheet this profile reads. Leave it blank if any sheet will do, or if the file has no sheets.</value>
   </data>
+  <data name="Watchlist_Refresh" xml:space="preserve">
+    <value>Refresh prices</value>
+  </data>
   <data name="Watchlist_Title" xml:space="preserve">
     <value>Watchlist</value>
   </data>
