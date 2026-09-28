@@ -118,6 +118,74 @@ public class FifoCalculatorTests
     }
 
     [Fact]
+    public void A_position_sold_whole_closes_despite_the_platform_rounding()
+    {
+        // El caso que lo motivó: la plataforma vendió 0,95674537 y las dos compras
+        // sumaban 0,95674536. Rechazarlo dejaba el activo en cartera para siempre y el
+        // ejercicio sin un resultado que sí ocurrió.
+        var result = new Ledger()
+            .Buy("2026-09-27", quantity: 0.42966758m, grossEuros: 86.44m)
+            .Buy("2026-09-27", quantity: 0.52707778m, grossEuros: 105.85m)
+            .Sell("2026-09-28", quantity: 0.95674537m, grossEuros: 189.51m, feeEuros: 4.88m)
+            .Calculate();
+
+        Assert.Empty(result.Inconsistencies);
+        Assert.True(result.IsComplete);
+        Assert.DoesNotContain(result.OpenLots, lot => lot.RemainingQuantity.Value > 0m);
+    }
+
+    [Fact]
+    public void What_was_earned_is_attributed_whole_to_what_was_consumed()
+    {
+        // El dinero se recibió de verdad y por esta posición. Recortarlo en proporción a
+        // la cienmillonésima que no se consume dejaría una parte sin repartir.
+        var result = new Ledger()
+            .Buy("2026-09-27", quantity: 0.42966758m, grossEuros: 86.44m)
+            .Buy("2026-09-27", quantity: 0.52707778m, grossEuros: 105.85m)
+            .Sell("2026-09-28", quantity: 0.95674537m, grossEuros: 189.51m, feeEuros: 4.88m)
+            .Calculate();
+
+        var realized = Assert.Single(result.RealizedResults);
+
+        Assert.Equal(Money.Euros(184.63m), realized.ProceedsInEuros);
+        Assert.Equal(
+            realized.ProceedsInEuros,
+            realized.ConsumedLots.Aggregate(Money.Euros(0m), (total, lot) => total + lot.ProceedsInEuros));
+
+        // Y la cantidad del resultado es la que se desglosa, no la que traía el
+        // movimiento: un resultado que dice haber vendido más de lo que desglosa no se
+        // puede auditar.
+        Assert.Equal(
+            realized.Quantity,
+            realized.ConsumedLots.Aggregate(new Quantity(0m), (total, lot) => total + lot.Quantity));
+    }
+
+    [Fact]
+    public void A_shortfall_that_is_tiny_in_absolute_terms_but_large_for_the_position_is_still_reported()
+    {
+        // Es lo que justifica que el umbral sea relativo y no absoluto: la misma cantidad
+        // que es ruido frente a una posición grande es aquí la mitad de la posición.
+        var result = new Ledger()
+            .Buy("2024-01-10", quantity: 0.00000001m, grossEuros: 1m)
+            .Sell("2025-02-01", quantity: 0.00000002m, grossEuros: 2m)
+            .Calculate();
+
+        Assert.Empty(result.RealizedResults);
+        Assert.Equal(InconsistencyKind.InsufficientLots, Assert.Single(result.Inconsistencies).Kind);
+    }
+
+    [Fact]
+    public void Selling_an_asset_with_no_lots_at_all_is_always_reported()
+    {
+        var result = new Ledger()
+            .Sell("2025-02-01", quantity: 0.00000001m, grossEuros: 1m)
+            .Calculate();
+
+        Assert.Empty(result.RealizedResults);
+        Assert.Equal(InconsistencyKind.InsufficientLots, Assert.Single(result.Inconsistencies).Kind);
+    }
+
+    [Fact]
     public void An_acquisition_fee_increases_the_lot_cost()
     {
         var result = new Ledger()
