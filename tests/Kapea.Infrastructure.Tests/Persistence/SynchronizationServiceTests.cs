@@ -22,6 +22,9 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 9, 8, 12, 0, 0, TimeSpan.Zero);
 
+    /// <summary>Fecha de los movimientos de prueba, muy anterior a la hora de la pasada.</summary>
+    private static readonly DateTimeOffset Occurred = new(2024, 1, 10, 10, 0, 0, TimeSpan.Zero);
+
     [Fact]
     public async Task The_first_run_asks_for_the_whole_history_and_imports_it()
     {
@@ -38,8 +41,11 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
     }
 
     [Fact]
-    public async Task A_second_run_only_asks_for_what_comes_after_the_last_successful_import()
+    public async Task A_second_run_asks_from_the_last_movement_and_not_from_the_clock()
     {
+        // Pedir desde la hora de la ejecución anterior perdía en silencio todo lo que la
+        // plataforma publicara con retraso: su fecha quedaba por debajo de esa hora y no
+        // se volvía a pedir nunca. Se pide desde el último movimiento que ya se tiene.
         var world = await NewWorldAsync();
 
         await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]));
@@ -47,7 +53,35 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         var second = new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-2")]);
         await RunAsync(world, second);
 
-        Assert.Equal(Now, Assert.Single(second.RequestedRanges).From);
+        Assert.Equal(Occurred, Assert.Single(second.RequestedRanges).From);
+    }
+
+    [Fact]
+    public async Task A_movement_published_late_still_gets_imported()
+    {
+        // El caso real: una venta ocurrida antes de que corriera la pasada anterior, pero
+        // que la plataforma no devolvía todavía cuando corrió.
+        var world = await NewWorldAsync();
+
+        await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]));
+
+        var late = Buy("TX-TARDE") with { OccurredAt = Occurred.AddMinutes(5) };
+        var report = await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [late]));
+
+        Assert.Equal(1, Assert.Single(world.Mine(report)).ImportedRecords);
+    }
+
+    [Fact]
+    public async Task A_full_run_ignores_the_last_movement_and_starts_from_the_beginning()
+    {
+        var world = await NewWorldAsync();
+
+        await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]));
+
+        var again = new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]);
+        await RunAsync(world, [again], [], full: true);
+
+        Assert.Equal(SynchronizationService.EarliestHistory, Assert.Single(again.RequestedRanges).From);
     }
 
     [Fact]
@@ -190,7 +224,8 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
     private async Task<SynchronizationReport> RunAsync(
         World world,
         IReadOnlyList<IApiImportAdapter> adapters,
-        List<string> messages)
+        List<string> messages,
+        bool full = false)
     {
         await using var context = fixture.CreateContext(world.Owner);
         var time = new FakeTimeProvider(Now);
@@ -232,7 +267,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
             time,
             new CapturingLogger<SynchronizationService>(messages));
 
-        var report = await service.RunAsync();
+        var report = await service.RunAsync(fromTheBeginning: full);
         await context.SaveChangesAsync();
 
         return report;
@@ -263,6 +298,25 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         var report = await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]));
 
         Assert.Equal(0, report.RejectedRecords);
+    }
+
+    [Fact]
+        public async Task The_last_movement_of_one_account_does_not_leak_into_another()
+    {
+        // La consulta es por cuenta: si mirara la tabla entera, una cuenta sin movimientos
+        // heredaría la fecha de otra y dejaría de pedir su propio histórico.
+        var world = await NewWorldAsync(withSecondPlatform: true);
+
+        await RunAsync(
+            world,
+            new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]),
+            new RecordingAdapter(PlatformCode.Bit2Me, []));
+
+        await using var context = fixture.CreateContext(world.Owner);
+        var repository = new ImportRepository(context);
+
+        Assert.Equal(Occurred, await repository.FindLastMovementInstantAsync(world.AccountId));
+        Assert.Null(await repository.FindLastMovementInstantAsync(world.SecondAccountId!.Value));
     }
 
     private async Task<World> NewWorldAsync(bool withSecondPlatform = false)
@@ -306,7 +360,7 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
     private static ImportRecord Buy(string naturalId) =>
         new(
             naturalId, null, TransactionType.Buy, "BTC", AssetClass.Crypto, 0.1m, 10000m, 1000m,
-            Currency.Euro, 0m, null, new DateTimeOffset(2024, 1, 10, 10, 0, 0, TimeSpan.Zero), null, "UTC", null,
+            Currency.Euro, 0m, null, Occurred, null, "UTC", null,
             $"raw:{naturalId}");
 
     private sealed record World(UserId Owner, Guid AccountId, Guid? SecondAccountId, InMemorySecrets Secrets)

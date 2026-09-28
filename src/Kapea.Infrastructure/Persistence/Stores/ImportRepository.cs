@@ -111,6 +111,18 @@ public sealed class ImportRepository(KapeaDbContext context) : IImportRepository
             .MaxAsync(run => (DateTimeOffset?)run.CoversUntil, cancellationToken)
             .ConfigureAwait(false);
 
+    /// <summary>
+    /// Sale de los movimientos y no de las ejecuciones: lo que importa es hasta dónde
+    /// llega lo que se tiene, no cuándo se preguntó por última vez.
+    /// </summary>
+    public async Task<DateTimeOffset?> FindLastMovementInstantAsync(
+        Guid accountId,
+        CancellationToken cancellationToken = default) =>
+        await context.Transactions
+            .Where(transaction => transaction.AccountId == accountId)
+            .MaxAsync(transaction => (DateTimeOffset?)transaction.OccurredAt.Instant, cancellationToken)
+            .ConfigureAwait(false);
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 

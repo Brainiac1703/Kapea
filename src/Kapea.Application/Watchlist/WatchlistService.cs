@@ -60,6 +60,26 @@ public interface IWatchlistRepository
 public sealed class HeldAssetException(string message) : DomainException(message);
 
 /// <summary>
+/// Qué precios tiene un activo de los dos que el usuario va a ver.
+/// </summary>
+/// <remarks>
+/// Dos y no uno porque son proveedores distintos y su cobertura no coincide. Un sí o no
+/// podía acertar y engañar a la vez: un activo con años de histórico y sin cotización
+/// pasaba como cubierto y aparecía en la lista con la columna de precio vacía.
+///
+/// El remedio tampoco es el mismo. Sin cotización suele bastar con volver a añadirlo
+/// eligiéndolo de una búsqueda, que es lo que le da el identificador con el que su
+/// proveedor lo conoce; sin serie no hay nada que hacer desde la aplicación.
+/// </remarks>
+/// <param name="HasSeries">Hay histórico: habrá gráfica e indicadores.</param>
+/// <param name="HasQuote">Hay precio de ahora: aparecerá en la columna de precio.</param>
+public sealed record PriceCoverage(bool HasSeries, bool HasQuote)
+{
+    /// <summary>Tiene las dos, que es lo único que se ve completo en pantalla.</summary>
+    public bool IsComplete => HasSeries && HasQuote;
+}
+
+/// <summary>
 /// Gestiona qué activos vigila el usuario.
 /// </summary>
 /// <remarks>
@@ -70,6 +90,7 @@ public sealed class HeldAssetException(string message) : DomainException(message
 public sealed class WatchlistService(
     IWatchlistRepository repository,
     IPriceHistoryProvider prices,
+    IMarketPriceProvider quotes,
     TimeProvider timeProvider,
     ILogger<WatchlistService> logger)
 {
@@ -100,18 +121,18 @@ public sealed class WatchlistService(
 
         await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        var covered = await HasPricesAsync(asset, cancellationToken).ConfigureAwait(false);
+        var covered = await CoverageAsync(asset, cancellationToken).ConfigureAwait(false);
 
-        if (!covered)
+        if (!covered.IsComplete)
         {
             logger.LogWarning(
-                "Ningún proveedor da precios de {Activo}: se sigue igualmente, pero sin precio no habrá señales.",
-                asset.CanonicalSymbol);
+                "Cobertura incompleta de {Activo}: histórico {Serie}, cotización {Cotizacion}.",
+                asset.CanonicalSymbol, covered.HasSeries, covered.HasQuote);
         }
 
         var watched = await repository.FindWatchedAsync(asset.Id, cancellationToken).ConfigureAwait(false);
 
-        return new WatchAssetResponse(watched!, already, covered);
+        return new WatchAssetResponse(watched!, already, covered.HasSeries, covered.HasQuote);
     }
 
     /// <summary>Empieza a seguir el activo que el usuario ha elegido de una búsqueda.</summary>
@@ -145,10 +166,10 @@ public sealed class WatchlistService(
 
         await repository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        var covered = await HasPricesAsync(asset, cancellationToken).ConfigureAwait(false);
+        var covered = await CoverageAsync(asset, cancellationToken).ConfigureAwait(false);
         var watched = await repository.FindWatchedAsync(asset.Id, cancellationToken).ConfigureAwait(false);
 
-        return new WatchAssetResponse(watched!, already, covered);
+        return new WatchAssetResponse(watched!, already, covered.HasSeries, covered.HasQuote);
     }
 
     public async Task RemoveAsync(Guid assetId, CancellationToken cancellationToken = default)
@@ -173,7 +194,16 @@ public sealed class WatchlistService(
     /// que hoy no tiene precio puede tenerlo mañana. Lo que no puede pasar es que el
     /// usuario lo añada y lo descubra tres días después.
     /// </remarks>
-    private async Task<bool> HasPricesAsync(Asset asset, CancellationToken cancellationToken)
+    private async Task<PriceCoverage> CoverageAsync(Asset asset, CancellationToken cancellationToken)
+    {
+        var series = await HasSeriesAsync(asset, cancellationToken).ConfigureAwait(false);
+        var quote = await HasQuoteAsync(asset, cancellationToken).ConfigureAwait(false);
+
+        return new PriceCoverage(series, quote);
+    }
+
+    /// <summary>Si algún proveedor da el histórico reciente del activo.</summary>
+    private async Task<bool> HasSeriesAsync(Asset asset, CancellationToken cancellationToken)
     {
         var today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
@@ -196,9 +226,37 @@ public sealed class WatchlistService(
         {
             // Queda el fallo que ningún proveedor llegue a declarar, por ejemplo uno que
             // lance antes de responder. Se dice que no hay precios y se deja constancia.
-            logger.LogWarning(exception, "No se ha podido comprobar la cobertura de {Activo}.", asset.CanonicalSymbol);
+            logger.LogWarning(exception, "No se ha podido comprobar el histórico de {Activo}.", asset.CanonicalSymbol);
 
             return false;
         }
     }
+
+    /// <summary>
+    /// Si algún proveedor da el precio de ahora del activo.
+    /// </summary>
+    /// <remarks>
+    /// Es la pregunta que faltaba. La columna de precio de la lista no sale del
+    /// histórico sino de aquí, y la cobertura de los dos no coincide: hay activos con
+    /// años de serie a los que nadie cotiza, y preguntar sólo por la serie los daba por
+    /// buenos.
+    /// </remarks>
+    private async Task<bool> HasQuoteAsync(Asset asset, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var quoted = await quotes
+                .GetPricesAsync([new QuotedAsset(asset.CanonicalSymbol, asset.ProviderId)], cancellationToken)
+                .ConfigureAwait(false);
+
+            return quoted.Count > 0;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogWarning(exception, "No se ha podido comprobar la cotización de {Activo}.", asset.CanonicalSymbol);
+
+            return false;
+        }
+    }
+
 }

@@ -1741,6 +1741,12 @@
   <data name="Credentials_SyncRejected" xml:space="preserve">
     <value>{0} movimientos han llegado y no se han podido interpretar, así que no están en la cartera. Búscalos en la importación para ver por qué.</value>
   </data>
+  <data name="Watchlist_WithoutQuote" xml:space="preserve">
+    <value>Añadido, pero ningún proveedor da su precio de ahora, así que aparecerá sin precio. Búscalo por su nombre y añádelo desde los resultados: así Kapea aprende con qué identificador pedirlo.</value>
+  </data>
+  <data name="Watchlist_WithoutSeries" xml:space="preserve">
+    <value>Añadido, pero ningún proveedor da su histórico, así que no tendrá gráfica ni indicadores hasta que lo haya.</value>
+  </data>
   <data name="Watchlist_Title" xml:space="preserve">
     <value>Seguimiento</value>
   </data>

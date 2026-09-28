@@ -216,12 +216,18 @@ public sealed class SynchronizationService(
         var secret = await credentials.ResolveAsync(target.Credential, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"No se ha podido recuperar el secreto de la cuenta {account.Id}.");
 
-        // Se pide solo lo posterior a la última importación correcta. Una fallida no
-        // mueve ese punto, así que lo que no llegó a entrar se vuelve a pedir.
+        // Se pide desde el último movimiento que ya se tiene, no desde la hora en que
+        // corrió la última ejecución. La diferencia no es cosmética: una plataforma puede
+        // publicar un movimiento unos segundos después de que ocurriera, así que su fecha
+        // queda por debajo de esa hora pero aparece más tarde. Preguntando desde el reloj,
+        // ese movimiento no se pedía nunca más y se perdía sin que nada lo dijera.
+        //
+        // Lo que se relea de más lo descarta la deduplicación, que es barato; lo que se
+        // deja de leer no vuelve.
         var from = fromTheBeginning
             ? EarliestHistory
             : await importRepository
-                .FindLastSuccessfulImportInstantAsync(account.Id, cancellationToken).ConfigureAwait(false)
+                .FindLastMovementInstantAsync(account.Id, cancellationToken).ConfigureAwait(false)
                 ?? EarliestHistory;
 
         var to = timeProvider.GetUtcNow();
