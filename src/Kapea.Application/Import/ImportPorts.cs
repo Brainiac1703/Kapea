@@ -48,6 +48,22 @@ public interface IImportRepository
         Guid accountId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Fecha del movimiento más reciente que la cuenta tiene importado.
+    /// </summary>
+    /// <remarks>
+    /// Es desde dónde hay que volver a preguntar, y no el instante de la última
+    /// ejecución. Una plataforma puede publicar un movimiento unos segundos después de
+    /// que ocurriera, o con el reloj ligeramente desfasado: su fecha queda entonces por
+    /// debajo de la hora en que corrió la ejecución anterior, aparece después de ella, y
+    /// preguntando desde esa hora no se pide nunca más. Preguntando desde el último
+    /// movimiento conocido, lo que llegue tarde entra igual y la deduplicación descarta
+    /// lo repetido.
+    /// </remarks>
+    Task<DateTimeOffset?> FindLastMovementInstantAsync(
+        Guid accountId,
+        CancellationToken cancellationToken = default);
+
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
