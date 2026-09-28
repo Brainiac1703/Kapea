@@ -87,14 +87,27 @@ public sealed class CoinGeckoMarketPriceProvider(
     }
 
     public async Task<IReadOnlyDictionary<string, MarketPrice>> GetPricesAsync(
-        IReadOnlyCollection<string> canonicalSymbols,
+        IReadOnlyCollection<QuotedAsset> assets,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(canonicalSymbols);
+        ArgumentNullException.ThrowIfNull(assets);
 
-        var wanted = canonicalSymbols
-            .Where(symbol => CoinIds.ContainsKey(symbol))
-            .ToDictionary(symbol => CoinIds[symbol], symbol => symbol, StringComparer.Ordinal);
+        // El identificador guardado manda sobre el diccionario: lo eligio el usuario en
+        // una busqueda, asi que es el de la moneda que queria, y ademas existe para las
+        // que nunca estuvieron en la lista.
+        var wanted = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var asset in assets)
+        {
+            var coinId = asset.ProviderId is { Length: > 0 } known
+                ? known
+                : CoinIds.GetValueOrDefault(asset.CanonicalSymbol);
+
+            if (coinId is not null)
+            {
+                wanted[coinId] = asset.CanonicalSymbol;
+            }
+        }
 
         if (wanted.Count == 0)
         {

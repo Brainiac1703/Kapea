@@ -128,7 +128,7 @@ public sealed class KapeaApiFactory : WebApplicationFactory<Program>, IAsyncLife
     private sealed class NoPrices : Application.Abstractions.IMarketPriceProvider
     {
         public Task<IReadOnlyDictionary<string, Application.Abstractions.MarketPrice>> GetPricesAsync(
-            IReadOnlyCollection<string> canonicalSymbols,
+            IReadOnlyCollection<Kapea.Application.Abstractions.QuotedAsset> assets,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyDictionary<string, Application.Abstractions.MarketPrice>>(
                 new Dictionary<string, Application.Abstractions.MarketPrice>(StringComparer.OrdinalIgnoreCase));

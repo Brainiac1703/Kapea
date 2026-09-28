@@ -42,23 +42,27 @@ public sealed class MarketPriceDispatcher(
     public static readonly TimeSpan Freshness = TimeSpan.FromMinutes(1);
 
     public async Task<IReadOnlyDictionary<string, MarketPrice>> GetPricesAsync(
-        IReadOnlyCollection<string> canonicalSymbols,
+        IReadOnlyCollection<QuotedAsset> assets,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(canonicalSymbols);
+        ArgumentNullException.ThrowIfNull(assets);
 
         var prices = new Dictionary<string, MarketPrice>(StringComparer.OrdinalIgnoreCase);
-        var pending = new List<string>();
+        var pending = new List<QuotedAsset>();
 
-        foreach (var symbol in canonicalSymbols.Where(symbol => !string.IsNullOrWhiteSpace(symbol)).Distinct())
+        // La caché sigue yendo por símbolo: el catálogo tiene índice único por símbolo y
+        // clase, así que dos activos de la misma clase no pueden compartirlo.
+        foreach (var asset in assets
+            .Where(asset => !string.IsNullOrWhiteSpace(asset.CanonicalSymbol))
+            .DistinctBy(asset => asset.CanonicalSymbol, StringComparer.OrdinalIgnoreCase))
         {
-            if (cache.TryGetValue(Key(symbol), out MarketPrice? cached) && cached is not null)
+            if (cache.TryGetValue(Key(asset.CanonicalSymbol), out MarketPrice? cached) && cached is not null)
             {
-                prices[symbol] = cached;
+                prices[asset.CanonicalSymbol] = cached;
             }
             else
             {
-                pending.Add(symbol);
+                pending.Add(asset);
             }
         }
 
@@ -67,12 +71,15 @@ public sealed class MarketPriceDispatcher(
             return prices;
         }
 
-        var byClass = await classes.ClassifyAsync(pending, cancellationToken).ConfigureAwait(false);
+        var byClass = await classes
+            .ClassifyAsync([.. pending.Select(asset => asset.CanonicalSymbol)], cancellationToken)
+            .ConfigureAwait(false);
 
         foreach (var provider in providers)
         {
             var mine = pending
-                .Where(symbol => byClass.TryGetValue(symbol, out var assetClass) && assetClass == provider.AssetClass)
+                .Where(asset => byClass.TryGetValue(asset.CanonicalSymbol, out var assetClass)
+                    && assetClass == provider.AssetClass)
                 .ToList();
 
             if (mine.Count == 0)

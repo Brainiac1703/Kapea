@@ -153,7 +153,7 @@ public class ImportProfilePersistenceTests(SqlServerFixture fixture)
     private sealed class NoPrices : Kapea.Application.Abstractions.IMarketPriceProvider
     {
         public Task<IReadOnlyDictionary<string, Kapea.Application.Abstractions.MarketPrice>> GetPricesAsync(
-            IReadOnlyCollection<string> canonicalSymbols,
+            IReadOnlyCollection<Kapea.Application.Abstractions.QuotedAsset> assets,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyDictionary<string, Kapea.Application.Abstractions.MarketPrice>>(
                 new Dictionary<string, Kapea.Application.Abstractions.MarketPrice>());
