@@ -50,11 +50,28 @@ public sealed record MarketPrice(string CanonicalSymbol, decimal PriceInEuros, D
 /// precio, así que un proveedor que no cubra un activo no rompe nada: la posición
 /// aparece con cantidad y coste medio, y sin valor actual.
 /// </remarks>
+/// <summary>
+/// Un activo del que se quiere el precio, tal y como hay que pedírselo al proveedor.
+/// </summary>
+/// <remarks>
+/// No basta con el símbolo. Varios activos pueden compartirlo, así que hay proveedores
+/// que sólo los distinguen por un identificador propio; pedirlos por símbolo obliga a
+/// mantener a mano una lista de traducciones, y lo que no esté en ella se queda sin
+/// precio para siempre. El identificador viaja con la petición, igual que ya viaja en la
+/// del histórico.
+/// </remarks>
+/// <param name="CanonicalSymbol">Símbolo del catálogo, y clave del resultado.</param>
+/// <param name="ProviderId">
+/// Identificador con el que el proveedor conoce este activo, cuando se sabe. Manda sobre
+/// cualquier traducción del símbolo. Vacío en lo que entró importando movimientos.
+/// </param>
+public sealed record QuotedAsset(string CanonicalSymbol, string? ProviderId = null);
+
 public interface IMarketPriceProvider
 {
-    /// <summary>Precios de los símbolos que este proveedor cubra. Los que no cubra, simplemente no vienen.</summary>
+    /// <summary>Precios de los activos que este proveedor cubra. Los que no cubra, simplemente no vienen.</summary>
     Task<IReadOnlyDictionary<string, MarketPrice>> GetPricesAsync(
-        IReadOnlyCollection<string> canonicalSymbols,
+        IReadOnlyCollection<QuotedAsset> assets,
         CancellationToken cancellationToken = default);
 }
 

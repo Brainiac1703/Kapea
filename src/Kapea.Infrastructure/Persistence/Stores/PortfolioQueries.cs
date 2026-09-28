@@ -408,7 +408,10 @@ public sealed class PortfolioQueries(
 
         var quotes = await prices
             .GetPricesAsync(
-                [.. open.Where(group => assets.ContainsKey(group.Key)).Select(group => assets[group.Key].CanonicalSymbol)],
+                [.. open
+                    .Where(group => assets.ContainsKey(group.Key))
+                    .Select(group => new QuotedAsset(
+                        assets[group.Key].CanonicalSymbol, assets[group.Key].ProviderId))],
                 cancellationToken)
             .ConfigureAwait(false);
 

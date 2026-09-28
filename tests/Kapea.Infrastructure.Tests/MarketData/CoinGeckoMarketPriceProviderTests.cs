@@ -4,6 +4,7 @@ using Kapea.Infrastructure.MarketData;
 using Kapea.Infrastructure.Tests.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
+using static Kapea.Infrastructure.Tests.MarketData.Quotes;
 
 namespace Kapea.Infrastructure.Tests.MarketData;
 
@@ -17,7 +18,7 @@ public class CoinGeckoMarketPriceProviderTests
         var (provider, handler) = Create(new RecordedResponseHandler()
             .RespondWithFile(Path.Combine("MarketData", "Recorded", "simple-price.json")));
 
-        var prices = await provider.GetPricesAsync(["BTC", "ETH"]);
+        var prices = await provider.GetPricesAsync(Quoted("BTC", "ETH"));
 
         Assert.Equal(2, prices.Count);
         Assert.Equal(58234.12m, prices["BTC"].PriceInEuros);
@@ -32,7 +33,7 @@ public class CoinGeckoMarketPriceProviderTests
         var (provider, handler) = Create(new RecordedResponseHandler()
             .RespondWithFile(Path.Combine("MarketData", "Recorded", "simple-price.json")));
 
-        var prices = await provider.GetPricesAsync(["BTC", "ETH", "SAN.ES"]);
+        var prices = await provider.GetPricesAsync(Quoted("BTC", "ETH", "SAN.ES"));
 
         Assert.False(prices.ContainsKey("SAN.ES"));
         Assert.DoesNotContain("SAN", handler.Requests.Single().RequestUri!.Query, StringComparison.Ordinal);
@@ -43,7 +44,7 @@ public class CoinGeckoMarketPriceProviderTests
     {
         var (provider, handler) = Create(new RecordedResponseHandler());
 
-        Assert.Empty(await provider.GetPricesAsync(["SAN.ES", "AAPL.US"]));
+        Assert.Empty(await provider.GetPricesAsync(Quoted("SAN.ES", "AAPL.US")));
         Assert.Empty(handler.Requests);
     }
 
@@ -54,7 +55,7 @@ public class CoinGeckoMarketPriceProviderTests
         // dejaría sin responder una consulta que no depende del precio.
         var (provider, _) = Create(new RecordedResponseHandler().RespondWithStatus(HttpStatusCode.TooManyRequests));
 
-        Assert.Empty(await provider.GetPricesAsync(["BTC"]));
+        Assert.Empty(await provider.GetPricesAsync(Quoted("BTC")));
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public class CoinGeckoMarketPriceProviderTests
     {
         var (provider, _) = Create(new RecordedResponseHandler().RespondWithContent("no es json"));
 
-        Assert.Empty(await provider.GetPricesAsync(["BTC"]));
+        Assert.Empty(await provider.GetPricesAsync(Quoted("BTC")));
     }
 
     [Fact]
@@ -71,7 +72,7 @@ public class CoinGeckoMarketPriceProviderTests
         var (provider, _) = Create(new RecordedResponseHandler()
             .RespondWithContent("""{"bitcoin":{"usd":63000.0},"ethereum":{"eur":2410.55}}"""));
 
-        var prices = await provider.GetPricesAsync(["BTC", "ETH"]);
+        var prices = await provider.GetPricesAsync(Quoted("BTC", "ETH"));
 
         Assert.False(prices.ContainsKey("BTC"));
         Assert.True(prices.ContainsKey("ETH"));
@@ -82,9 +83,58 @@ public class CoinGeckoMarketPriceProviderTests
     {
         var (provider, _) = Create(new RecordedResponseHandler().RespondWithContent("""{"bitcoin":{"eur":58234.12}}"""));
 
-        var prices = await provider.GetPricesAsync(["BTC"]);
+        var prices = await provider.GetPricesAsync(Quoted("BTC"));
 
         Assert.Equal(Now, prices["BTC"].AsOf);
+    }
+
+    [Fact]
+    public async Task A_coin_with_a_stored_identifier_is_priced_without_being_in_the_hand_written_list()
+    {
+        // QNT no está en CoinIds y nunca va a estarlo sola. Lo añadió el usuario
+        // eligiéndolo de una búsqueda, así que su identificador está guardado.
+        var (provider, handler) = Create(new RecordedResponseHandler()
+            .RespondWithFile(Path.Combine("MarketData", "Recorded", "simple-price-by-id.json")));
+
+        var prices = await provider.GetPricesAsync([new QuotedAsset("QNT", "quant-network")]);
+
+        Assert.Equal(92.44m, prices["QNT"].PriceInEuros);
+        Assert.Contains("quant-network", handler.Requests.Single().RequestUri!.Query, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_stored_identifier_wins_over_the_hand_written_list()
+    {
+        // Si alguna vez discrepan, manda el que el usuario eligió: la lista es una
+        // conjetura razonable y el identificador es una respuesta.
+        var (provider, handler) = Create(new RecordedResponseHandler()
+            .RespondWithFile(Path.Combine("MarketData", "Recorded", "simple-price-by-id.json")));
+
+        await provider.GetPricesAsync([new QuotedAsset("BTC", "quant-network")]);
+
+        var query = handler.Requests.Single().RequestUri!.Query;
+
+        Assert.Contains("quant-network", query, StringComparison.Ordinal);
+        Assert.DoesNotContain("bitcoin", query, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Both_ways_of_resolving_fit_in_the_same_request()
+    {
+        var (provider, handler) = Create(new RecordedResponseHandler()
+            .RespondWithFile(Path.Combine("MarketData", "Recorded", "simple-price-by-id.json")));
+
+        var prices = await provider.GetPricesAsync(
+        [
+            new QuotedAsset("QNT", "quant-network"),
+            new QuotedAsset("BTC"),
+            new QuotedAsset("INVENTADO"),
+        ]);
+
+        // El que no resuelve por ninguna vía no impide el precio de los demás.
+        Assert.Equal(2, prices.Count);
+        Assert.False(prices.ContainsKey("INVENTADO"));
+        Assert.Single(handler.Requests);
     }
 
     private static (IMarketPriceProvider Provider, RecordedResponseHandler Handler) Create(RecordedResponseHandler handler) =>

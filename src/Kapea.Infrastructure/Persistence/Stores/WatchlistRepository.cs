@@ -33,7 +33,9 @@ public sealed class WatchlistRepository(KapeaDbContext context, IMarketPriceProv
             .ConfigureAwait(false);
 
         var quotes = await prices
-            .GetPricesAsync([.. assets.Select(asset => asset.CanonicalSymbol)], cancellationToken)
+            .GetPricesAsync(
+                [.. assets.Select(asset => new QuotedAsset(asset.CanonicalSymbol, asset.ProviderId))],
+                cancellationToken)
             .ConfigureAwait(false);
 
         return

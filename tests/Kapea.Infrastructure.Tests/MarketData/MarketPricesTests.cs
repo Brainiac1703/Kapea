@@ -7,6 +7,7 @@ using Kapea.Infrastructure.MarketData;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
+using static Kapea.Infrastructure.Tests.MarketData.Quotes;
 
 namespace Kapea.Infrastructure.Tests.MarketData;
 
@@ -35,51 +36,79 @@ public class YahooSymbolsTests
 
 public class YahooMarketPriceProviderTests
 {
+    private const string Meta = """
+        {"chart":{"result":[{"meta":{"symbol":"%SIMBOLO%","currency":"%DIVISA%",
+        "regularMarketPrice":%PRECIO%,"regularMarketTime":1730000000}}]}}
+        """;
+
     [Fact]
-    public async Task Several_symbols_are_asked_for_in_a_single_call()
+    public async Task The_quote_comes_from_the_series_endpoint_and_not_from_the_quote_one()
     {
-        // Una llamada por valor agotaría el límite de peticiones en cuanto la cartera
-        // tenga unas cuantas posiciones.
-        var handler = new CapturingHandler("""
-            {"quoteResponse":{"result":[
-              {"symbol":"SAN.ES","currency":"EUR","regularMarketPrice":4.55,"regularMarketTime":1730000000},
-              {"symbol":"IBE.ES","currency":"EUR","regularMarketPrice":12.10,"regularMarketTime":1730000000}
-            ]}}
-            """);
+        // El de cotizaciones exige una cookie y un identificador de sesión que Yahoo no
+        // documenta: responde 401 siempre. El de la serie trae el precio en su cabecera.
+        var handler = new CapturingHandler(Quote("SAN.ES", "EUR", "4.55"));
 
-        var prices = await Provider(handler).GetPricesAsync(["SAN.ES", "IBE.ES"]);
+        var prices = await Provider(handler).GetPricesAsync(Quoted("SAN.ES"));
 
-        Assert.Single(handler.Requests);
         Assert.Equal(4.55m, prices["SAN.ES"].PriceInEuros);
+        Assert.Contains("v8/finance/chart/", Assert.Single(handler.Requests), StringComparison.Ordinal);
+        Assert.DoesNotContain("finance/quote", Assert.Single(handler.Requests), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_instant_of_the_quote_travels_with_it()
+    {
+        var handler = new CapturingHandler(Quote("SAN.ES", "EUR", "4.55"));
+
+        var prices = await Provider(handler).GetPricesAsync(Quoted("SAN.ES"));
+
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1730000000), prices["SAN.ES"].AsOf);
+    }
+
+    [Fact]
+    public async Task A_value_quoted_in_another_currency_is_converted_and_not_discarded()
+    {
+        // Buena parte de la renta variable de una cartera española cotiza en dólares.
+        // Descartarla la dejaba sin valor de mercado sin que nada lo explicara.
+        var handler = new CapturingHandler(Quote("MREO", "USD", "0.37"));
+
+        var prices = await Provider(handler, new FixedRate(2m)).GetPricesAsync(Quoted("MREO.US"));
+
+        Assert.Equal(0.185m, prices["MREO.US"].PriceInEuros);
+    }
+
+    [Fact]
+    public async Task Without_an_exchange_rate_the_value_is_left_without_price()
+    {
+        // Entregar la cifra en dólares como si fuera en euros daría un valor de cartera
+        // equivocado que nadie podría detectar.
+        var handler = new CapturingHandler(Quote("MREO", "USD", "0.37"));
+
+        Assert.Empty(await Provider(handler, new NoRate()).GetPricesAsync(Quoted("MREO.US")));
+    }
+
+    [Fact]
+    public async Task One_value_that_fails_does_not_take_the_rest_with_it()
+    {
+        var handler = new CapturingHandler(Quote("IBE.ES", "EUR", "12.10"))
+            .FailFirst(HttpStatusCode.Unauthorized);
+
+        var prices = await Provider(handler).GetPricesAsync(Quoted("SAN.ES", "IBE.ES"));
+
+        Assert.False(prices.ContainsKey("SAN.ES"));
         Assert.Equal(12.10m, prices["IBE.ES"].PriceInEuros);
     }
 
     [Fact]
     public async Task A_symbol_the_provider_does_not_know_does_not_take_the_rest_with_it()
     {
-        var handler = new CapturingHandler("""
-            {"quoteResponse":{"result":[
-              {"symbol":"SAN.ES","currency":"EUR","regularMarketPrice":4.55,"regularMarketTime":1730000000}
-            ]}}
-            """);
+        var handler = new CapturingHandler(Quote("SAN.ES", "EUR", "4.55"))
+            .FailFirst(HttpStatusCode.NotFound);
 
-        var prices = await Provider(handler).GetPricesAsync(["SAN.ES", "INVENTADO.XX"]);
+        var prices = await Provider(handler).GetPricesAsync(Quoted("INVENTADO.XX", "SAN.ES"));
 
-        Assert.True(prices.ContainsKey("SAN.ES"));
         Assert.False(prices.ContainsKey("INVENTADO.XX"));
-    }
-
-    [Fact]
-    public async Task A_value_quoted_in_another_currency_is_left_without_price()
-    {
-        // Convertirlo a euros sin decirlo produciría una cifra que nadie puede comprobar.
-        var handler = new CapturingHandler("""
-            {"quoteResponse":{"result":[
-              {"symbol":"AAPL","currency":"USD","regularMarketPrice":230.5,"regularMarketTime":1730000000}
-            ]}}
-            """);
-
-        Assert.Empty(await Provider(handler).GetPricesAsync(["AAPL.US"]));
+        Assert.True(prices.ContainsKey("SAN.ES"));
     }
 
     [Fact]
@@ -87,24 +116,70 @@ public class YahooMarketPriceProviderTests
     {
         var handler = new CapturingHandler(string.Empty, HttpStatusCode.ServiceUnavailable);
 
-        Assert.Empty(await Provider(handler).GetPricesAsync(["SAN.ES"]));
+        Assert.Empty(await Provider(handler).GetPricesAsync(Quoted("SAN.ES")));
     }
 
-    private static YahooMarketPriceProvider Provider(HttpMessageHandler handler) =>
+    private static string Quote(string symbol, string currency, string price) =>
+        Meta.Replace("%SIMBOLO%", symbol, StringComparison.Ordinal)
+            .Replace("%DIVISA%", currency, StringComparison.Ordinal)
+            .Replace("%PRECIO%", price, StringComparison.Ordinal);
+
+    private static YahooMarketPriceProvider Provider(
+        HttpMessageHandler handler, IExchangeRateProvider? rates = null) =>
         new(
             new HttpClient(handler) { BaseAddress = new Uri("https://ejemplo/") },
+            rates ?? new NoRate(),
             new FakeTimeProvider(),
             NullLogger<YahooMarketPriceProvider>.Instance);
 
+    /// <summary>No hay tipo para ninguna divisa.</summary>
+    private sealed class NoRate : IExchangeRateProvider
+    {
+        public Task<Kapea.Domain.Exchange.ExchangeRate?> ResolveAsync(
+            Kapea.Domain.ValueObjects.Currency currency,
+            DateOnly date,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<Kapea.Domain.Exchange.ExchangeRate?>(null);
+    }
+
+    /// <summary>Un tipo fijo para cualquier divisa y cualquier día.</summary>
+    private sealed class FixedRate(decimal unitsPerEuro) : IExchangeRateProvider
+    {
+        public Task<Kapea.Domain.Exchange.ExchangeRate?> ResolveAsync(
+            Kapea.Domain.ValueObjects.Currency currency,
+            DateOnly date,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<Kapea.Domain.Exchange.ExchangeRate?>(Kapea.Domain.Exchange.ExchangeRate.Create(
+                currency, unitsPerEuro, date, date, Kapea.Domain.Exchange.ExchangeRate.EuropeanCentralBank));
+    }
+
     internal sealed class CapturingHandler(string body, HttpStatusCode status = HttpStatusCode.OK) : HttpMessageHandler
     {
+        private HttpStatusCode? _firstFailure;
+
         internal List<string> Requests { get; } = [];
+
+        /// <summary>El primer valor falla y el siguiente responde.</summary>
+        internal CapturingHandler FailFirst(HttpStatusCode failure)
+        {
+            _firstFailure = failure;
+
+            return this;
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             Requests.Add(request.RequestUri!.PathAndQuery);
+
+            if (_firstFailure is { } failure && Requests.Count == 1)
+            {
+                return Task.FromResult(new HttpResponseMessage(failure)
+                {
+                    Content = new StringContent(string.Empty, Encoding.UTF8, "application/json"),
+                });
+            }
 
             return Task.FromResult(new HttpResponseMessage(status)
             {
@@ -122,7 +197,7 @@ public class MarketPriceDispatcherTests
         var crypto = new RecordingProvider(("BTC", 60000m));
         var equity = new RecordingProvider(("SAN.ES", 4.55m));
 
-        var prices = await Dispatcher(crypto, equity).GetPricesAsync(["BTC", "SAN.ES"]);
+        var prices = await Dispatcher(crypto, equity).GetPricesAsync(Quoted("BTC", "SAN.ES"));
 
         Assert.Equal(["BTC"], crypto.Asked);
         Assert.Equal(["SAN.ES"], equity.Asked);
@@ -134,7 +209,7 @@ public class MarketPriceDispatcherTests
     {
         var crypto = new RecordingProvider(("BTC", 60000m));
 
-        var prices = await Dispatcher(crypto, equity: null).GetPricesAsync(["BTC", "SAN.ES"]);
+        var prices = await Dispatcher(crypto, equity: null).GetPricesAsync(Quoted("BTC", "SAN.ES"));
 
         Assert.True(prices.ContainsKey("BTC"));
         Assert.False(prices.ContainsKey("SAN.ES"));
@@ -148,8 +223,8 @@ public class MarketPriceDispatcherTests
         var crypto = new RecordingProvider(("BTC", 60000m));
         var dispatcher = Dispatcher(crypto, equity: null);
 
-        await dispatcher.GetPricesAsync(["BTC"]);
-        await dispatcher.GetPricesAsync(["BTC"]);
+        await dispatcher.GetPricesAsync(Quoted("BTC"));
+        await dispatcher.GetPricesAsync(Quoted("BTC"));
 
         Assert.Single(crypto.Calls);
     }
@@ -189,9 +264,11 @@ public class MarketPriceDispatcherTests
         internal List<int> Calls { get; } = [];
 
         public Task<IReadOnlyDictionary<string, MarketPrice>> GetPricesAsync(
-            IReadOnlyCollection<string> canonicalSymbols,
+            IReadOnlyCollection<QuotedAsset> assets,
             CancellationToken cancellationToken = default)
         {
+            var canonicalSymbols = assets.Select(asset => asset.CanonicalSymbol).ToList();
+
             Asked.AddRange(canonicalSymbols);
             Calls.Add(canonicalSymbols.Count);
 
@@ -265,9 +342,9 @@ public class MarketPriceCacheExpiryTests
             cache,
             NullLogger<MarketPriceDispatcher>.Instance);
 
-        await dispatcher.GetPricesAsync(["BTC"]);
+        await dispatcher.GetPricesAsync(Quoted("BTC"));
         clock.Advance(MarketPriceDispatcher.Freshness + TimeSpan.FromSeconds(1));
-        await dispatcher.GetPricesAsync(["BTC"]);
+        await dispatcher.GetPricesAsync(Quoted("BTC"));
 
         Assert.Equal(2, crypto.Calls.Count);
     }
