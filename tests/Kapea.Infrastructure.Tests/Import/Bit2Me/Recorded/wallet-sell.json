@@ -1,0 +1,37 @@
+{
+  "data": [
+    {
+      "id": "ws-0001",
+      "date": "2024-06-10T09:05:25.937Z",
+      "completedAt": "2024-06-10T09:05:27.000Z",
+      "concept": "",
+      "type": "transfer",
+      "subtype": "sell",
+      "method": "pocket",
+      "status": "completed",
+      "denomination": {
+        "amount": "2.50000000",
+        "currency": "ADA"
+      },
+      "origin": {
+        "amount": "2.50000000",
+        "currency": "ADA",
+        "rate": {
+          "value": "40.00000000",
+          "pair": {
+            "base": "ADA",
+            "quote": "EUR"
+          }
+        }
+      },
+      "destination": {
+        "amount": "97.50000000",
+        "currency": "EUR"
+      }
+    }
+  ],
+  "pageInfo": {
+    "hasNextPage": false,
+    "endCursor": null
+  }
+}

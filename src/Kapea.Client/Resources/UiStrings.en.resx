@@ -1738,6 +1738,9 @@
   <data name="Watchlist_Refresh" xml:space="preserve">
     <value>Refresh prices</value>
   </data>
+  <data name="Credentials_SyncRejected" xml:space="preserve">
+    <value>{0} movements arrived and could not be interpreted, so they are not in the portfolio. Look them up in the import to see why.</value>
+  </data>
   <data name="Watchlist_Title" xml:space="preserve">
     <value>Watchlist</value>
   </data>

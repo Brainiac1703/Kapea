@@ -150,6 +150,44 @@ public class Bit2MeImportAdapterTests
     }
 
     [Fact]
+    public async Task A_sell_takes_the_asset_from_the_side_it_leaves()
+    {
+        // Tomar el destino dejaba la venta con los euros: sin activo y con cantidad cero,
+        // así que se rechazaba y la posición se quedaba abierta sin que nada lo dijera.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-sell.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var sell = Assert.Single((await Adapter(handler).ReadAsync(Credential, From, To)).Records);
+
+        Assert.Equal(TransactionType.Sell, sell.Type);
+        Assert.Equal("ADA", sell.AssetSymbol);
+        Assert.Equal(2.5m, sell.Quantity);
+    }
+
+    [Fact]
+    public async Task A_sell_earns_what_reached_the_account_and_not_what_the_rate_recalculates()
+    {
+        // Al cambio publicado serían cien euros; a la cuenta llegaron 97,50. La
+        // diferencia es lo que se quedó la plataforma, y el resultado se calcula como
+        // bruto menos comisión: si el bruto fuera lo recibido, el diferencial se restaría
+        // dos veces.
+        var handler = new RecordedResponseHandler()
+            .RespondWithFile(Recorded("empty-trades.json"))
+            .RespondWithFile(Recorded("wallet-sell.json"))
+            .RespondWithContent("""{"total":0,"data":[]}""")
+            .RespondWithContent("""{"total":0,"data":[]}""");
+
+        var sell = Assert.Single((await Adapter(handler).ReadAsync(Credential, From, To)).Records);
+
+        Assert.Equal(2.5m, sell.Fee);
+        Assert.Equal(100m, decimal.Round(sell.GrossAmount, 2));
+        Assert.Equal(97.5m, decimal.Round(sell.GrossAmount - sell.Fee, 2));
+    }
+
+    [Fact]
     public async Task A_purchase_costs_what_was_paid_and_not_what_the_rate_recalculates()
     {
         // Comprar cien euros de cripto cuesta cien euros. Multiplicar la cantidad por el
