@@ -7,4 +7,4 @@
 ## 2. Cierre
 
 - [x] 2.1 Ejecutar la batería completa, también con `LANG=en_US`. Se verifica en verde.
-- [ ] 2.2 Comprobarlo en el entorno local con los datos reales: el botón actualiza sin recargar la página.
+- [x] 2.2 Comprobarlo en el entorno local con los datos reales: el botón actualiza sin recargar la página.

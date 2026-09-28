@@ -57,6 +57,10 @@ Cuando un activo se da de alta eligiendo un resultado de búsqueda, el sistema D
 
 Dos activos distintos pueden compartir símbolo, así que el sistema NO DEBE deducir el identificador a partir del símbolo cuando ya tiene uno guardado: hacerlo podría traer el precio de otro activo sin que nada fallara.
 
+Esto vale para **todas** las peticiones de precio, la de la serie histórica y la de la cotización de ahora. Que una lo use y la otra no deja al activo a medias, con gráfica y sin precio, sin que el usuario pueda entender por qué.
+
+Un activo con identificador guardado NO DEBE depender de que su símbolo figure en ninguna lista escrita a mano. Esa lista PUEDE seguir existiendo para lo que no tiene identificador, pero NO DEBE ser la única vía.
+
 #### Scenario: Activo elegido en una búsqueda
 
 - **WHEN** el usuario añade un activo eligiéndolo de los resultados
@@ -72,9 +76,23 @@ Dos activos distintos pueden compartir símbolo, así que el sistema NO DEBE ded
 - **WHEN** un activo entró por una importación y no tiene identificador de proveedor
 - **THEN** el sistema lo resuelve como hasta ahora, a partir de su símbolo
 
+#### Scenario: Cotización de un activo fuera de la lista escrita a mano
+
+- **WHEN** se pide la cotización de un activo con identificador guardado cuyo símbolo no está en la lista del proveedor
+- **THEN** el proveedor lo resuelve por su identificador y devuelve su precio
+
+#### Scenario: Las dos vías en la misma petición
+
+- **WHEN** se piden a la vez activos con identificador guardado y activos sin él
+- **THEN** cada uno se resuelve por su vía y ninguno impide el precio de los demás
+
 ### Requirement: Precio por clase de activo
 
 El sistema DEBE obtener precios de criptomonedas y de renta variable, cada uno de su proveedor, y DEBE poder incorporar clases de activo nuevas sin cambiar el resto de la cartera.
+
+Un valor que cotice en una divisa distinta del euro DEBE entregarse convertido, con el mismo tipo contrastable con el que se valoran los movimientos. NO DEBE descartarse por no cotizar en euros: la mitad de la renta variable de una cartera española cotiza en dólares, y descartarla la deja sin valor de mercado sin que nada lo explique.
+
+Cuando el precio de un activo no se pueda obtener, los demás DEBEN obtenerse igualmente. Un fallo NO PUEDE dejar sin precio a una clase entera.
 
 #### Scenario: Precios de las dos clases
 
@@ -85,6 +103,21 @@ El sistema DEBE obtener precios de criptomonedas y de renta variable, cada uno d
 
 - **WHEN** la cartera tiene una posición de una clase para la que no hay proveedor de precios
 - **THEN** la posición se muestra con su cantidad y su coste medio, indicando que el valor de mercado no está disponible
+
+#### Scenario: Valor cotizado en dólares
+
+- **WHEN** se pide el precio de un valor que cotiza en una divisa distinta del euro
+- **THEN** el sistema lo devuelve convertido a euros, y no lo descarta
+
+#### Scenario: Un valor falla y los demás no
+
+- **WHEN** el proveedor no puede dar el precio de uno de los valores pedidos
+- **THEN** los demás se devuelven igualmente
+
+#### Scenario: Sin tipo de cambio para convertir
+
+- **WHEN** no hay tipo de cambio con el que convertir el precio de un valor
+- **THEN** ese valor se queda sin precio y lo dice, en lugar de entregar una cifra en otra divisa como si fuera en euros
 
 ### Requirement: Conversión del símbolo del bróker al del proveedor
 
@@ -149,6 +182,8 @@ Cada precio DEBE mostrarse junto al instante al que corresponde, y la página DE
 
 Los precios se DEBEN pedir al abrir la página y cuando el usuario los refresque explícitamente. El sistema NO DEBE refrescarlos por su cuenta de forma periódica.
 
+Esto vale para **cualquier** pantalla que muestre precios, no sólo para la cartera. Una pantalla que los enseñe y no deje volver a pedirlos obliga a recargar el navegador entero para saber si han cambiado.
+
 Las capas gratuitas de los proveedores tienen límites, y una cartera se consulta de vez en cuando: refrescar sola consumiría cuota sin cambiar ninguna decisión.
 
 #### Scenario: Apertura de la página
@@ -160,6 +195,11 @@ Las capas gratuitas de los proveedores tienen límites, y una cartera se consult
 
 - **WHEN** el usuario pulsa refrescar
 - **THEN** el sistema vuelve a pedir los precios y actualiza los valores y el instante
+
+#### Scenario: Refresco en la lista de seguimiento
+
+- **WHEN** el usuario está en la lista de seguimiento
+- **THEN** puede volver a pedir los precios sin recargar la página
 
 #### Scenario: Recargas seguidas
 
