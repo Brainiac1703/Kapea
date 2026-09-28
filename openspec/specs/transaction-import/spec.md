@@ -80,6 +80,8 @@ Cada movimiento importado DEBE llevar una huella estable derivada de la cuenta, 
 
 Un registro que no se puede normalizar NO DEBE abortar la ejecución. El sistema DEBE conservarlo con su contenido original y el motivo del rechazo, y DEBE permitir al usuario revisarlo y reprocesarlo tras corregir el problema.
 
+El recuento de rechazados DEBE llegar hasta quien lanzó la importación, también cuando la lanza una sincronización automática. Guardarlo sólo en la ejecución no basta: una sincronización que rechaza registros y se declara terminada sin fallo esconde una pérdida de datos que nadie va a buscar. Un rechazo que no se ve tarda meses en descubrirse, y para entonces las cifras llevan meses mal.
+
 #### Scenario: Fila ilegible en un fichero
 
 - **WHEN** una fila del fichero de origen no se puede interpretar
@@ -89,6 +91,16 @@ Un registro que no se puede normalizar NO DEBE abortar la ejecución. El sistema
 
 - **WHEN** el usuario reprocesa los registros rechazados de una ejecución tras corregir la causa
 - **THEN** los que ya se pueden normalizar se importan y los que siguen fallando conservan su estado de rechazo con el motivo actualizado
+
+#### Scenario: Rechazos en una sincronización automática
+
+- **WHEN** una sincronización programada o lanzada a mano deja registros rechazados
+- **THEN** su recuento aparece en lo que la sincronización informa, en lugar de declararse terminada sin más
+
+#### Scenario: Sincronización limpia
+
+- **WHEN** una sincronización no rechaza ningún registro
+- **THEN** no se avisa de rechazos, para que el aviso signifique algo cuando aparezca
 
 ### Requirement: Detección de traspasos entre cuentas propias
 
@@ -132,12 +144,26 @@ El usuario DEBE poder eliminar una ejecución completa junto con los movimientos
 
 ### Requirement: Sincronización periódica de los adaptadores de API
 
-Los adaptadores de origen API DEBEN sincronizarse de forma programada desde el servidor, importando desde el instante de la última importación correcta de esa cuenta. Una sincronización solapada de la misma cuenta NO DEBE ejecutarse en paralelo.
+Los adaptadores de origen API DEBEN sincronizarse de forma programada desde el servidor, importando desde la fecha del último movimiento que la cuenta ya tiene. Una sincronización solapada de la misma cuenta NO DEBE ejecutarse en paralelo.
+
+El punto de partida NO DEBE ser el instante en que corrió la ejecución anterior. Una plataforma puede publicar un movimiento después de que ocurriera, o con el reloj desfasado: su fecha queda entonces por debajo de ese instante y aparece más tarde, así que partir de ahí lo deja fuera para siempre y sin rastro. Partir del último movimiento conocido hace que lo que llega tarde entre igual; lo que se relea de más se descarta por duplicado, que es un coste acotado frente a una pérdida definitiva.
+
+Una cuenta sin ningún movimiento DEBE pedirse desde el principio del histórico.
 
 #### Scenario: Sincronización incremental
 
 - **WHEN** se dispara la sincronización programada de una cuenta ya sincronizada antes
-- **THEN** el sistema solicita a la plataforma solo los movimientos posteriores al instante de la última importación correcta
+- **THEN** el sistema solicita a la plataforma los movimientos posteriores al último que ya tiene
+
+#### Scenario: Movimiento publicado con retraso
+
+- **WHEN** la plataforma entrega un movimiento cuya fecha es anterior a la hora en que corrió la ejecución previa
+- **THEN** la siguiente sincronización lo importa igualmente, en lugar de dejarlo fuera para siempre
+
+#### Scenario: Cuenta sin movimientos
+
+- **WHEN** se sincroniza una cuenta que no tiene ningún movimiento importado
+- **THEN** se pide desde el principio del histórico
 
 #### Scenario: Ejecución solapada
 
@@ -147,7 +173,7 @@ Los adaptadores de origen API DEBEN sincronizarse de forma programada desde el s
 #### Scenario: Plataforma no disponible
 
 - **WHEN** la plataforma no responde o devuelve un error temporal
-- **THEN** el sistema reintenta con espera creciente y, si agota los reintentos, deja la ejecución en estado fallido sin alterar el instante de última importación correcta
+- **THEN** el sistema reintenta con espera creciente y, si agota los reintentos, deja la ejecución en estado fallido sin alterar el punto desde el que parte la siguiente
 
 ### Requirement: Un movimiento anulado no vuelve al reimportar
 

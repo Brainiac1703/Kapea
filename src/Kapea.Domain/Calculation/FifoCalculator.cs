@@ -17,6 +17,23 @@ namespace Kapea.Domain.Calculation;
 /// </remarks>
 public static class FifoCalculator
 {
+    /// <summary>
+    /// Cuánto puede faltar en una venta antes de considerarla un descuadre.
+    /// </summary>
+    /// <remarks>
+    /// Relativo a lo vendido y no absoluto, que es lo que separa un redondeo de un
+    /// descuadre de verdad: la misma cantidad que es ruido frente a una posición grande
+    /// puede ser la mitad de una pequeña.
+    ///
+    /// Una millonésima porque hay dos órdenes de magnitud que separar y entre ellos
+    /// sobran seis. Las cantidades se guardan con ocho decimales, así que el redondeo de
+    /// una plataforma al vender una posición entera vive en 1e-8: en el caso que motivó
+    /// esto faltaba 1e-8 sobre 0,95674537, una proporción de 1,05e-8. Un descuadre real
+    /// —una compra que no se importó— es una fracción apreciable de la posición, por
+    /// ciento y no por millón.
+    /// </remarks>
+    private const decimal DisposalTolerance = 0.000001m;
+
     public static AssetCalculationResult Calculate(
         UserId userId,
         Guid assetId,
@@ -139,7 +156,12 @@ public static class FifoCalculator
     {
         var available = TotalRemaining(openLots);
 
-        if (available < valued.Quantity)
+        // Las plataformas redondean al vender una posición entera, y su cifra no siempre
+        // coincide al último decimal con la suma de lo que vendieron. Rechazar la venta
+        // por eso deja el activo en cartera para siempre y el ejercicio sin un resultado
+        // que sí ocurrió; aceptarla sin mirar taparía un descuadre de verdad. Lo que los
+        // separa es la proporción, no el tamaño.
+        if (available < valued.Quantity && !IsRounding(valued.Quantity - available, valued.Quantity))
         {
             inconsistencies.Add(new CalculationInconsistency(
                 userId,
@@ -152,11 +174,21 @@ public static class FifoCalculator
             return;
         }
 
+        // Se dispone de lo que hay. Registrar la cantidad del movimiento dejaría un
+        // resultado que dice haber vendido más de lo que desglosa por lote, y es el
+        // desglose lo que hace el cálculo auditable.
+        var disposed = available < valued.Quantity ? available : valued.Quantity;
+
         // El importe de transmisión es lo recibido menos la comisión de venta. La comisión
         // se reparte entre los lotes consumidos en proporción a la cantidad de cada uno.
+        //
+        // El importe no se toca: ese dinero se recibió de verdad y por esta posición.
+        // Recortarlo en proporción a la cienmillonésima que no se consume introduciría
+        // una diferencia entre lo que la plataforma ingresó y lo que Kapea dice haber
+        // obtenido, que es peor que la diferencia de cantidad que se está tolerando.
         var netProceeds = valued.GrossAmountInEuros - valued.FeeInEuros;
         var consumed = new List<ConsumedLot>();
-        var pending = valued.Quantity;
+        var pending = disposed;
         var totalCost = Money.Euros(0m);
         var allocatedProceeds = Money.Euros(0m);
 
@@ -169,7 +201,7 @@ public static class FifoCalculator
 
             var take = Quantity.Min(pending, lot.RemainingQuantity);
             var cost = lot.Consume(take);
-            var share = netProceeds * take.Value / valued.Quantity.Value;
+            var share = netProceeds * take.Value / disposed.Value;
 
             consumed.Add(new ConsumedLot(lot.Id, lot.AcquisitionTransactionId, lot.AcquiredAt, take, cost, share));
             totalCost += cost;
@@ -191,11 +223,15 @@ public static class FifoCalculator
             valued.Transaction.Id,
             valued.Transaction.AccountId,
             valued.OccurredAt,
-            valued.Quantity,
+            disposed,
             netProceeds,
             totalCost,
             consumed));
     }
+
+    /// <summary>Lo que falta es el redondeo de la plataforma y no un descuadre.</summary>
+    private static bool IsRounding(Quantity missing, Quantity sold) =>
+        sold.Value > 0m && missing.Value <= sold.Value * DisposalTolerance;
 
     private static void Transfer(
         UserId userId,
