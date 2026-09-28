@@ -74,6 +74,17 @@
     <FluentMessageBar Intent="MessageIntent.Warning" AllowDismiss="true">@_notice</FluentMessageBar>
 }
 
+@* El precio se pide al cargar y no se refresca solo: las capas gratuitas de los
+   proveedores tienen límite. Este botón es la otra mitad, la de volver a pedirlo sin
+   recargar el navegador entero. *@
+<FluentToolbar>
+    <FluentButton IconStart="@(new Icons.Regular.Size16.ArrowClockwise())"
+                  Disabled="@_working"
+                  OnClick="ReloadAsync">
+        @Ui["Watchlist_Refresh"]
+    </FluentButton>
+</FluentToolbar>
+
 @if (_assets is null)
 {
     <FluentProgressRing />

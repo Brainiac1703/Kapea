@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="bunit" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
@@ -17,6 +18,12 @@
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <!-- bUnit renderiza componentes Razor, así que las pruebas de este proyecto son
+         también ficheros .razor cuando toca. -->
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Kapea.Client\Kapea.Client.csproj" />

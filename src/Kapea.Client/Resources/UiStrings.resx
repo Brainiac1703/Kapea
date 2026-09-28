@@ -1735,6 +1735,9 @@
   <data name="Profiles_SheetHelp" xml:space="preserve">
     <value>Nombre de la hoja del libro que lee este perfil. Déjalo en blanco si vale cualquiera o si el fichero no tiene hojas.</value>
   </data>
+  <data name="Watchlist_Refresh" xml:space="preserve">
+    <value>Actualizar precios</value>
+  </data>
   <data name="Watchlist_Title" xml:space="preserve">
     <value>Seguimiento</value>
   </data>
