@@ -274,7 +274,34 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
     }
 
     [Fact]
-    public async Task The_last_movement_of_one_account_does_not_leak_into_another()
+    public async Task A_synchronisation_that_rejects_records_says_so()
+    {
+        // Un rechazo que no se ve es una pérdida de datos silenciosa: así estuvo casi
+        // año y medio perdiendo ventas de una plataforma sin que nada lo dijera.
+        var world = await NewWorldAsync();
+
+        var report = await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Unreadable("TX-MALO")]));
+
+        var result = Assert.Single(world.Mine(report));
+
+        Assert.Equal(1, result.RejectedRecords);
+        Assert.Equal(0, result.ImportedRecords);
+        Assert.Equal(1, report.RejectedRecords);
+    }
+
+    [Fact]
+    public async Task A_clean_synchronisation_reports_no_rejections()
+    {
+        // Para que el aviso signifique algo cuando aparezca.
+        var world = await NewWorldAsync();
+
+        var report = await RunAsync(world, new RecordingAdapter(PlatformCode.Kraken, [Buy("TX-1")]));
+
+        Assert.Equal(0, report.RejectedRecords);
+    }
+
+    [Fact]
+        public async Task The_last_movement_of_one_account_does_not_leak_into_another()
     {
         // La consulta es por cuenta: si mirara la tabla entera, una cuenta sin movimientos
         // heredaría la fecha de otra y dejaría de pedir su propio histórico.
@@ -325,6 +352,10 @@ public class SynchronizationServiceTests(SqlServerFixture fixture)
         return BrokerCredential.Register(
             owner, account.Id, account.Platform, account.Platform.ToString(), name, CredentialScopes.Read, Now);
     }
+
+    /// <summary>Una compra sin activo, que es lo que el validador no puede aceptar.</summary>
+    private static ImportRecord Unreadable(string naturalId) =>
+        Buy(naturalId) with { AssetSymbol = null, AssetClass = null, Quantity = 0m };
 
     private static ImportRecord Buy(string naturalId) =>
         new(

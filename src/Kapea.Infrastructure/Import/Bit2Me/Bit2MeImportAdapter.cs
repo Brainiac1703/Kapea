@@ -207,9 +207,7 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
         // Cuando sí viene en euros es lo que se pagó, y manda sobre cualquier cálculo:
         // multiplicar la cantidad por el cambio da una cifra parecida pero no la real, y
         // una compra de cien euros dejaría de costar cien euros.
-        decimal? paidInEuros = transaction.Denomination is { } denomination && IsEuro(denomination.Currency)
-            ? denomination.Value
-            : null;
+        var paidInEuros = Euros(transaction.Denomination);
 
         if (candidates.Contains("SWAP") && transaction.Origin is { } origin && transaction.Destination is { } destination)
         {
@@ -233,12 +231,24 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
             .Select(MapOperation)
             .FirstOrDefault(mapped => mapped != TransactionType.Unknown, TransactionType.Unknown);
 
-        var amount = transaction.Destination ?? transaction.Origin ?? transaction.Denomination;
+        // De qué lado sale el activo depende de hacia dónde va el dinero. En una compra
+        // el activo es lo que entra, y por eso manda el destino. En una venta es lo que
+        // sale: tomar el destino dejaba la venta con los euros, es decir sin activo y con
+        // cantidad cero, y el validador la rechazaba con razón. Se perdía en silencio.
+        var amount = type == TransactionType.Sell
+            ? transaction.Origin ?? transaction.Denomination
+            : transaction.Destination ?? transaction.Origin ?? transaction.Denomination;
 
         if (amount is null)
         {
             return [];
         }
+
+        // Y el importe en euros sale del lado contrario, el del dinero, cuando
+        // «denomination» no viene en euros. En una venta viene en la moneda del activo,
+        // así que sin esto el ingreso real se perdía y había que estimarlo multiplicando
+        // por el cambio publicado, que da una cifra mayor que la que llegó a la cuenta.
+        paidInEuros ??= Euros(type == TransactionType.Sell ? transaction.Destination : transaction.Origin);
 
         var euros = paidInEuros ?? amount.ValueInEuros ?? 0m;
         var leg = Leg(type, amount, euros, transaction.Id, spread: Spread(type, amount, paidInEuros));
@@ -291,9 +301,17 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
                 AssetClass: isFiat ? null : AssetClass.Crypto,
                 Quantity: isFiat ? 0m : Math.Abs(amount.Value),
                 UnitPrice: null,
-                // El diferencial sale del bruto y entra en la comisión: lo pagado no
-                // cambia, pero se ve cuánto de ello se quedó la plataforma.
-                GrossAmount: (isFiat ? Math.Abs(amount.Value) : Math.Abs(euros)) - spread,
+                // El diferencial sale del bruto y entra en la comisión: lo que de verdad
+                // entró o salió de la cuenta no cambia, pero se ve cuánto de ello se
+                // quedó la plataforma.
+                //
+                // El signo depende del tipo porque el cálculo del resultado lo trata al
+                // revés: el coste de una compra es bruto más comisión, y lo obtenido en
+                // una venta es bruto menos comisión. Restarlo en los dos casos dejaba la
+                // venta con un ingreso menor que el recibido, y el doble del diferencial
+                // de error en el resultado del ejercicio.
+                GrossAmount: (isFiat ? Math.Abs(amount.Value) : Math.Abs(euros))
+                    + (type == TransactionType.Sell ? spread : -spread),
                 Currency: isFiat ? Currency.FromCode(amount.Currency) : Currency.Euro,
                 Fee: spread + (transaction.NetworkFee is { } fee ? Math.Abs(fee.Value) : 0m),
                 Withholding: null,
@@ -420,4 +438,14 @@ public sealed class Bit2MeImportAdapter(Bit2MeApiClient client, ILogger<Bit2MeIm
     };
 
     private static bool IsEuro(string currency) => string.Equals(currency, "EUR", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Lo que vale un lado del movimiento, sólo si ya viene en euros.</summary>
+    /// <remarks>
+    /// Sin convertir a propósito: lo que interesa de este dato es que sea el importe
+    /// real, el que entró o salió de la cuenta. Un lado en otra divisa se valora con su
+    /// cambio en otro sitio, y mezclar las dos cosas convertiría una estimación en un
+    /// importe que parece exacto.
+    /// </remarks>
+    private static decimal? Euros(Bit2MeAmount? side) =>
+        side is { } amount && IsEuro(amount.Currency) ? amount.Value : null;
 }

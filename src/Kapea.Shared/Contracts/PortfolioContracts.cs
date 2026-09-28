@@ -354,12 +354,21 @@ public sealed record ImportPreviewResponse(ImportRunResponse Run, IReadOnlyList<
 public sealed record ReinterpretationResponse(int Reclassified, int StillUnknown, int NotSupported);
 
 /// <summary>Qué ha dado una sincronización lanzada a mano.</summary>
+/// <param name="Rejected">
+/// Movimientos que llegaron y no se pudieron interpretar.
+/// </param>
+/// <remarks>
+/// El recuento de rechazados va aparte de los problemas porque no es un fallo de la
+/// plataforma sino de la interpretación, y porque hay que poder decirlo con un texto
+/// traducido en lugar de con el mensaje que venga del servidor.
+/// </remarks>
 public sealed record SynchronizationResponse(
     int Accounts,
     int Imported,
     int Failed,
     int NewRecords,
-    IReadOnlyList<string> Problems);
+    IReadOnlyList<string> Problems,
+    int Rejected = 0);
 
 /// <summary>
 /// Una página de movimientos con lo que hace falta para navegarlos.

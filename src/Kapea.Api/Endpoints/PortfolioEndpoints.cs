@@ -538,7 +538,8 @@ public static class PortfolioEndpoints
                 report.Results.Sum(result => result.ImportedRecords),
                 [.. report.Results
                     .Where(result => result.Detail is { Length: > 0 })
-                    .Select(result => $"{result.Platform}: {result.Detail}")]));
+                    .Select(result => $"{result.Platform}: {result.Detail}")],
+                report.RejectedRecords));
         });
 
         // Relee lo que quedó sin clasificar con las reglas de hoy. No pide nada a la

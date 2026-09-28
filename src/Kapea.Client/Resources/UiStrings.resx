@@ -1738,6 +1738,9 @@
   <data name="Watchlist_Refresh" xml:space="preserve">
     <value>Actualizar precios</value>
   </data>
+  <data name="Credentials_SyncRejected" xml:space="preserve">
+    <value>{0} movimientos han llegado y no se han podido interpretar, así que no están en la cartera. Búscalos en la importación para ver por qué.</value>
+  </data>
   <data name="Watchlist_WithoutQuote" xml:space="preserve">
     <value>Añadido, pero ningún proveedor da su precio de ahora, así que aparecerá sin precio. Búscalo por su nombre y añádelo desde los resultados: así Kapea aprende con qué identificador pedirlo.</value>
   </data>

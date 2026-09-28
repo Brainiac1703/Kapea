@@ -1738,6 +1738,9 @@
   <data name="Watchlist_Refresh" xml:space="preserve">
     <value>Refresh prices</value>
   </data>
+  <data name="Credentials_SyncRejected" xml:space="preserve">
+    <value>{0} movements arrived and could not be interpreted, so they are not in the portfolio. Look them up in the import to see why.</value>
+  </data>
   <data name="Watchlist_WithoutQuote" xml:space="preserve">
     <value>Added, but no provider gives its current price, so it will show without one. Search for it by name and add it from the results: that way Kapea learns which identifier to ask for.</value>
   </data>

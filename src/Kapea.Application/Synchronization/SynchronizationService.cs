@@ -22,13 +22,23 @@ public enum SynchronizationOutcome
 }
 
 /// <param name="Owner">De quién es la cuenta. Hace falta para rehacer su cartera después.</param>
+/// <param name="RejectedRecords">
+/// Movimientos que llegaron y no se pudieron interpretar.
+/// </param>
+/// <remarks>
+/// Los rechazados viajan con el resultado porque si sólo quedan guardados en la
+/// ejecución, nadie los mira. Una sincronización que rechaza movimientos y se declara
+/// terminada sin fallo esconde una pérdida de datos: así estuvo casi año y medio
+/// perdiendo ventas de una plataforma sin que nada lo dijera.
+/// </remarks>
 public sealed record AccountSynchronizationResult(
     Guid AccountId,
     PlatformCode Platform,
     SynchronizationOutcome Outcome,
     int ImportedRecords,
     string? Detail,
-    Domain.ValueObjects.UserId Owner = default);
+    Domain.ValueObjects.UserId Owner = default,
+    int RejectedRecords = 0);
 
 public sealed record SynchronizationReport(IReadOnlyList<AccountSynchronizationResult> Results)
 {
@@ -36,6 +46,9 @@ public sealed record SynchronizationReport(IReadOnlyList<AccountSynchronizationR
 
     public int FailedAccounts => Results.Count(result =>
         result.Outcome is SynchronizationOutcome.Failed or SynchronizationOutcome.CredentialInvalid);
+
+    /// <summary>Movimientos que llegaron y no se pudieron interpretar, de todas las cuentas.</summary>
+    public int RejectedRecords => Results.Sum(result => result.RejectedRecords);
 }
 
 /// <summary>
@@ -233,12 +246,13 @@ public sealed class SynchronizationService(
         target.Credential.MarkSynchronized(to);
 
         logger.LogInformation(
-            "Cuenta {Cuenta} sincronizada: {Importados} movimientos nuevos y {Duplicados} duplicados descartados.",
-            account.Id, confirmed.RecordsImported, confirmed.DuplicatesDiscarded);
+            "Cuenta {Cuenta} sincronizada: {Importados} movimientos nuevos, {Duplicados} duplicados "
+            + "descartados y {Rechazados} rechazados.",
+            account.Id, confirmed.RecordsImported, confirmed.DuplicatesDiscarded, confirmed.RecordsRejected);
 
         return new AccountSynchronizationResult(
             account.Id, account.Platform, SynchronizationOutcome.Imported, confirmed.RecordsImported,
-            null, account.UserId);
+            null, account.UserId, confirmed.RecordsRejected);
     }
 
     /// <summary>
