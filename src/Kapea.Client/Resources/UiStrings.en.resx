@@ -1738,6 +1738,12 @@
   <data name="Watchlist_Refresh" xml:space="preserve">
     <value>Refresh prices</value>
   </data>
+  <data name="Watchlist_WithoutQuote" xml:space="preserve">
+    <value>Added, but no provider gives its current price, so it will show without one. Search for it by name and add it from the results: that way Kapea learns which identifier to ask for.</value>
+  </data>
+  <data name="Watchlist_WithoutSeries" xml:space="preserve">
+    <value>Added, but no provider gives its history, so it will have no chart or indicators until one does.</value>
+  </data>
   <data name="Watchlist_Title" xml:space="preserve">
     <value>Watchlist</value>
   </data>

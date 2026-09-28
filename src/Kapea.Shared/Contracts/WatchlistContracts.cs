@@ -26,14 +26,25 @@ public sealed record WatchAssetRequest(string Symbol, string AssetClass);
 /// Resultado de añadir un activo al seguimiento.
 /// </summary>
 /// <param name="AlreadyWatched">Ya estaba en la lista; no se ha duplicado.</param>
-/// <param name="HasPrices">
-/// Algún proveedor da precios de este activo. Cuando es falso el activo se añade
-/// igualmente, pero no tendrá precio ni señales hasta que los haya.
+/// <param name="HasSeries">
+/// Algún proveedor da el histórico: habrá gráfica e indicadores.
 /// </param>
+/// <param name="HasQuote">
+/// Algún proveedor da el precio de ahora: aparecerá en la columna de precio.
+/// </param>
+/// <remarks>
+/// Dos y no uno porque son proveedores distintos y su cobertura no coincide. Un solo
+/// indicador podía acertar y engañar a la vez: un activo con años de histórico y sin
+/// cotización pasaba como cubierto y aparecía en la lista sin precio.
+///
+/// El activo se añade igualmente falte lo que falte; lo que cambia es de qué se avisa,
+/// porque el remedio no es el mismo.
+/// </remarks>
 public sealed record WatchAssetResponse(
     WatchedAssetResponse Asset,
     bool AlreadyWatched,
-    bool HasPrices);
+    bool HasSeries,
+    bool HasQuote);
 
 /// <summary>Un activo encontrado al buscar, con lo necesario para reconocerlo y elegirlo.</summary>
 public sealed record AssetSearchResultResponse(

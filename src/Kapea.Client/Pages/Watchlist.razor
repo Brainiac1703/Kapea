@@ -275,13 +275,26 @@ else
         }
     }
 
-    /// <summary>Lo que hay que decirle al usuario justo después de añadir.</summary>
-    private string Notice(WatchAssetResponse added) => (added.AlreadyWatched, added.HasPrices) switch
-    {
-        (true, _) => Ui["Watchlist_Already"],
-        (_, false) => Ui["Watchlist_WithoutPrices"],
-        _ => string.Empty,
-    };
+    /// <summary>
+    /// Lo que hay que decirle al usuario justo después de añadir.
+    /// </summary>
+    /// <remarks>
+    /// Falta serie y falta cotización no son lo mismo y no se remedian igual, así que
+    /// no valía un aviso único: sin cotización suele bastar con volver a añadirlo desde
+    /// la búsqueda, y sin serie no hay nada que hacer desde aquí.
+    ///
+    /// El switch vive en el código y no en el marcado porque el escáner de literales
+    /// falla con control de flujo dentro del marcado Razor.
+    /// </remarks>
+    private string Notice(WatchAssetResponse added) =>
+        (added.AlreadyWatched, added.HasSeries, added.HasQuote) switch
+        {
+            (true, _, _) => Ui["Watchlist_Already"],
+            (_, false, false) => Ui["Watchlist_WithoutPrices"],
+            (_, true, false) => Ui["Watchlist_WithoutQuote"],
+            (_, false, true) => Ui["Watchlist_WithoutSeries"],
+            _ => string.Empty,
+        };
 
     private string PriceMoment(WatchedAssetResponse asset) =>
         asset.PriceAsOf is { } day
